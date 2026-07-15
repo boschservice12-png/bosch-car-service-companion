@@ -13,6 +13,7 @@ import { Route as ClientRouteImport } from './routes/client'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClientIndexRouteImport } from './routes/client.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ClientTaxeRouteImport } from './routes/client.taxe'
 import { Route as ClientRovinietaRouteImport } from './routes/client.rovinieta'
 import { Route as ClientRcaRouteImport } from './routes/client.rca'
@@ -25,6 +26,10 @@ import { Route as ClientIstoricRouteImport } from './routes/client.istoric'
 import { Route as ClientDosarDaunaRouteImport } from './routes/client.dosar-dauna'
 import { Route as ClientAsistentaRutieraRouteImport } from './routes/client.asistenta-rutiera'
 import { Route as ClientAsistentaRouteImport } from './routes/client.asistenta'
+import { Route as AdminVehiculeRouteImport } from './routes/admin.vehicule'
+import { Route as AdminScadenteRouteImport } from './routes/admin.scadente'
+import { Route as AdminIstoricRouteImport } from './routes/admin.istoric'
+import { Route as AdminClientiRouteImport } from './routes/admin.clienti'
 
 const ClientRoute = ClientRouteImport.update({
   id: '/client',
@@ -45,6 +50,11 @@ const ClientIndexRoute = ClientIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ClientRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const ClientTaxeRoute = ClientTaxeRouteImport.update({
   id: '/taxe',
@@ -106,11 +116,35 @@ const ClientAsistentaRoute = ClientAsistentaRouteImport.update({
   path: '/asistenta',
   getParentRoute: () => ClientRoute,
 } as any)
+const AdminVehiculeRoute = AdminVehiculeRouteImport.update({
+  id: '/vehicule',
+  path: '/vehicule',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminScadenteRoute = AdminScadenteRouteImport.update({
+  id: '/scadente',
+  path: '/scadente',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIstoricRoute = AdminIstoricRouteImport.update({
+  id: '/istoric',
+  path: '/istoric',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminClientiRoute = AdminClientiRouteImport.update({
+  id: '/clienti',
+  path: '/clienti',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/client': typeof ClientRouteWithChildren
+  '/admin/clienti': typeof AdminClientiRoute
+  '/admin/istoric': typeof AdminIstoricRoute
+  '/admin/scadente': typeof AdminScadenteRoute
+  '/admin/vehicule': typeof AdminVehiculeRoute
   '/client/asistenta': typeof ClientAsistentaRoute
   '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
   '/client/dosar-dauna': typeof ClientDosarDaunaRoute
@@ -123,11 +157,15 @@ export interface FileRoutesByFullPath {
   '/client/rca': typeof ClientRcaRoute
   '/client/rovinieta': typeof ClientRovinietaRoute
   '/client/taxe': typeof ClientTaxeRoute
+  '/admin/': typeof AdminIndexRoute
   '/client/': typeof ClientIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin/clienti': typeof AdminClientiRoute
+  '/admin/istoric': typeof AdminIstoricRoute
+  '/admin/scadente': typeof AdminScadenteRoute
+  '/admin/vehicule': typeof AdminVehiculeRoute
   '/client/asistenta': typeof ClientAsistentaRoute
   '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
   '/client/dosar-dauna': typeof ClientDosarDaunaRoute
@@ -140,13 +178,18 @@ export interface FileRoutesByTo {
   '/client/rca': typeof ClientRcaRoute
   '/client/rovinieta': typeof ClientRovinietaRoute
   '/client/taxe': typeof ClientTaxeRoute
+  '/admin': typeof AdminIndexRoute
   '/client': typeof ClientIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/client': typeof ClientRouteWithChildren
+  '/admin/clienti': typeof AdminClientiRoute
+  '/admin/istoric': typeof AdminIstoricRoute
+  '/admin/scadente': typeof AdminScadenteRoute
+  '/admin/vehicule': typeof AdminVehiculeRoute
   '/client/asistenta': typeof ClientAsistentaRoute
   '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
   '/client/dosar-dauna': typeof ClientDosarDaunaRoute
@@ -159,6 +202,7 @@ export interface FileRoutesById {
   '/client/rca': typeof ClientRcaRoute
   '/client/rovinieta': typeof ClientRovinietaRoute
   '/client/taxe': typeof ClientTaxeRoute
+  '/admin/': typeof AdminIndexRoute
   '/client/': typeof ClientIndexRoute
 }
 export interface FileRouteTypes {
@@ -167,6 +211,10 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/client'
+    | '/admin/clienti'
+    | '/admin/istoric'
+    | '/admin/scadente'
+    | '/admin/vehicule'
     | '/client/asistenta'
     | '/client/asistenta-rutiera'
     | '/client/dosar-dauna'
@@ -179,11 +227,15 @@ export interface FileRouteTypes {
     | '/client/rca'
     | '/client/rovinieta'
     | '/client/taxe'
+    | '/admin/'
     | '/client/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
+    | '/admin/clienti'
+    | '/admin/istoric'
+    | '/admin/scadente'
+    | '/admin/vehicule'
     | '/client/asistenta'
     | '/client/asistenta-rutiera'
     | '/client/dosar-dauna'
@@ -196,12 +248,17 @@ export interface FileRouteTypes {
     | '/client/rca'
     | '/client/rovinieta'
     | '/client/taxe'
+    | '/admin'
     | '/client'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/client'
+    | '/admin/clienti'
+    | '/admin/istoric'
+    | '/admin/scadente'
+    | '/admin/vehicule'
     | '/client/asistenta'
     | '/client/asistenta-rutiera'
     | '/client/dosar-dauna'
@@ -214,12 +271,13 @@ export interface FileRouteTypes {
     | '/client/rca'
     | '/client/rovinieta'
     | '/client/taxe'
+    | '/admin/'
     | '/client/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   ClientRoute: typeof ClientRouteWithChildren
 }
 
@@ -252,6 +310,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/client/'
       preLoaderRoute: typeof ClientIndexRouteImport
       parentRoute: typeof ClientRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/client/taxe': {
       id: '/client/taxe'
@@ -337,8 +402,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientAsistentaRouteImport
       parentRoute: typeof ClientRoute
     }
+    '/admin/vehicule': {
+      id: '/admin/vehicule'
+      path: '/vehicule'
+      fullPath: '/admin/vehicule'
+      preLoaderRoute: typeof AdminVehiculeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/scadente': {
+      id: '/admin/scadente'
+      path: '/scadente'
+      fullPath: '/admin/scadente'
+      preLoaderRoute: typeof AdminScadenteRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/istoric': {
+      id: '/admin/istoric'
+      path: '/istoric'
+      fullPath: '/admin/istoric'
+      preLoaderRoute: typeof AdminIstoricRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/clienti': {
+      id: '/admin/clienti'
+      path: '/clienti'
+      fullPath: '/admin/clienti'
+      preLoaderRoute: typeof AdminClientiRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminClientiRoute: typeof AdminClientiRoute
+  AdminIstoricRoute: typeof AdminIstoricRoute
+  AdminScadenteRoute: typeof AdminScadenteRoute
+  AdminVehiculeRoute: typeof AdminVehiculeRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminClientiRoute: AdminClientiRoute,
+  AdminIstoricRoute: AdminIstoricRoute,
+  AdminScadenteRoute: AdminScadenteRoute,
+  AdminVehiculeRoute: AdminVehiculeRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface ClientRouteChildren {
   ClientAsistentaRoute: typeof ClientAsistentaRoute
@@ -377,7 +488,7 @@ const ClientRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   ClientRoute: ClientRouteWithChildren,
 }
 export const routeTree = rootRouteImport
