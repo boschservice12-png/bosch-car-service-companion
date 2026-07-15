@@ -1,0 +1,454 @@
+openapi: 3.1.0
+info:
+  title: Bosch Car Service Companion API
+  version: 0.1.0
+  description: >
+    API REST pentru aplicația client (PWA) și portalul service (single-tenant).
+    Toate mesajele orientate spre utilizator sunt în limba română.
+    Erorile folosesc un format standardizat (application/problem+json).
+servers:
+  - url: https://localhost/api
+    description: Local (Nginx + HTTPS)
+tags:
+  - { name: Auth }
+  - { name: Me }
+  - { name: Vehicles }
+  - { name: Deadlines }
+  - { name: ServiceHistory }
+  - { name: QuoteRequests }
+  - { name: RoadsideRequests }
+  - { name: MobilityRequests }
+  - { name: DamageClaimRequests }
+  - { name: Conversations }
+  - { name: Taxes }
+  - { name: Documents }
+  - { name: Settings }
+  - { name: System }
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Liveness
+      security: []
+      responses:
+        '200': { description: OK }
+  /health/ready:
+    get:
+      tags: [System]
+      summary: Readiness (DB, Redis, storage)
+      security: []
+      responses:
+        '200': { description: Ready }
+        '503': { $ref: '#/components/responses/Error' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Autentificare cu email + parolă
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200': { description: Autentificat }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Înregistrare client (email + parolă + consimțământ)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201': { description: Cont creat }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/request-code:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Solicită cod OTP (dacă furnizorul e activ)
+      responses:
+        '202': { description: Cod trimis (dacă e configurat) }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/verify-code:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Verifică codul OTP
+      responses:
+        '200': { description: Autentificat }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Deconectare
+      responses:
+        '204': { description: Deconectat }
+  /me:
+    get:
+      tags: [Me]
+      summary: Utilizatorul curent
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Me' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /vehicles:
+    get:
+      tags: [Vehicles]
+      summary: Vehiculele proprii
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Vehicle' }
+    post:
+      tags: [Vehicles]
+      summary: Adaugă vehicul
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VehicleInput' }
+      responses:
+        '201':
+          description: Creat
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vehicle' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /vehicles/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Vehicles]
+      summary: Detalii vehicul
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vehicle' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [Vehicles]
+      summary: Actualizează vehicul
+      responses:
+        '200': { description: Actualizat }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /vehicles/{id}/deadlines:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [Deadlines]
+      summary: Scadențele vehiculului (cu stare calculată)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Deadline' }
+    post:
+      tags: [Deadlines]
+      summary: Adaugă scadență
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeadlineInput' }
+      responses:
+        '201': { description: Creat }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /deadlines/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    patch:
+      tags: [Deadlines]
+      summary: Actualizează / validează scadență
+      responses:
+        '200': { description: OK }
+  /deadlines/{id}/documents:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Deadlines]
+      summary: Atașează document la scadență
+      responses:
+        '201': { description: Atașat }
+
+  /vehicles/{id}/service-history:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [ServiceHistory]
+      summary: Istoric publicat al vehiculului
+      responses:
+        '200': { description: OK }
+  /service-history/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      tags: [ServiceHistory]
+      summary: Detalii intrare istoric (doar PUBLISHED pentru client)
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Error' }
+  /admin/service-history:
+    post:
+      tags: [ServiceHistory]
+      summary: (admin) Creează intrare istoric
+      responses:
+        '201': { description: Creat }
+  /admin/service-history/{id}/corrections:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [ServiceHistory]
+      summary: (admin) Creează corecție auditabilă
+      responses:
+        '201': { description: Creat }
+
+  /quote-requests:
+    get: { tags: [QuoteRequests], summary: Listă cereri ofertă proprii, responses: { '200': { description: OK } } }
+    post:
+      tags: [QuoteRequests]
+      summary: Creează cerere ofertă
+      responses: { '201': { description: Creat }, '422': { $ref: '#/components/responses/ValidationError' } }
+  /quote-requests/{id}:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    get: { tags: [QuoteRequests], summary: Detalii cerere, responses: { '200': { description: OK }, '403': { $ref: '#/components/responses/Error' } } }
+  /admin/quote-requests/{id}/response:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    post: { tags: [QuoteRequests], summary: (admin) Răspuns la cerere, responses: { '201': { description: Creat } } }
+  /admin/quote-requests/{id}/status:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    patch: { tags: [QuoteRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK }, '409': { $ref: '#/components/responses/Error' } } }
+
+  /roadside-requests:
+    get: { tags: [RoadsideRequests], summary: Listă, responses: { '200': { description: OK } } }
+    post: { tags: [RoadsideRequests], summary: Creează solicitare roadside, responses: { '201': { description: Creat } } }
+  /admin/roadside-requests/{id}/status:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    patch: { tags: [RoadsideRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK } } }
+
+  /mobility-requests:
+    get: { tags: [MobilityRequests], summary: Listă, responses: { '200': { description: OK } } }
+    post: { tags: [MobilityRequests], summary: Creează solicitare mobilitate, responses: { '201': { description: Creat } } }
+  /admin/mobility-requests/{id}/status:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    patch: { tags: [MobilityRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK } } }
+
+  /damage-claim-requests:
+    get: { tags: [DamageClaimRequests], summary: Listă, responses: { '200': { description: OK } } }
+    post: { tags: [DamageClaimRequests], summary: Creează dosar de daună, responses: { '201': { description: Creat } } }
+  /admin/damage-claim-requests/{id}/status:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    patch: { tags: [DamageClaimRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK } } }
+
+  /conversations:
+    get: { tags: [Conversations], summary: Listă conversații, responses: { '200': { description: OK } } }
+    post: { tags: [Conversations], summary: Inițiază conversație, responses: { '201': { description: Creat } } }
+  /conversations/{id}/messages:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    get: { tags: [Conversations], summary: Mesajele conversației, responses: { '200': { description: OK } } }
+    post: { tags: [Conversations], summary: Trimite mesaj, responses: { '201': { description: Creat }, '429': { $ref: '#/components/responses/Error' } } }
+
+  /vehicles/{id}/taxes:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    get: { tags: [Taxes], summary: Taxe vehicul, responses: { '200': { description: OK } } }
+    post: { tags: [Taxes], summary: Adaugă taxă, responses: { '201': { description: Creat } } }
+  /taxes/{id}:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    patch: { tags: [Taxes], summary: Actualizează / marchează plătită, responses: { '200': { description: OK } } }
+    delete: { tags: [Taxes], summary: Șterge taxă, responses: { '204': { description: Șters } } }
+
+  /documents:
+    post:
+      tags: [Documents]
+      summary: Încarcă document (multipart; validare MIME+extensie+dimensiune, scanare async)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Creat (scanStatus inițial PENDING)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DocumentMeta' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /documents/{id}/download-url:
+    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    get:
+      tags: [Documents]
+      summary: URL temporar semnat de descărcare (doar documente CLEAN, autorizat)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /documents/{id}/raw:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: expires, in: query, required: true, schema: { type: integer } }
+      - { name: sig, in: query, required: true, schema: { type: string } }
+    get:
+      tags: [Documents]
+      summary: Servire conținut (semnătură + expirare + autorizare la nivel de obiect)
+      responses:
+        '200': { description: Conținut binar }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /settings:
+    get:
+      tags: [Settings]
+      security: []
+      summary: Setări publice (număr WhatsApp, versiune informare confidențialitate)
+      responses:
+        '200': { description: OK }
+  /admin/settings/{key}:
+    parameters: [ { name: key, in: path, required: true, schema: { type: string } } ]
+    patch:
+      tags: [Settings]
+      summary: (admin) Actualizează o setare configurabilă
+      responses:
+        '200': { description: OK }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: BCSC_SESSION
+  security:
+    - sessionCookie: []
+  responses:
+    Error:
+      description: Eroare
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationError:
+      description: Date invalide
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          example:
+            type: validation_error
+            title: Date invalide
+            status: 422
+            errors:
+              expiresAt: ["Data expirării trebuie să fie ulterioară datei de început."]
+            traceId: "01J..."
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, traceId]
+      properties:
+        type: { type: string, example: validation_error }
+        title: { type: string, example: Date invalide }
+        status: { type: integer, example: 422 }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+        traceId: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+    Me:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        role: { type: string, enum: [CLIENT, SERVICE_ADMIN] }
+    Vehicle:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        vin: { type: string }
+        plateNumber: { type: string }
+        make: { type: string }
+        model: { type: string }
+        year: { type: integer }
+    VehicleInput:
+      type: object
+      required: [vin, plateNumber]
+      properties:
+        vin: { type: string, description: "17 caractere, normalizat uppercase" }
+        plateNumber: { type: string }
+        make: { type: string }
+        model: { type: string }
+        year: { type: integer }
+    Deadline:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [ITP, RCA, ROAD_TAX, ROADSIDE_ASSISTANCE] }
+        validFrom: { type: string, format: date }
+        expiresAt: { type: string, format: date }
+        state: { type: string, enum: [UNKNOWN, VALID, DUE_SOON, EXPIRED] }
+        source: { type: string, enum: [CLIENT, SERVICE, IMPORT] }
+    DeadlineInput:
+      type: object
+      required: [type, expiresAt]
+      properties:
+        type: { type: string, enum: [ITP, RCA, ROAD_TAX, ROADSIDE_ASSISTANCE] }
+        validFrom: { type: string, format: date }
+        expiresAt: { type: string, format: date }
+        note: { type: string }
+    RegisterRequest:
+      type: object
+      required: [email, password, consent]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        firstName: { type: string }
+        lastName: { type: string }
+        consent: { type: boolean, description: "Consimțământ GDPR — obligatoriu true" }
+    DocumentMeta:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        scanStatus: { type: string, enum: [PENDING, CLEAN, INFECTED] }
+
+security:
+  - sessionCookie: []
