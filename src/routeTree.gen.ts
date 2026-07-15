@@ -12,6 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ClientRouteImport } from './routes/client'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClientIndexRouteImport } from './routes/client.index'
+import { Route as ClientTaxeRouteImport } from './routes/client.taxe'
+import { Route as ClientRovinietaRouteImport } from './routes/client.rovinieta'
+import { Route as ClientRcaRouteImport } from './routes/client.rca'
+import { Route as ClientProfilRouteImport } from './routes/client.profil'
+import { Route as ClientOfertaRouteImport } from './routes/client.oferta'
+import { Route as ClientMobilitateRouteImport } from './routes/client.mobilitate'
+import { Route as ClientMesajeRouteImport } from './routes/client.mesaje'
+import { Route as ClientItpRouteImport } from './routes/client.itp'
+import { Route as ClientIstoricRouteImport } from './routes/client.istoric'
+import { Route as ClientDosarDaunaRouteImport } from './routes/client.dosar-dauna'
+import { Route as ClientAsistentaRutieraRouteImport } from './routes/client.asistenta-rutiera'
+import { Route as ClientAsistentaRouteImport } from './routes/client.asistenta'
 
 const ClientRoute = ClientRouteImport.update({
   id: '/client',
@@ -28,35 +41,186 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientIndexRoute = ClientIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientTaxeRoute = ClientTaxeRouteImport.update({
+  id: '/taxe',
+  path: '/taxe',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientRovinietaRoute = ClientRovinietaRouteImport.update({
+  id: '/rovinieta',
+  path: '/rovinieta',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientRcaRoute = ClientRcaRouteImport.update({
+  id: '/rca',
+  path: '/rca',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientProfilRoute = ClientProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientOfertaRoute = ClientOfertaRouteImport.update({
+  id: '/oferta',
+  path: '/oferta',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientMobilitateRoute = ClientMobilitateRouteImport.update({
+  id: '/mobilitate',
+  path: '/mobilitate',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientMesajeRoute = ClientMesajeRouteImport.update({
+  id: '/mesaje',
+  path: '/mesaje',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientItpRoute = ClientItpRouteImport.update({
+  id: '/itp',
+  path: '/itp',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientIstoricRoute = ClientIstoricRouteImport.update({
+  id: '/istoric',
+  path: '/istoric',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientDosarDaunaRoute = ClientDosarDaunaRouteImport.update({
+  id: '/dosar-dauna',
+  path: '/dosar-dauna',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientAsistentaRutieraRoute = ClientAsistentaRutieraRouteImport.update({
+  id: '/asistenta-rutiera',
+  path: '/asistenta-rutiera',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientAsistentaRoute = ClientAsistentaRouteImport.update({
+  id: '/asistenta',
+  path: '/asistenta',
+  getParentRoute: () => ClientRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/client': typeof ClientRoute
+  '/client': typeof ClientRouteWithChildren
+  '/client/asistenta': typeof ClientAsistentaRoute
+  '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
+  '/client/dosar-dauna': typeof ClientDosarDaunaRoute
+  '/client/istoric': typeof ClientIstoricRoute
+  '/client/itp': typeof ClientItpRoute
+  '/client/mesaje': typeof ClientMesajeRoute
+  '/client/mobilitate': typeof ClientMobilitateRoute
+  '/client/oferta': typeof ClientOfertaRoute
+  '/client/profil': typeof ClientProfilRoute
+  '/client/rca': typeof ClientRcaRoute
+  '/client/rovinieta': typeof ClientRovinietaRoute
+  '/client/taxe': typeof ClientTaxeRoute
+  '/client/': typeof ClientIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/client': typeof ClientRoute
+  '/client/asistenta': typeof ClientAsistentaRoute
+  '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
+  '/client/dosar-dauna': typeof ClientDosarDaunaRoute
+  '/client/istoric': typeof ClientIstoricRoute
+  '/client/itp': typeof ClientItpRoute
+  '/client/mesaje': typeof ClientMesajeRoute
+  '/client/mobilitate': typeof ClientMobilitateRoute
+  '/client/oferta': typeof ClientOfertaRoute
+  '/client/profil': typeof ClientProfilRoute
+  '/client/rca': typeof ClientRcaRoute
+  '/client/rovinieta': typeof ClientRovinietaRoute
+  '/client/taxe': typeof ClientTaxeRoute
+  '/client': typeof ClientIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/client': typeof ClientRoute
+  '/client': typeof ClientRouteWithChildren
+  '/client/asistenta': typeof ClientAsistentaRoute
+  '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
+  '/client/dosar-dauna': typeof ClientDosarDaunaRoute
+  '/client/istoric': typeof ClientIstoricRoute
+  '/client/itp': typeof ClientItpRoute
+  '/client/mesaje': typeof ClientMesajeRoute
+  '/client/mobilitate': typeof ClientMobilitateRoute
+  '/client/oferta': typeof ClientOfertaRoute
+  '/client/profil': typeof ClientProfilRoute
+  '/client/rca': typeof ClientRcaRoute
+  '/client/rovinieta': typeof ClientRovinietaRoute
+  '/client/taxe': typeof ClientTaxeRoute
+  '/client/': typeof ClientIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/client'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/client'
+    | '/client/asistenta'
+    | '/client/asistenta-rutiera'
+    | '/client/dosar-dauna'
+    | '/client/istoric'
+    | '/client/itp'
+    | '/client/mesaje'
+    | '/client/mobilitate'
+    | '/client/oferta'
+    | '/client/profil'
+    | '/client/rca'
+    | '/client/rovinieta'
+    | '/client/taxe'
+    | '/client/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/client'
-  id: '__root__' | '/' | '/admin' | '/client'
+  to:
+    | '/'
+    | '/admin'
+    | '/client/asistenta'
+    | '/client/asistenta-rutiera'
+    | '/client/dosar-dauna'
+    | '/client/istoric'
+    | '/client/itp'
+    | '/client/mesaje'
+    | '/client/mobilitate'
+    | '/client/oferta'
+    | '/client/profil'
+    | '/client/rca'
+    | '/client/rovinieta'
+    | '/client/taxe'
+    | '/client'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/client'
+    | '/client/asistenta'
+    | '/client/asistenta-rutiera'
+    | '/client/dosar-dauna'
+    | '/client/istoric'
+    | '/client/itp'
+    | '/client/mesaje'
+    | '/client/mobilitate'
+    | '/client/oferta'
+    | '/client/profil'
+    | '/client/rca'
+    | '/client/rovinieta'
+    | '/client/taxe'
+    | '/client/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  ClientRoute: typeof ClientRoute
+  ClientRoute: typeof ClientRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -82,13 +246,139 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/client/': {
+      id: '/client/'
+      path: '/'
+      fullPath: '/client/'
+      preLoaderRoute: typeof ClientIndexRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/taxe': {
+      id: '/client/taxe'
+      path: '/taxe'
+      fullPath: '/client/taxe'
+      preLoaderRoute: typeof ClientTaxeRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/rovinieta': {
+      id: '/client/rovinieta'
+      path: '/rovinieta'
+      fullPath: '/client/rovinieta'
+      preLoaderRoute: typeof ClientRovinietaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/rca': {
+      id: '/client/rca'
+      path: '/rca'
+      fullPath: '/client/rca'
+      preLoaderRoute: typeof ClientRcaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/profil': {
+      id: '/client/profil'
+      path: '/profil'
+      fullPath: '/client/profil'
+      preLoaderRoute: typeof ClientProfilRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/oferta': {
+      id: '/client/oferta'
+      path: '/oferta'
+      fullPath: '/client/oferta'
+      preLoaderRoute: typeof ClientOfertaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/mobilitate': {
+      id: '/client/mobilitate'
+      path: '/mobilitate'
+      fullPath: '/client/mobilitate'
+      preLoaderRoute: typeof ClientMobilitateRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/mesaje': {
+      id: '/client/mesaje'
+      path: '/mesaje'
+      fullPath: '/client/mesaje'
+      preLoaderRoute: typeof ClientMesajeRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/itp': {
+      id: '/client/itp'
+      path: '/itp'
+      fullPath: '/client/itp'
+      preLoaderRoute: typeof ClientItpRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/istoric': {
+      id: '/client/istoric'
+      path: '/istoric'
+      fullPath: '/client/istoric'
+      preLoaderRoute: typeof ClientIstoricRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/dosar-dauna': {
+      id: '/client/dosar-dauna'
+      path: '/dosar-dauna'
+      fullPath: '/client/dosar-dauna'
+      preLoaderRoute: typeof ClientDosarDaunaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/asistenta-rutiera': {
+      id: '/client/asistenta-rutiera'
+      path: '/asistenta-rutiera'
+      fullPath: '/client/asistenta-rutiera'
+      preLoaderRoute: typeof ClientAsistentaRutieraRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/asistenta': {
+      id: '/client/asistenta'
+      path: '/asistenta'
+      fullPath: '/client/asistenta'
+      preLoaderRoute: typeof ClientAsistentaRouteImport
+      parentRoute: typeof ClientRoute
+    }
   }
 }
+
+interface ClientRouteChildren {
+  ClientAsistentaRoute: typeof ClientAsistentaRoute
+  ClientAsistentaRutieraRoute: typeof ClientAsistentaRutieraRoute
+  ClientDosarDaunaRoute: typeof ClientDosarDaunaRoute
+  ClientIstoricRoute: typeof ClientIstoricRoute
+  ClientItpRoute: typeof ClientItpRoute
+  ClientMesajeRoute: typeof ClientMesajeRoute
+  ClientMobilitateRoute: typeof ClientMobilitateRoute
+  ClientOfertaRoute: typeof ClientOfertaRoute
+  ClientProfilRoute: typeof ClientProfilRoute
+  ClientRcaRoute: typeof ClientRcaRoute
+  ClientRovinietaRoute: typeof ClientRovinietaRoute
+  ClientTaxeRoute: typeof ClientTaxeRoute
+  ClientIndexRoute: typeof ClientIndexRoute
+}
+
+const ClientRouteChildren: ClientRouteChildren = {
+  ClientAsistentaRoute: ClientAsistentaRoute,
+  ClientAsistentaRutieraRoute: ClientAsistentaRutieraRoute,
+  ClientDosarDaunaRoute: ClientDosarDaunaRoute,
+  ClientIstoricRoute: ClientIstoricRoute,
+  ClientItpRoute: ClientItpRoute,
+  ClientMesajeRoute: ClientMesajeRoute,
+  ClientMobilitateRoute: ClientMobilitateRoute,
+  ClientOfertaRoute: ClientOfertaRoute,
+  ClientProfilRoute: ClientProfilRoute,
+  ClientRcaRoute: ClientRcaRoute,
+  ClientRovinietaRoute: ClientRovinietaRoute,
+  ClientTaxeRoute: ClientTaxeRoute,
+  ClientIndexRoute: ClientIndexRoute,
+}
+
+const ClientRouteWithChildren =
+  ClientRoute._addFileChildren(ClientRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  ClientRoute: ClientRoute,
+  ClientRoute: ClientRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
