@@ -9,38 +9,378 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ClientRouteImport } from './routes/client'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClientIndexRouteImport } from './routes/client.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as ClientTaxeRouteImport } from './routes/client.taxe'
+import { Route as ClientRovinietaRouteImport } from './routes/client.rovinieta'
+import { Route as ClientRcaRouteImport } from './routes/client.rca'
+import { Route as ClientProfilRouteImport } from './routes/client.profil'
+import { Route as ClientOfertaRouteImport } from './routes/client.oferta'
+import { Route as ClientMobilitateRouteImport } from './routes/client.mobilitate'
+import { Route as ClientMesajeRouteImport } from './routes/client.mesaje'
+import { Route as ClientItpRouteImport } from './routes/client.itp'
+import { Route as ClientIstoricRouteImport } from './routes/client.istoric'
+import { Route as ClientDosarDaunaRouteImport } from './routes/client.dosar-dauna'
+import { Route as ClientAsistentaRutieraRouteImport } from './routes/client.asistenta-rutiera'
+import { Route as ClientAsistentaRouteImport } from './routes/client.asistenta'
+import { Route as AdminVehiculeRouteImport } from './routes/admin.vehicule'
+import { Route as AdminTaxeRouteImport } from './routes/admin.taxe'
+import { Route as AdminScadenteRouteImport } from './routes/admin.scadente'
+import { Route as AdminOferteRouteImport } from './routes/admin.oferte'
+import { Route as AdminMobilitateRouteImport } from './routes/admin.mobilitate'
+import { Route as AdminMesajeRouteImport } from './routes/admin.mesaje'
+import { Route as AdminIstoricRouteImport } from './routes/admin.istoric'
+import { Route as AdminDosareRouteImport } from './routes/admin.dosare'
+import { Route as AdminClientiRouteImport } from './routes/admin.clienti'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminAsistentaRouteImport } from './routes/admin.asistenta'
 
+const ClientRoute = ClientRouteImport.update({
+  id: '/client',
+  path: '/client',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientIndexRoute = ClientIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClientRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ClientTaxeRoute = ClientTaxeRouteImport.update({
+  id: '/taxe',
+  path: '/taxe',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientRovinietaRoute = ClientRovinietaRouteImport.update({
+  id: '/rovinieta',
+  path: '/rovinieta',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientRcaRoute = ClientRcaRouteImport.update({
+  id: '/rca',
+  path: '/rca',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientProfilRoute = ClientProfilRouteImport.update({
+  id: '/profil',
+  path: '/profil',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientOfertaRoute = ClientOfertaRouteImport.update({
+  id: '/oferta',
+  path: '/oferta',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientMobilitateRoute = ClientMobilitateRouteImport.update({
+  id: '/mobilitate',
+  path: '/mobilitate',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientMesajeRoute = ClientMesajeRouteImport.update({
+  id: '/mesaje',
+  path: '/mesaje',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientItpRoute = ClientItpRouteImport.update({
+  id: '/itp',
+  path: '/itp',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientIstoricRoute = ClientIstoricRouteImport.update({
+  id: '/istoric',
+  path: '/istoric',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientDosarDaunaRoute = ClientDosarDaunaRouteImport.update({
+  id: '/dosar-dauna',
+  path: '/dosar-dauna',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientAsistentaRutieraRoute = ClientAsistentaRutieraRouteImport.update({
+  id: '/asistenta-rutiera',
+  path: '/asistenta-rutiera',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientAsistentaRoute = ClientAsistentaRouteImport.update({
+  id: '/asistenta',
+  path: '/asistenta',
+  getParentRoute: () => ClientRoute,
+} as any)
+const AdminVehiculeRoute = AdminVehiculeRouteImport.update({
+  id: '/vehicule',
+  path: '/vehicule',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTaxeRoute = AdminTaxeRouteImport.update({
+  id: '/taxe',
+  path: '/taxe',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminScadenteRoute = AdminScadenteRouteImport.update({
+  id: '/scadente',
+  path: '/scadente',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOferteRoute = AdminOferteRouteImport.update({
+  id: '/oferte',
+  path: '/oferte',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMobilitateRoute = AdminMobilitateRouteImport.update({
+  id: '/mobilitate',
+  path: '/mobilitate',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMesajeRoute = AdminMesajeRouteImport.update({
+  id: '/mesaje',
+  path: '/mesaje',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminIstoricRoute = AdminIstoricRouteImport.update({
+  id: '/istoric',
+  path: '/istoric',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDosareRoute = AdminDosareRouteImport.update({
+  id: '/dosare',
+  path: '/dosare',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminClientiRoute = AdminClientiRouteImport.update({
+  id: '/clienti',
+  path: '/clienti',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAsistentaRoute = AdminAsistentaRouteImport.update({
+  id: '/asistenta',
+  path: '/asistenta',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/client': typeof ClientRouteWithChildren
+  '/admin/asistenta': typeof AdminAsistentaRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/clienti': typeof AdminClientiRoute
+  '/admin/dosare': typeof AdminDosareRoute
+  '/admin/istoric': typeof AdminIstoricRoute
+  '/admin/mesaje': typeof AdminMesajeRoute
+  '/admin/mobilitate': typeof AdminMobilitateRoute
+  '/admin/oferte': typeof AdminOferteRoute
+  '/admin/scadente': typeof AdminScadenteRoute
+  '/admin/taxe': typeof AdminTaxeRoute
+  '/admin/vehicule': typeof AdminVehiculeRoute
+  '/client/asistenta': typeof ClientAsistentaRoute
+  '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
+  '/client/dosar-dauna': typeof ClientDosarDaunaRoute
+  '/client/istoric': typeof ClientIstoricRoute
+  '/client/itp': typeof ClientItpRoute
+  '/client/mesaje': typeof ClientMesajeRoute
+  '/client/mobilitate': typeof ClientMobilitateRoute
+  '/client/oferta': typeof ClientOfertaRoute
+  '/client/profil': typeof ClientProfilRoute
+  '/client/rca': typeof ClientRcaRoute
+  '/client/rovinieta': typeof ClientRovinietaRoute
+  '/client/taxe': typeof ClientTaxeRoute
+  '/admin/': typeof AdminIndexRoute
+  '/client/': typeof ClientIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/asistenta': typeof AdminAsistentaRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/clienti': typeof AdminClientiRoute
+  '/admin/dosare': typeof AdminDosareRoute
+  '/admin/istoric': typeof AdminIstoricRoute
+  '/admin/mesaje': typeof AdminMesajeRoute
+  '/admin/mobilitate': typeof AdminMobilitateRoute
+  '/admin/oferte': typeof AdminOferteRoute
+  '/admin/scadente': typeof AdminScadenteRoute
+  '/admin/taxe': typeof AdminTaxeRoute
+  '/admin/vehicule': typeof AdminVehiculeRoute
+  '/client/asistenta': typeof ClientAsistentaRoute
+  '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
+  '/client/dosar-dauna': typeof ClientDosarDaunaRoute
+  '/client/istoric': typeof ClientIstoricRoute
+  '/client/itp': typeof ClientItpRoute
+  '/client/mesaje': typeof ClientMesajeRoute
+  '/client/mobilitate': typeof ClientMobilitateRoute
+  '/client/oferta': typeof ClientOfertaRoute
+  '/client/profil': typeof ClientProfilRoute
+  '/client/rca': typeof ClientRcaRoute
+  '/client/rovinieta': typeof ClientRovinietaRoute
+  '/client/taxe': typeof ClientTaxeRoute
+  '/admin': typeof AdminIndexRoute
+  '/client': typeof ClientIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/client': typeof ClientRouteWithChildren
+  '/admin/asistenta': typeof AdminAsistentaRoute
+  '/admin/audit': typeof AdminAuditRoute
+  '/admin/clienti': typeof AdminClientiRoute
+  '/admin/dosare': typeof AdminDosareRoute
+  '/admin/istoric': typeof AdminIstoricRoute
+  '/admin/mesaje': typeof AdminMesajeRoute
+  '/admin/mobilitate': typeof AdminMobilitateRoute
+  '/admin/oferte': typeof AdminOferteRoute
+  '/admin/scadente': typeof AdminScadenteRoute
+  '/admin/taxe': typeof AdminTaxeRoute
+  '/admin/vehicule': typeof AdminVehiculeRoute
+  '/client/asistenta': typeof ClientAsistentaRoute
+  '/client/asistenta-rutiera': typeof ClientAsistentaRutieraRoute
+  '/client/dosar-dauna': typeof ClientDosarDaunaRoute
+  '/client/istoric': typeof ClientIstoricRoute
+  '/client/itp': typeof ClientItpRoute
+  '/client/mesaje': typeof ClientMesajeRoute
+  '/client/mobilitate': typeof ClientMobilitateRoute
+  '/client/oferta': typeof ClientOfertaRoute
+  '/client/profil': typeof ClientProfilRoute
+  '/client/rca': typeof ClientRcaRoute
+  '/client/rovinieta': typeof ClientRovinietaRoute
+  '/client/taxe': typeof ClientTaxeRoute
+  '/admin/': typeof AdminIndexRoute
+  '/client/': typeof ClientIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/client'
+    | '/admin/asistenta'
+    | '/admin/audit'
+    | '/admin/clienti'
+    | '/admin/dosare'
+    | '/admin/istoric'
+    | '/admin/mesaje'
+    | '/admin/mobilitate'
+    | '/admin/oferte'
+    | '/admin/scadente'
+    | '/admin/taxe'
+    | '/admin/vehicule'
+    | '/client/asistenta'
+    | '/client/asistenta-rutiera'
+    | '/client/dosar-dauna'
+    | '/client/istoric'
+    | '/client/itp'
+    | '/client/mesaje'
+    | '/client/mobilitate'
+    | '/client/oferta'
+    | '/client/profil'
+    | '/client/rca'
+    | '/client/rovinieta'
+    | '/client/taxe'
+    | '/admin/'
+    | '/client/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin/asistenta'
+    | '/admin/audit'
+    | '/admin/clienti'
+    | '/admin/dosare'
+    | '/admin/istoric'
+    | '/admin/mesaje'
+    | '/admin/mobilitate'
+    | '/admin/oferte'
+    | '/admin/scadente'
+    | '/admin/taxe'
+    | '/admin/vehicule'
+    | '/client/asistenta'
+    | '/client/asistenta-rutiera'
+    | '/client/dosar-dauna'
+    | '/client/istoric'
+    | '/client/itp'
+    | '/client/mesaje'
+    | '/client/mobilitate'
+    | '/client/oferta'
+    | '/client/profil'
+    | '/client/rca'
+    | '/client/rovinieta'
+    | '/client/taxe'
+    | '/admin'
+    | '/client'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/client'
+    | '/admin/asistenta'
+    | '/admin/audit'
+    | '/admin/clienti'
+    | '/admin/dosare'
+    | '/admin/istoric'
+    | '/admin/mesaje'
+    | '/admin/mobilitate'
+    | '/admin/oferte'
+    | '/admin/scadente'
+    | '/admin/taxe'
+    | '/admin/vehicule'
+    | '/client/asistenta'
+    | '/client/asistenta-rutiera'
+    | '/client/dosar-dauna'
+    | '/client/istoric'
+    | '/client/itp'
+    | '/client/mesaje'
+    | '/client/mobilitate'
+    | '/client/oferta'
+    | '/client/profil'
+    | '/client/rca'
+    | '/client/rovinieta'
+    | '/client/taxe'
+    | '/admin/'
+    | '/client/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  ClientRoute: typeof ClientRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/client': {
+      id: '/client'
+      path: '/client'
+      fullPath: '/client'
+      preLoaderRoute: typeof ClientRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +388,256 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/client/': {
+      id: '/client/'
+      path: '/'
+      fullPath: '/client/'
+      preLoaderRoute: typeof ClientIndexRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/client/taxe': {
+      id: '/client/taxe'
+      path: '/taxe'
+      fullPath: '/client/taxe'
+      preLoaderRoute: typeof ClientTaxeRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/rovinieta': {
+      id: '/client/rovinieta'
+      path: '/rovinieta'
+      fullPath: '/client/rovinieta'
+      preLoaderRoute: typeof ClientRovinietaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/rca': {
+      id: '/client/rca'
+      path: '/rca'
+      fullPath: '/client/rca'
+      preLoaderRoute: typeof ClientRcaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/profil': {
+      id: '/client/profil'
+      path: '/profil'
+      fullPath: '/client/profil'
+      preLoaderRoute: typeof ClientProfilRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/oferta': {
+      id: '/client/oferta'
+      path: '/oferta'
+      fullPath: '/client/oferta'
+      preLoaderRoute: typeof ClientOfertaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/mobilitate': {
+      id: '/client/mobilitate'
+      path: '/mobilitate'
+      fullPath: '/client/mobilitate'
+      preLoaderRoute: typeof ClientMobilitateRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/mesaje': {
+      id: '/client/mesaje'
+      path: '/mesaje'
+      fullPath: '/client/mesaje'
+      preLoaderRoute: typeof ClientMesajeRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/itp': {
+      id: '/client/itp'
+      path: '/itp'
+      fullPath: '/client/itp'
+      preLoaderRoute: typeof ClientItpRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/istoric': {
+      id: '/client/istoric'
+      path: '/istoric'
+      fullPath: '/client/istoric'
+      preLoaderRoute: typeof ClientIstoricRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/dosar-dauna': {
+      id: '/client/dosar-dauna'
+      path: '/dosar-dauna'
+      fullPath: '/client/dosar-dauna'
+      preLoaderRoute: typeof ClientDosarDaunaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/asistenta-rutiera': {
+      id: '/client/asistenta-rutiera'
+      path: '/asistenta-rutiera'
+      fullPath: '/client/asistenta-rutiera'
+      preLoaderRoute: typeof ClientAsistentaRutieraRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/client/asistenta': {
+      id: '/client/asistenta'
+      path: '/asistenta'
+      fullPath: '/client/asistenta'
+      preLoaderRoute: typeof ClientAsistentaRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/admin/vehicule': {
+      id: '/admin/vehicule'
+      path: '/vehicule'
+      fullPath: '/admin/vehicule'
+      preLoaderRoute: typeof AdminVehiculeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/taxe': {
+      id: '/admin/taxe'
+      path: '/taxe'
+      fullPath: '/admin/taxe'
+      preLoaderRoute: typeof AdminTaxeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/scadente': {
+      id: '/admin/scadente'
+      path: '/scadente'
+      fullPath: '/admin/scadente'
+      preLoaderRoute: typeof AdminScadenteRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/oferte': {
+      id: '/admin/oferte'
+      path: '/oferte'
+      fullPath: '/admin/oferte'
+      preLoaderRoute: typeof AdminOferteRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/mobilitate': {
+      id: '/admin/mobilitate'
+      path: '/mobilitate'
+      fullPath: '/admin/mobilitate'
+      preLoaderRoute: typeof AdminMobilitateRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/mesaje': {
+      id: '/admin/mesaje'
+      path: '/mesaje'
+      fullPath: '/admin/mesaje'
+      preLoaderRoute: typeof AdminMesajeRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/istoric': {
+      id: '/admin/istoric'
+      path: '/istoric'
+      fullPath: '/admin/istoric'
+      preLoaderRoute: typeof AdminIstoricRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/dosare': {
+      id: '/admin/dosare'
+      path: '/dosare'
+      fullPath: '/admin/dosare'
+      preLoaderRoute: typeof AdminDosareRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/clienti': {
+      id: '/admin/clienti'
+      path: '/clienti'
+      fullPath: '/admin/clienti'
+      preLoaderRoute: typeof AdminClientiRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/asistenta': {
+      id: '/admin/asistenta'
+      path: '/asistenta'
+      fullPath: '/admin/asistenta'
+      preLoaderRoute: typeof AdminAsistentaRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminAsistentaRoute: typeof AdminAsistentaRoute
+  AdminAuditRoute: typeof AdminAuditRoute
+  AdminClientiRoute: typeof AdminClientiRoute
+  AdminDosareRoute: typeof AdminDosareRoute
+  AdminIstoricRoute: typeof AdminIstoricRoute
+  AdminMesajeRoute: typeof AdminMesajeRoute
+  AdminMobilitateRoute: typeof AdminMobilitateRoute
+  AdminOferteRoute: typeof AdminOferteRoute
+  AdminScadenteRoute: typeof AdminScadenteRoute
+  AdminTaxeRoute: typeof AdminTaxeRoute
+  AdminVehiculeRoute: typeof AdminVehiculeRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAsistentaRoute: AdminAsistentaRoute,
+  AdminAuditRoute: AdminAuditRoute,
+  AdminClientiRoute: AdminClientiRoute,
+  AdminDosareRoute: AdminDosareRoute,
+  AdminIstoricRoute: AdminIstoricRoute,
+  AdminMesajeRoute: AdminMesajeRoute,
+  AdminMobilitateRoute: AdminMobilitateRoute,
+  AdminOferteRoute: AdminOferteRoute,
+  AdminScadenteRoute: AdminScadenteRoute,
+  AdminTaxeRoute: AdminTaxeRoute,
+  AdminVehiculeRoute: AdminVehiculeRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface ClientRouteChildren {
+  ClientAsistentaRoute: typeof ClientAsistentaRoute
+  ClientAsistentaRutieraRoute: typeof ClientAsistentaRutieraRoute
+  ClientDosarDaunaRoute: typeof ClientDosarDaunaRoute
+  ClientIstoricRoute: typeof ClientIstoricRoute
+  ClientItpRoute: typeof ClientItpRoute
+  ClientMesajeRoute: typeof ClientMesajeRoute
+  ClientMobilitateRoute: typeof ClientMobilitateRoute
+  ClientOfertaRoute: typeof ClientOfertaRoute
+  ClientProfilRoute: typeof ClientProfilRoute
+  ClientRcaRoute: typeof ClientRcaRoute
+  ClientRovinietaRoute: typeof ClientRovinietaRoute
+  ClientTaxeRoute: typeof ClientTaxeRoute
+  ClientIndexRoute: typeof ClientIndexRoute
+}
+
+const ClientRouteChildren: ClientRouteChildren = {
+  ClientAsistentaRoute: ClientAsistentaRoute,
+  ClientAsistentaRutieraRoute: ClientAsistentaRutieraRoute,
+  ClientDosarDaunaRoute: ClientDosarDaunaRoute,
+  ClientIstoricRoute: ClientIstoricRoute,
+  ClientItpRoute: ClientItpRoute,
+  ClientMesajeRoute: ClientMesajeRoute,
+  ClientMobilitateRoute: ClientMobilitateRoute,
+  ClientOfertaRoute: ClientOfertaRoute,
+  ClientProfilRoute: ClientProfilRoute,
+  ClientRcaRoute: ClientRcaRoute,
+  ClientRovinietaRoute: ClientRovinietaRoute,
+  ClientTaxeRoute: ClientTaxeRoute,
+  ClientIndexRoute: ClientIndexRoute,
+}
+
+const ClientRouteWithChildren =
+  ClientRoute._addFileChildren(ClientRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  ClientRoute: ClientRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
