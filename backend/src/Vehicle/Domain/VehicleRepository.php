@@ -19,5 +19,8 @@ interface VehicleRepository
     /** Verifică dacă un client este proprietarul activ al vehiculului (autorizare la nivel de obiect). */
     public function isActiveOwner(Vehicle $vehicle, CustomerProfile $customer): bool;
 
+    /** Proprietarul activ al vehiculului (dacă există). */
+    public function findActiveOwner(Vehicle $vehicle): ?CustomerProfile;
+
     public function assignOwner(Vehicle $vehicle, CustomerProfile $customer): void;
 }

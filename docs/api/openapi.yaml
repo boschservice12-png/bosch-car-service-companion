@@ -421,10 +421,16 @@ components:
       properties:
         id: { type: string, format: uuid }
         type: { type: string, enum: [ITP, RCA, ROAD_TAX, ROADSIDE_ASSISTANCE] }
-        validFrom: { type: string, format: date }
-        expiresAt: { type: string, format: date }
+        typeLabel: { type: string }
+        validFrom: { type: string, format: date, nullable: true }
+        expiresAt: { type: string, format: date, nullable: true }
         state: { type: string, enum: [UNKNOWN, VALID, DUE_SOON, EXPIRED] }
+        stateLabel: { type: string }
+        daysLeft: { type: integer, nullable: true, description: "Negativ dacă a expirat; null dacă data lipsește" }
         source: { type: string, enum: [CLIENT, SERVICE, IMPORT] }
+        verified: { type: boolean }
+        note: { type: string, nullable: true }
+        documentId: { type: string, format: uuid, nullable: true }
     DeadlineInput:
       type: object
       required: [type, expiresAt]

@@ -63,6 +63,22 @@ final class DoctrineVehicleRepository implements VehicleRepository
         return $count > 0;
     }
 
+    public function findActiveOwner(Vehicle $vehicle): ?CustomerProfile
+    {
+        $ownership = $this->em->createQueryBuilder()
+            ->select('o')
+            ->from(VehicleOwnership::class, 'o')
+            ->where('o.vehicle = :vehicle')
+            ->andWhere('o.active = :active')
+            ->setParameter('vehicle', $vehicle)
+            ->setParameter('active', true)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $ownership?->customerProfile();
+    }
+
     public function assignOwner(Vehicle $vehicle, CustomerProfile $customer): void
     {
         $ownership = new VehicleOwnership($vehicle, $customer);

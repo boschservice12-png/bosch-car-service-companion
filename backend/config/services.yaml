@@ -23,6 +23,13 @@ services:
     App\Document\Domain\DocumentRepository:
         alias: App\Document\Infrastructure\DoctrineDocumentRepository
 
+    App\Deadline\Domain\VehicleDeadlineRepository:
+        alias: App\Deadline\Infrastructure\DoctrineVehicleDeadlineRepository
+
+    # Calculator de stare — value object fără dependențe, aflat în Domain/
+    # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
+    App\Deadline\Domain\DeadlineStatusCalculator: ~
+
     # ---- Storage privat documente (local în dev; S3 în prod) ----
     App\Document\Infrastructure\LocalFilesystemStorage:
         arguments:
