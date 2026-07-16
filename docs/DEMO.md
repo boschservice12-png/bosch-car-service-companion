@@ -33,6 +33,16 @@ daună** în lucru și două **taxe** (impozit auto plătit + taxă de mediu nep
 
 ## Rulare
 
+### Varianta cea mai simplă — o singură comandă (Docker)
+
+Pornește **întreaga stivă** (bază de date + backend + ambele frontend-uri, cu date demo):
+
+```bash
+docker compose -f compose.demo.yaml up --build
+```
+
+Apoi: **Client** http://localhost:3000 · **Admin** http://localhost:3001. Detalii: `demo/README.md`.
+
 ### Varianta A — infrastructură în Docker + aplicații locale
 
 ```bash
