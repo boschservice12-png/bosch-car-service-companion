@@ -118,6 +118,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->totpEnabled;
     }
 
+    public function totpSecret(): ?string
+    {
+        return $this->totpSecret;
+    }
+
+    /** Începe înrolarea 2FA: stochează un secret, dar 2FA rămâne inactiv până la confirmare. */
+    public function startTotpEnrollment(string $secret): void
+    {
+        $this->totpSecret = $secret;
+        $this->totpEnabled = false;
+    }
+
+    /** Confirmă înrolarea (după verificarea unui cod valid): activează 2FA. */
+    public function confirmTotpEnrollment(): void
+    {
+        $this->totpEnabled = true;
+    }
+
+    public function disableTotp(): void
+    {
+        $this->totpSecret = null;
+        $this->totpEnabled = false;
+    }
+
     #[\Deprecated]
     public function eraseCredentials(): void
     {

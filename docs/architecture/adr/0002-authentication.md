@@ -8,12 +8,15 @@
     (confirmat). OTP prin telefon rămâne pregătit în spatele interfeței
     `OtpSenderInterface`, dar **dezactivat** până la un eventual furnizor SMS.
   - **Admin (SERVICE_ADMIN):** email + parolă + **2FA TOTP** obligatoriu.
-    **Stare implementare:** câmpurile `totp_secret` / `totp_enabled` există pe
-    `User`, dar fluxul de înrolare + verificarea la login **nu sunt încă active**
-    în acest sprint. **Consecință de securitate:** până la implementare, un cont
-    de admin se autentifică doar cu parolă — de aceea crearea de conturi admin
-    reale în producție este blocată până la livrarea gate-ului 2FA (task dedicat,
-    programat înainte de producție).
+    **Stare implementare: IMPLEMENTAT.** TOTP prin `spomky-labs/otphp`.
+    - Înrolare: `POST /api/2fa/setup` (generează secret + `provisioningUri` pentru
+      QR) → `POST /api/2fa/confirm` (cod valid → activează).
+    - Login: pentru adminii cu 2FA activat, `POST /api/auth/login` cere `totpCode`;
+      lipsă/greșit → 401 `totp_required` (verificat în `TwoFactorLoginListener` pe
+      `CheckPassportEvent`, după validarea parolei).
+    - Enforcement: `AdminTwoFactorEnforcementListener` blochează rutele
+      `/api/admin/*` pentru adminii fără 2FA activat (403), forțând înrolarea.
+      Astfel nu există conturi privilegiate protejate doar cu parolă în operare.
   - **Sesiune:** cookie `httpOnly`, `Secure`, `SameSite=Lax`, cu protecție CSRF
     pentru mutații (I14). Fără token-uri în `localStorage`.
   - **Parole:** hashing recomandat de framework (Symfony PasswordHasher — bcrypt/argon2id).

@@ -6,7 +6,7 @@ publice** (fără acces la clasele interne ale altui modul). Nu există folder `
 
 | Modul | Responsabilitate | Stadiu scaffold |
 |---|---|---|
-| `Identity` | Autentificare email+parolă, sesiuni, înregistrare, 2FA admin (pregătit) | **Sprint 1 implementat** ✅ |
+| `Identity` | Autentificare email+parolă, sesiuni, înregistrare, **2FA TOTP admin** (înrolare + enforcement) | **Sprint 1 + 2FA** ✅ |
 | `Customer` | Profil client | **Sprint 1 implementat** ✅ |
 | `Vehicle` | Vehicule, VIN, proprietari, autorizare la nivel de obiect | **Sprint 1 implementat** ✅ |
 | `Communication` | Conversații & mesaje | planificat (S7) |

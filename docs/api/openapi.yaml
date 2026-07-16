@@ -91,6 +91,51 @@ paths:
       summary: Deconectare
       responses:
         '204': { description: Deconectat }
+
+  /2fa/status:
+    get:
+      tags: [Auth]
+      summary: (admin) Starea 2FA
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { enabled: { type: boolean } } }
+  /2fa/setup:
+    post:
+      tags: [Auth]
+      summary: (admin) Pornește înrolarea 2FA (secret + provisioning URI pentru QR)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret: { type: string }
+                  provisioningUri: { type: string, description: "otpauth://…" }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /2fa/confirm:
+    post:
+      tags: [Auth]
+      summary: (admin) Confirmă înrolarea cu un cod valid → activează 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [code], properties: { code: { type: string } } }
+      responses:
+        '200': { description: Activat }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /2fa/disable:
+    post:
+      tags: [Auth]
+      summary: (admin) Dezactivează 2FA (necesită un cod valid curent)
+      responses:
+        '200': { description: Dezactivat }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /me:
     get:
       tags: [Me]
@@ -392,6 +437,9 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 8 }
+        totpCode:
+          type: string
+          description: "Cod 2FA — obligatoriu pentru adminii cu 2FA activat. La lipsă/greșit → 401 (type=totp_required)."
     Me:
       type: object
       properties:
