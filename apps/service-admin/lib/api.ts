@@ -5,6 +5,7 @@ import {
   type Conversation,
   type Deadline,
   type Me,
+  type MobilityRequest,
   type RoadsideRequest,
   type ServiceRecord,
   type ServiceRecordInput,
@@ -129,6 +130,13 @@ export const api = {
 
   updateRoadsideStatus: (id: string, data: { status: string; note?: string }) =>
     request<RoadsideRequest>(`/admin/roadside-requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  mobilityRequests: () => request<MobilityRequest[]>('/admin/mobility-requests'),
+
+  mobilityRequest: (id: string) => request<MobilityRequest>(`/admin/mobility-requests/${id}`),
+
+  updateMobilityStatus: (id: string, data: { status: string; note?: string }) =>
+    request<MobilityRequest>(`/admin/mobility-requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */
