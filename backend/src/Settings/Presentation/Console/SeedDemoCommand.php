@@ -10,12 +10,24 @@ use App\Communication\Domain\Message;
 use App\Communication\Domain\MessageAuthorRole;
 use App\Customer\Domain\Consent;
 use App\Customer\Domain\CustomerProfile;
+use App\DamageClaim\Domain\DamageClaim;
+use App\DamageClaim\Domain\DamageClaimStatus;
 use App\Deadline\Domain\DeadlineSource;
 use App\Deadline\Domain\DeadlineType;
 use App\Deadline\Domain\VehicleDeadline;
 use App\Identity\Domain\ServiceAdmin;
 use App\Identity\Domain\User;
+use App\Mobility\Domain\MobilityRequest;
+use App\Mobility\Domain\MobilityStatus;
+use App\Mobility\Domain\MobilityType;
+use App\Roadside\Domain\MobilityState;
+use App\Roadside\Domain\RoadsideRequest;
+use App\Roadside\Domain\RoadsideStatus;
+use App\Roadside\Domain\SafetyState;
 use App\ServiceHistory\Domain\ServiceRecord;
+use App\Tax\Domain\PaymentStatus;
+use App\Tax\Domain\TaxItem;
+use App\Tax\Domain\TaxType;
 use App\Settings\Application\SettingsProvider;
 use App\Vehicle\Domain\Vehicle;
 use App\Vehicle\Domain\VehicleOwnership;
@@ -94,6 +106,11 @@ final class SeedDemoCommand extends Command
         $this->seedServiceHistory($v1, $admin);
         // O cerere de ofertă cu răspuns (stare QUOTED).
         $this->seedQuoteConversation($client, $v1, $admin);
+        // Sprint 4: asistență rutieră, mobilitate, dosar de daună, taxe.
+        $this->seedRoadside($client, $v1);
+        $this->seedMobility($client, $v1);
+        $this->seedDamageClaim($client, $v1);
+        $this->seedTaxes($client, $v1);
 
         $this->em->flush();
 
@@ -104,6 +121,8 @@ final class SeedDemoCommand extends Command
             '2 vehicule (BMW Seria 3, VW Golf) cu scadențe (valid / expiră curând / expirat)',
             'Istoric service: 1 înregistrare publicată + 1 corecție',
             'Cerere de ofertă cu ofertă trimisă (stare QUOTED)',
+            'Asistență rutieră (preluată), mobilitate (aprobată), dosar de daună (în lucru)',
+            'Taxe: impozit auto plătit + taxă de mediu neplătită',
         ]);
 
         return Command::SUCCESS;
@@ -174,6 +193,61 @@ final class SeedDemoCommand extends Command
         ));
 
         $this->em->persist($conversation);
+    }
+
+    private function seedRoadside(User $client, Vehicle $v1): void
+    {
+        $request = new RoadsideRequest(
+            $client,
+            $v1,
+            'DN13, km 12, lângă Sighișoara',
+            'Pană de cauciuc, roata dreapta față.',
+            MobilityState::NOT_DRIVABLE,
+            SafetyState::AT_RISK,
+            '+40711223344',
+        );
+        $request->changeStatus(RoadsideStatus::FORWARDED, 'Preluat, echipa de tractare a fost anunțată.');
+        $this->em->persist($request);
+    }
+
+    private function seedMobility(User $client, Vehicle $v1): void
+    {
+        $request = new MobilityRequest(
+            $client,
+            $v1,
+            MobilityType::REPLACEMENT_CAR,
+            'Am nevoie de o mașină de înlocuire pe durata reparației (2-3 zile).',
+            new \DateTimeImmutable('+2 days'),
+        );
+        $request->changeStatus(MobilityStatus::APPROVED, 'Rezervat Dacia Logan alb.');
+        $this->em->persist($request);
+    }
+
+    private function seedDamageClaim(User $client, Vehicle $v1): void
+    {
+        $claim = new DamageClaim(
+            $client,
+            $v1,
+            new \DateTimeImmutable('-5 days'),
+            'Parcare Kaufland, Târgu Mureș',
+            'Coliziune ușoară în parcare, aripă dreapta spate zgâriată.',
+            'Allianz-Țiriac',
+            'POL-2026-123456',
+        );
+        $claim->changeStatus(DamageClaimStatus::IN_PROGRESS, 'Dosar transmis către asigurător, așteptăm constatarea.');
+        $this->em->persist($claim);
+    }
+
+    private function seedTaxes(User $client, Vehicle $v1): void
+    {
+        $year = (int) (new \DateTimeImmutable())->format('Y');
+
+        $paid = new TaxItem($client, $v1, $year, TaxType::VEHICLE_TAX, 48000, new \DateTimeImmutable($year.'-03-31'));
+        $paid->markPaid();
+        $this->em->persist($paid);
+
+        $unpaid = new TaxItem($client, $v1, $year, TaxType::ENVIRONMENT, 15000, new \DateTimeImmutable($year.'-06-30'));
+        $this->em->persist($unpaid);
     }
 
     private function userExists(string $email): bool

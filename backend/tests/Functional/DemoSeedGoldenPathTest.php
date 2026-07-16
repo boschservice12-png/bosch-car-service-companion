@@ -63,6 +63,33 @@ final class DemoSeedGoldenPathTest extends WebTestCase
         self::assertEqualsWithDelta(1250, $conversations[0]['quoteAmount'], 0.001);
         $conversationId = $conversations[0]['id'];
 
+        // Sprint 4: asistență rutieră (preluată), mobilitate (aprobată), dosar (în lucru), taxe.
+        $client->request('GET', '/api/roadside-requests');
+        self::assertResponseIsSuccessful();
+        $roadside = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertCount(1, $roadside);
+        self::assertSame('FORWARDED', $roadside[0]['status']);
+
+        $client->request('GET', '/api/mobility-requests');
+        self::assertResponseIsSuccessful();
+        $mobility = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertCount(1, $mobility);
+        self::assertSame('APPROVED', $mobility[0]['status']);
+
+        $client->request('GET', '/api/damage-claims');
+        self::assertResponseIsSuccessful();
+        $damage = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertCount(1, $damage);
+        self::assertSame('IN_PROGRESS', $damage[0]['status']);
+
+        $client->request('GET', '/api/taxes');
+        self::assertResponseIsSuccessful();
+        $taxes = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertCount(2, $taxes);
+        $taxStatuses = array_column($taxes, 'status');
+        self::assertContains('PAID', $taxStatuses);
+        self::assertContains('UNPAID', $taxStatuses);
+
         // ADMIN: vede (printre altele) vehiculele demo și conversația clientului demo.
         // Portalul admin agregă toți clienții, deci verificăm prezența, nu numărul exact.
         $this->login($client, self::ADMIN_EMAIL);
