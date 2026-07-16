@@ -45,6 +45,9 @@ export default function DashboardPage() {
           <Link href="/asistenta" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
             🆘 Asistență
           </Link>
+          <Link href="/mobilitate" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+            🚕 Mobilitate
+          </Link>
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} onClick={logout}>
             Ieșire
           </button>

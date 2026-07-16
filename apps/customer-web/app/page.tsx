@@ -47,6 +47,9 @@ export default function HomePage() {
         <Link className="btn btn-ghost" href="/asistenta">
           🆘 Asistență rutieră
         </Link>
+        <Link className="btn btn-ghost" href="/mobilitate">
+          🚕 Mobilitate
+        </Link>
       </div>
 
       <BottomNav />

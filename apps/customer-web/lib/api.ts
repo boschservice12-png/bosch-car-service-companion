@@ -4,6 +4,7 @@ import {
   type Conversation,
   type Deadline,
   type Me,
+  type MobilityRequest,
   type RoadsideRequest,
   type ServiceRecord,
   type Vehicle,
@@ -156,6 +157,16 @@ export const api = {
 
   cancelRoadsideRequest: (id: string) =>
     request<RoadsideRequest>(`/roadside-requests/${id}/cancel`, { method: 'POST' }),
+
+  mobilityRequests: () => request<MobilityRequest[]>('/mobility-requests'),
+
+  mobilityRequest: (id: string) => request<MobilityRequest>(`/mobility-requests/${id}`),
+
+  createMobilityRequest: (data: { type: string; details: string; preferredDate?: string; vehicleId?: string }) =>
+    request<MobilityRequest>('/mobility-requests', { method: 'POST', body: JSON.stringify(data) }),
+
+  cancelMobilityRequest: (id: string) =>
+    request<MobilityRequest>(`/mobility-requests/${id}/cancel`, { method: 'POST' }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

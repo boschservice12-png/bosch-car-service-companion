@@ -141,6 +141,24 @@ export interface RoadsideRequest {
   customerName?: string;
 }
 
+export type MobilityType = 'REPLACEMENT_CAR' | 'TAXI' | 'RIDE_HOME' | 'OTHER';
+export type MobilityStatus = 'NEW' | 'APPROVED' | 'PROVIDED' | 'DECLINED' | 'CANCELLED';
+
+export interface MobilityRequest {
+  id: string;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
+  type: MobilityType;
+  typeLabel: string;
+  details: string;
+  preferredDate: string | null;
+  status: MobilityStatus;
+  statusLabel: string;
+  note: string | null;
+  createdAt: string;
+  customerName?: string;
+}
+
 export interface ApiProblem {
   type: string;
   title: string;
