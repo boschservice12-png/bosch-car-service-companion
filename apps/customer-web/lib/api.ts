@@ -1,0 +1,64 @@
+import { ApiError, type ApiProblem, type Me, type Vehicle } from './types';
+
+/**
+ * Client API. Folosește cookie de sesiune (httpOnly) — de aceea toate cererile
+ * merg cu `credentials: 'include'`. Rutele `/api/*` sunt proxy-ate către backend
+ * (vezi next.config.mjs), deci path-uri relative.
+ */
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, {
+      ...init,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(init?.headers ?? {}),
+      },
+    });
+  } catch {
+    throw new ApiError(
+      { type: 'network_error', title: 'Conexiune indisponibilă. Verificați internetul.', status: 0, traceId: '' },
+      0,
+    );
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  const body = (await res.json().catch(() => null)) as unknown;
+
+  if (!res.ok) {
+    const problem = (body as ApiProblem | null) ?? {
+      type: 'error',
+      title: 'A apărut o eroare.',
+      status: res.status,
+      traceId: '',
+    };
+    throw new ApiError(problem, res.status);
+  }
+
+  return body as T;
+}
+
+export const api = {
+  me: () => request<Me>('/me'),
+
+  login: (email: string, password: string) =>
+    request<{ id: string; email: string; role: string }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+
+  logout: () => request<void>('/auth/logout', { method: 'POST' }),
+
+  register: (data: { email: string; password: string; firstName?: string; lastName?: string; consent: boolean }) =>
+    request<{ id: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+
+  vehicles: () => request<Vehicle[]>('/vehicles'),
+
+  createVehicle: (data: { vin: string; plateNumber: string; make?: string; model?: string; year?: number }) =>
+    request<Vehicle>('/vehicles', { method: 'POST', body: JSON.stringify(data) }),
+};
