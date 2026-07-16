@@ -1,8 +1,21 @@
-import { ApiError, type ApiProblem, type Deadline, type Me, type ServiceRecord, type Vehicle } from './types';
+import {
+  ApiError,
+  type ApiProblem,
+  type Conversation,
+  type Deadline,
+  type Me,
+  type ServiceRecord,
+  type Vehicle,
+} from './types';
 
 /** URL (same-origin, proxy /api) pentru descărcarea unui document de service. */
 export function serviceRecordDocumentHref(recordId: string, documentId: string): string {
   return `/api/service-records/${recordId}/documents/${documentId}`;
+}
+
+/** URL (same-origin) pentru descărcarea unui atașament dintr-o conversație. */
+export function conversationDocumentHref(conversationId: string, documentId: string): string {
+  return `/api/conversations/${conversationId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -101,6 +114,25 @@ export const api = {
   serviceRecords: (vehicleId: string) => request<ServiceRecord[]>(`/vehicles/${vehicleId}/service-records`),
 
   serviceRecord: (id: string) => request<ServiceRecord>(`/service-records/${id}`),
+
+  conversations: () => request<Conversation[]>('/conversations'),
+
+  conversation: (id: string) => request<Conversation>(`/conversations/${id}`),
+
+  startConversation: (data: {
+    type: string;
+    subject: string;
+    body: string;
+    vehicleId?: string;
+    documentIds?: string[];
+  }) => request<Conversation>('/conversations', { method: 'POST', body: JSON.stringify(data) }),
+
+  postMessage: (id: string, data: { body: string; documentIds?: string[] }) =>
+    request<Conversation>(`/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify(data) }),
+
+  acceptQuote: (id: string) => request<Conversation>(`/conversations/${id}/quote/accept`, { method: 'POST' }),
+
+  declineQuote: (id: string) => request<Conversation>(`/conversations/${id}/quote/decline`, { method: 'POST' }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

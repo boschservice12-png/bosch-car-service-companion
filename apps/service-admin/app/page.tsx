@@ -38,9 +38,14 @@ export default function DashboardPage() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Vehicule</h1>
-        <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} onClick={logout}>
-          Ieșire
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link href="/mesaje" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+            💬 Mesaje
+          </Link>
+          <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} onClick={logout}>
+            Ieșire
+          </button>
+        </div>
       </div>
 
       {error ? <ErrorState message={error} onRetry={load} /> : null}

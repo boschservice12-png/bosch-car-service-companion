@@ -78,6 +78,37 @@ export interface ServiceRecord {
   documents: DeadlineDocument[];
 }
 
+export type ConversationType = 'GENERAL' | 'QUOTE';
+export type ConversationStatus = 'OPEN' | 'QUOTED' | 'ACCEPTED' | 'DECLINED' | 'CLOSED';
+export type MessageAuthorRole = 'CLIENT' | 'ADMIN';
+
+export interface ConversationMessage {
+  id: string;
+  authorRole: MessageAuthorRole;
+  authorLabel: string;
+  body: string;
+  createdAt: string;
+  attachments: DeadlineDocument[];
+}
+
+export interface Conversation {
+  id: string;
+  type: ConversationType;
+  typeLabel: string;
+  subject: string;
+  status: ConversationStatus;
+  statusLabel: string;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
+  quoteAmount: number | null;
+  messageCount: number;
+  lastMessagePreview: string | null;
+  createdAt: string;
+  lastMessageAt: string;
+  customerName?: string;
+  messages?: ConversationMessage[];
+}
+
 /** Structura standard de eroare (application/problem+json). */
 export interface ApiProblem {
   type: string;

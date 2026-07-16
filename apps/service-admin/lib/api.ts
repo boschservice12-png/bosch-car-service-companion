@@ -2,6 +2,7 @@ import {
   ApiError,
   type AdminVehicle,
   type ApiProblem,
+  type Conversation,
   type Deadline,
   type Me,
   type ServiceRecord,
@@ -11,6 +12,11 @@ import {
 /** URL (same-origin, proxy /api) pentru descărcarea unui document de service. */
 export function serviceRecordDocumentHref(recordId: string, documentId: string): string {
   return `/api/service-records/${recordId}/documents/${documentId}`;
+}
+
+/** URL (same-origin) pentru descărcarea unui atașament dintr-o conversație. */
+export function conversationDocumentHref(conversationId: string, documentId: string): string {
+  return `/api/conversations/${conversationId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -100,6 +106,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ documentId }),
     }),
+
+  conversations: () => request<Conversation[]>('/admin/conversations'),
+
+  conversation: (id: string) => request<Conversation>(`/admin/conversations/${id}`),
+
+  reply: (id: string, data: { body: string; documentIds?: string[] }) =>
+    request<Conversation>(`/admin/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify(data) }),
+
+  quote: (id: string, data: { amount: number; body?: string }) =>
+    request<Conversation>(`/admin/conversations/${id}/quote`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

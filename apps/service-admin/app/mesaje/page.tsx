@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Conversation, type ConversationStatus } from '@/lib/types';
-import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<ConversationStatus, string> = {
@@ -16,11 +15,7 @@ const STATUS_CLASS: Record<ConversationStatus, string> = {
   CLOSED: 'badge-unknown',
 };
 
-function money(ron: number): string {
-  return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON' }).format(ron);
-}
-
-export default function MessagesPage() {
+export default function AdminConversationsPage() {
   const router = useRouter();
   const [items, setItems] = useState<Conversation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +26,7 @@ export default function MessagesPage() {
       .conversations()
       .then(setItems)
       .catch((err) => {
-        if (err instanceof ApiError && err.httpStatus === 401) {
+        if (err instanceof ApiError && (err.httpStatus === 401 || err.httpStatus === 403)) {
           router.replace('/login');
           return;
         }
@@ -44,17 +39,15 @@ export default function MessagesPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Mesaje</h1>
-        <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/mesaje/nou">
-          + Nou
+        <h1>Mesaje &amp; oferte</h1>
+        <Link href="/" className="muted">
+          Vehicule →
         </Link>
       </div>
 
       {error ? <ErrorState message={error} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={3} /> : null}
-      {!error && items?.length === 0 ? (
-        <EmptyState title="Nicio conversație" hint="Trimiteți un mesaj sau o cerere de ofertă service-ului." />
-      ) : null}
+      {!error && items?.length === 0 ? <EmptyState title="Nicio conversație" /> : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
@@ -67,22 +60,16 @@ export default function MessagesPage() {
                     {c.subject}
                   </strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {c.lastMessagePreview ?? c.typeLabel}
+                    {c.customerName ?? '—'}
+                    {c.vehiclePlate ? ` · ${c.vehiclePlate}` : ''} · {c.lastMessagePreview ?? c.typeLabel}
                   </div>
                 </div>
                 <span className={`badge ${STATUS_CLASS[c.status]}`}>{c.statusLabel}</span>
               </div>
-              {c.quoteAmount != null ? (
-                <div style={{ fontSize: '0.9rem', marginTop: 4 }}>
-                  <span className="muted">Ofertă:</span> {money(c.quoteAmount)}
-                </div>
-              ) : null}
             </Link>
           ))}
         </div>
       ) : null}
-
-      <BottomNav />
     </>
   );
 }
