@@ -1,0 +1,71 @@
+parameters:
+    app.timezone: '%env(APP_TIMEZONE)%'
+    app.cors_allow_origin: '%env(CORS_ALLOW_ORIGIN)%'
+    app.storage_dir: '%kernel.project_dir%/var/storage'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/**/Domain/'          # entități + value objects (nu sunt servicii)
+            - '../src/**/Presentation/Dto/' # DTO-uri de request
+            - '../src/**/Application/Message/' # mesaje Messenger
+
+    # ---- Contracte de domeniu -> implementări din Infrastructure ----
+    App\Vehicle\Domain\VehicleRepository:
+        alias: App\Vehicle\Infrastructure\DoctrineVehicleRepository
+
+    App\Document\Domain\DocumentRepository:
+        alias: App\Document\Infrastructure\DoctrineDocumentRepository
+
+    App\Deadline\Domain\VehicleDeadlineRepository:
+        alias: App\Deadline\Infrastructure\DoctrineVehicleDeadlineRepository
+
+    # Calculator de stare — value object fără dependențe, aflat în Domain/
+    # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
+    App\Deadline\Domain\DeadlineStatusCalculator: ~
+
+    # ---- Storage privat documente (local în dev; S3 în prod) ----
+    App\Document\Infrastructure\LocalFilesystemStorage:
+        arguments:
+            $rootDir: '%app.storage_dir%'
+    App\Document\Domain\StorageAdapter:
+        alias: App\Document\Infrastructure\LocalFilesystemStorage
+
+    # ---- Scaner antimalware: dev = permisiv (marchează CLEAN + avertisment) ----
+    # ClamAvScanner e mereu constructibil (argumente scalare), dar devine
+    # implementarea activă doar în producție (vezi when@prod mai jos).
+    App\Document\Infrastructure\ClamAvScanner:
+        arguments:
+            $host: '%env(CLAMAV_HOST)%'
+            $port: '%env(int:CLAMAV_PORT)%'
+    App\Document\Domain\MalwareScanner:
+        alias: App\Document\Infrastructure\PermissiveDevScanner
+
+    # ---- URL-uri temporare semnate ----
+    App\Document\Application\SignedUrlGenerator:
+        arguments:
+            $secret: '%env(APP_SECRET)%'
+
+    # ---- Listeners transversale ----
+    App\Shared\Presentation\CorsListener:
+        arguments:
+            $allowedOrigins: '%app.cors_allow_origin%'
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onRequest, priority: 250 }
+            - { name: kernel.event_listener, event: kernel.response, method: onResponse }
+
+    App\Shared\Presentation\ApiExceptionListener:
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
+
+# În producție, scanarea antimalware folosește ClamAV (fail-closed).
+when@prod:
+    services:
+        App\Document\Domain\MalwareScanner:
+            alias: App\Document\Infrastructure\ClamAvScanner

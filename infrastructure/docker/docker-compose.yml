@@ -1,0 +1,90 @@
+# Docker Compose — mediu de dezvoltare local
+# Servicii: postgres, redis, minio, clamav, backend (php-fpm), worker, nginx.
+# Versiunile imaginilor se fixează în ADR-0004 după verificarea liniilor suportate.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bcsc}
+      POSTGRES_USER: ${POSTGRES_USER:-bcsc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bcsc}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bcsc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    ports: ["6379:6379"]
+
+  minio:
+    image: minio/minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-bcsc}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-bcsc-secret}
+    volumes:
+      - miniodata:/data
+    ports: ["9000:9000", "9001:9001"]
+
+  clamav:
+    image: clamav/clamav:stable
+    healthcheck:
+      test: ["CMD", "clamdscan", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: ../infrastructure/docker/backend.Dockerfile
+    env_file:
+      - path: ../../.env
+        required: false
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    volumes:
+      - ../../backend:/var/www/app
+      # Volum dedicat pentru vendor: bind mount-ul de mai sus ar ascunde altfel
+      # vendor-ul instalat în imagine (backend/vendor este gitignored).
+      - backend_vendor:/var/www/app/vendor
+    expose: ["9000"]
+
+  worker:
+    build:
+      context: ../../backend
+      dockerfile: ../infrastructure/docker/backend.Dockerfile
+    command: ["php", "bin/console", "messenger:consume", "async", "-vv"]
+    env_file:
+      - path: ../../.env
+        required: false
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    volumes:
+      - ../../backend:/var/www/app
+      - backend_vendor:/var/www/app/vendor
+
+  nginx:
+    image: nginx:1.27
+    depends_on: [ backend ]
+    volumes:
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../../backend/public:/var/www/app/public:ro
+    ports: ["8080:80", "8443:443"]
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  backend_vendor:

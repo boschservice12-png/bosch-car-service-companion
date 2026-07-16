@@ -1,0 +1,5 @@
+# CORS restrictiv — doar originile aplicațiilor client/admin.
+# Implementat prin listener propriu (App\Shared\Presentation\CorsListener)
+# pentru a evita o dependență suplimentară; originile din CORS_ALLOW_ORIGIN.
+parameters:
+    app.cors_allow_origin: '%env(CORS_ALLOW_ORIGIN)%'

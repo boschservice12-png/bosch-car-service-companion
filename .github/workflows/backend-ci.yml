@@ -1,0 +1,63 @@
+name: Backend CI
+
+# Rulează doar pentru backend (Symfony); nu atinge frontend-ul existent.
+on:
+  push:
+    branches: [ "claude/**", "main" ]
+    paths: [ "backend/**", ".github/workflows/backend-ci.yml" ]
+  pull_request:
+    paths: [ "backend/**", ".github/workflows/backend-ci.yml" ]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  backend:
+    name: Teste (SQLite) + migrație & validare (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: bcsc
+          POSTGRES_USER: bcsc
+          POSTGRES_PASSWORD: bcsc
+        ports: [ "5432:5432" ]
+        options: >-
+          --health-cmd "pg_isready -U bcsc" --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pdo_sqlite, intl, ctype, iconv, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint container (validează wiring DI)
+        run: php bin/console lint:container --env=test
+
+      - name: Lint YAML config
+        run: php bin/console lint:yaml config
+
+      - name: Teste (SQLite)
+        env:
+          APP_ENV: test
+        run: |
+          php bin/console doctrine:schema:create --env=test
+          vendor/bin/phpunit
+
+      - name: Migrație + schema:validate (PostgreSQL)
+        env:
+          APP_ENV: dev
+          DATABASE_URL: "postgresql://bcsc:bcsc@127.0.0.1:5432/bcsc?serverVersion=16&charset=utf8"
+        run: |
+          php bin/console doctrine:migrations:migrate --no-interaction
+          php bin/console doctrine:schema:validate

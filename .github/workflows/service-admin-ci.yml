@@ -1,0 +1,26 @@
+name: Service Admin CI
+
+on:
+  push:
+    branches: [ "claude/**", "main" ]
+    paths: [ "apps/service-admin/**", ".github/workflows/service-admin-ci.yml" ]
+  pull_request:
+    paths: [ "apps/service-admin/**", ".github/workflows/service-admin-ci.yml" ]
+
+defaults:
+  run:
+    working-directory: apps/service-admin
+
+jobs:
+  build:
+    name: typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - run: npx next lint
+      - run: npx next build

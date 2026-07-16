@@ -1,0 +1,28 @@
+name: Customer Web CI
+
+# PWA client (Next.js) — rulează doar pentru apps/customer-web; nu atinge
+# frontend-ul din rădăcină.
+on:
+  push:
+    branches: [ "claude/**", "main" ]
+    paths: [ "apps/customer-web/**", ".github/workflows/customer-web-ci.yml" ]
+  pull_request:
+    paths: [ "apps/customer-web/**", ".github/workflows/customer-web-ci.yml" ]
+
+defaults:
+  run:
+    working-directory: apps/customer-web
+
+jobs:
+  build:
+    name: typecheck, lint, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - run: npx next lint
+      - run: npx next build
