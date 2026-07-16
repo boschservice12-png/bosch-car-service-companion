@@ -159,6 +159,25 @@ export interface MobilityRequest {
   customerName?: string;
 }
 
+export type DamageClaimStatus = 'NEW' | 'IN_PROGRESS' | 'CLOSED' | 'CANCELLED';
+
+export interface DamageClaim {
+  id: string;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
+  incidentDate: string | null;
+  incidentLocation: string | null;
+  incidentDescription: string;
+  insurer: string | null;
+  policyNumber: string | null;
+  status: DamageClaimStatus;
+  statusLabel: string;
+  note: string | null;
+  createdAt: string;
+  documents: DeadlineDocument[];
+  customerName?: string;
+}
+
 export interface ApiProblem {
   type: string;
   title: string;

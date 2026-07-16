@@ -50,6 +50,9 @@ export default function HomePage() {
         <Link className="btn btn-ghost" href="/mobilitate">
           🚕 Mobilitate
         </Link>
+        <Link className="btn btn-ghost" href="/daune">
+          📋 Dosar de daună
+        </Link>
       </div>
 
       <BottomNav />

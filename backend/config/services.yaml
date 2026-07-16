@@ -38,6 +38,9 @@ services:
     App\Mobility\Domain\MobilityRequestRepository:
         alias: App\Mobility\Infrastructure\DoctrineMobilityRequestRepository
 
+    App\DamageClaim\Domain\DamageClaimRepository:
+        alias: App\DamageClaim\Infrastructure\DoctrineDamageClaimRepository
+
     # Calculator de stare — value object fără dependențe, aflat în Domain/
     # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
     App\Deadline\Domain\DeadlineStatusCalculator: ~

@@ -4,6 +4,7 @@ import {
   type ApiProblem,
   type Conversation,
   type Deadline,
+  type DamageClaim,
   type Me,
   type MobilityRequest,
   type RoadsideRequest,
@@ -24,6 +25,11 @@ export function conversationDocumentHref(conversationId: string, documentId: str
 /** URL (same-origin) pentru descărcarea unui atașament dintr-o cerere de asistență. */
 export function roadsideDocumentHref(requestId: string, documentId: string): string {
   return `/api/roadside-requests/${requestId}/documents/${documentId}`;
+}
+
+/** URL (same-origin) pentru descărcarea unui document dintr-un dosar de daună. */
+export function damageClaimDocumentHref(claimId: string, documentId: string): string {
+  return `/api/damage-claims/${claimId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -137,6 +143,13 @@ export const api = {
 
   updateMobilityStatus: (id: string, data: { status: string; note?: string }) =>
     request<MobilityRequest>(`/admin/mobility-requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  damageClaims: () => request<DamageClaim[]>('/admin/damage-claims'),
+
+  damageClaim: (id: string) => request<DamageClaim>(`/admin/damage-claims/${id}`),
+
+  updateDamageClaimStatus: (id: string, data: { status: string; note?: string }) =>
+    request<DamageClaim>(`/admin/damage-claims/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */
