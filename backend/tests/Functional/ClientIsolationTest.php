@@ -43,6 +43,16 @@ final class ClientIsolationTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, json_decode((string) $client->getResponse()->getContent(), true));
 
+        // PATCH: schimbarea numărului de înmatriculare trebuie să persiste.
+        $client->request('PATCH', '/api/vehicles/'.$vehicleId, server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'plateNumber' => 'MS99XYZ',
+        ]));
+        self::assertResponseIsSuccessful();
+        $client->request('GET', '/api/vehicles/'.$vehicleId);
+        /** @var array{plateNumber: string} $after */
+        $after = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame('MS99XYZ', $after['plateNumber'], 'Numărul de înmatriculare trebuie actualizat prin PATCH.');
+
         // Client B: login. Nu vede niciun vehicul.
         $this->login($client, $emailB);
         $client->request('GET', '/api/vehicles');
@@ -62,6 +72,22 @@ final class ClientIsolationTest extends WebTestCase
     {
         $client = static::createClient();
         $client->request('GET', '/api/vehicles');
+        self::assertResponseStatusCodeSame(401);
+    }
+
+    public function testLogoutReturnsNoContentNotRedirect(): void
+    {
+        $client = static::createClient();
+        $email = 'lo-'.uniqid().'@example.test';
+        $this->register($client, $email);
+        $this->login($client, $email);
+
+        $client->request('POST', '/api/auth/logout');
+        self::assertResponseStatusCodeSame(204, 'Logout trebuie să întoarcă 204, nu redirect.');
+        self::assertFalse($client->getResponse()->isRedirection());
+
+        // Sesiunea este invalidată — accesul protejat cere din nou autentificare.
+        $client->request('GET', '/api/me');
         self::assertResponseStatusCodeSame(401);
     }
 

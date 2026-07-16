@@ -94,6 +94,12 @@ class Vehicle
         $this->updatedAt = new \DateTimeImmutable();
     }
 
+    public function changePlateNumber(string $plateNumber): void
+    {
+        $this->plateNumber = strtoupper(trim($plateNumber));
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
     public function isDeleted(): bool
     {
         return $this->deletedAt !== null;

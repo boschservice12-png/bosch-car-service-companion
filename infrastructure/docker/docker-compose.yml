@@ -55,6 +55,9 @@ services:
       redis: { condition: service_started }
     volumes:
       - ../../backend:/var/www/app
+      # Volum dedicat pentru vendor: bind mount-ul de mai sus ar ascunde altfel
+      # vendor-ul instalat în imagine (backend/vendor este gitignored).
+      - backend_vendor:/var/www/app/vendor
     expose: ["9000"]
 
   worker:
@@ -70,6 +73,7 @@ services:
       redis: { condition: service_started }
     volumes:
       - ../../backend:/var/www/app
+      - backend_vendor:/var/www/app/vendor
 
   nginx:
     image: nginx:1.27
@@ -83,3 +87,4 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  backend_vendor:

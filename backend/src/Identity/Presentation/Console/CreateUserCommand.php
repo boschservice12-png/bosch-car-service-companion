@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[AsCommand(
@@ -26,6 +27,8 @@ final class CreateUserCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $hasher,
+        #[Autowire('%kernel.environment%')]
+        private readonly string $environment,
     ) {
         parent::__construct();
     }
@@ -44,6 +47,15 @@ final class CreateUserCommand extends Command
         $email = strtolower(trim((string) $input->getArgument('email')));
         $password = (string) $input->getArgument('password');
         $isAdmin = (bool) $input->getOption('admin');
+
+        // 2FA-ul TOTP pentru admin nu este încă activ (vezi ADR-0002). Până la
+        // livrarea gate-ului, crearea de conturi admin în producție este blocată,
+        // pentru a nu exista conturi privilegiate protejate doar prin parolă.
+        if ($isAdmin && $this->environment === 'prod') {
+            $io->error('Crearea de conturi admin în producție este blocată până la activarea 2FA (ADR-0002).');
+
+            return Command::FAILURE;
+        }
 
         if (strlen($password) < 8) {
             $io->error('Parola trebuie să aibă minim 8 caractere.');

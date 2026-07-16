@@ -44,6 +44,7 @@ final class VehicleService
     public function update(Vehicle $vehicle, UpdateVehicleRequest $req): Vehicle
     {
         $before = [
+            'plateNumber' => $vehicle->plateNumber(),
             'make' => $vehicle->make(),
             'model' => $vehicle->model(),
             'year' => $vehicle->year(),
@@ -55,9 +56,14 @@ final class VehicleService
             $req->year ?? $vehicle->year(),
         );
 
+        if ($req->plateNumber !== null && $req->plateNumber !== '') {
+            $vehicle->changePlateNumber($req->plateNumber);
+        }
+
         $this->vehicles->save($vehicle);
 
         $this->audit->record('vehicle.updated', 'Vehicle', (string) $vehicle->id(), $before, [
+            'plateNumber' => $vehicle->plateNumber(),
             'make' => $vehicle->make(),
             'model' => $vehicle->model(),
             'year' => $vehicle->year(),
