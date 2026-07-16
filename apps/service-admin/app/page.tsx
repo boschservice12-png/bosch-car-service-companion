@@ -42,6 +42,9 @@ export default function DashboardPage() {
           <Link href="/mesaje" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
             💬 Mesaje
           </Link>
+          <Link href="/asistenta" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+            🆘 Asistență
+          </Link>
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} onClick={logout}>
             Ieșire
           </button>

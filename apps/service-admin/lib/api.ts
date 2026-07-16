@@ -5,6 +5,7 @@ import {
   type Conversation,
   type Deadline,
   type Me,
+  type RoadsideRequest,
   type ServiceRecord,
   type ServiceRecordInput,
 } from './types';
@@ -17,6 +18,11 @@ export function serviceRecordDocumentHref(recordId: string, documentId: string):
 /** URL (same-origin) pentru descărcarea unui atașament dintr-o conversație. */
 export function conversationDocumentHref(conversationId: string, documentId: string): string {
   return `/api/conversations/${conversationId}/documents/${documentId}`;
+}
+
+/** URL (same-origin) pentru descărcarea unui atașament dintr-o cerere de asistență. */
+export function roadsideDocumentHref(requestId: string, documentId: string): string {
+  return `/api/roadside-requests/${requestId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -116,6 +122,13 @@ export const api = {
 
   quote: (id: string, data: { amount: number; body?: string }) =>
     request<Conversation>(`/admin/conversations/${id}/quote`, { method: 'POST', body: JSON.stringify(data) }),
+
+  roadsideRequests: () => request<RoadsideRequest[]>('/admin/roadside-requests'),
+
+  roadsideRequest: (id: string) => request<RoadsideRequest>(`/admin/roadside-requests/${id}`),
+
+  updateRoadsideStatus: (id: string, data: { status: string; note?: string }) =>
+    request<RoadsideRequest>(`/admin/roadside-requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

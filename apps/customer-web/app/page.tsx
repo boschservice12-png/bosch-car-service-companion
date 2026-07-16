@@ -39,12 +39,14 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <div className="card" style={{ marginTop: 20 }}>
-        <strong>Scadențe și solicitări</strong>
-        <p className="muted">
-          ITP, RCA, rovinietă, asistență rutieră, istoric service, oferte, mobilitate, dosar de daună și taxe —
-          disponibile pe măsură ce sunt livrate modulele.
-        </p>
+      <h2>Servicii</h2>
+      <div className="stack">
+        <Link className="btn btn-ghost" href="/mesaje">
+          💬 Mesaje și oferte
+        </Link>
+        <Link className="btn btn-ghost" href="/asistenta">
+          🆘 Asistență rutieră
+        </Link>
       </div>
 
       <BottomNav />
