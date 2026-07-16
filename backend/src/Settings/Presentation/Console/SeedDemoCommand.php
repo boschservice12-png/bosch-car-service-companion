@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace App\Settings\Presentation\Console;
 
+use App\Communication\Domain\Conversation;
+use App\Communication\Domain\ConversationType;
+use App\Communication\Domain\Message;
+use App\Communication\Domain\MessageAuthorRole;
 use App\Customer\Domain\Consent;
 use App\Customer\Domain\CustomerProfile;
+use App\Deadline\Domain\DeadlineSource;
+use App\Deadline\Domain\DeadlineType;
+use App\Deadline\Domain\VehicleDeadline;
 use App\Identity\Domain\ServiceAdmin;
 use App\Identity\Domain\User;
+use App\ServiceHistory\Domain\ServiceRecord;
 use App\Settings\Application\SettingsProvider;
 use App\Vehicle\Domain\Vehicle;
 use App\Vehicle\Domain\VehicleOwnership;
@@ -80,16 +88,92 @@ final class SeedDemoCommand extends Command
             $this->em->persist(new VehicleOwnership($vehicle, $profile));
         }
 
+        // Scadențe cu stări variate (VALID / DUE_SOON / EXPIRED) pentru demo.
+        $this->seedDeadlines($v1, $v2, $admin);
+        // Istoric de service: o înregistrare publicată + o corecție.
+        $this->seedServiceHistory($v1, $admin);
+        // O cerere de ofertă cu răspuns (stare QUOTED).
+        $this->seedQuoteConversation($client, $v1, $admin);
+
         $this->em->flush();
 
         $io->success('Date demo create.');
         $io->listing([
             sprintf('Admin: %s / %s', self::ADMIN_EMAIL, self::DEMO_PASSWORD),
             sprintf('Client: %s / %s', self::CLIENT_EMAIL, self::DEMO_PASSWORD),
-            '2 vehicule pentru client (BMW Seria 3, VW Golf)',
+            '2 vehicule (BMW Seria 3, VW Golf) cu scadențe (valid / expiră curând / expirat)',
+            'Istoric service: 1 înregistrare publicată + 1 corecție',
+            'Cerere de ofertă cu ofertă trimisă (stare QUOTED)',
         ]);
 
         return Command::SUCCESS;
+    }
+
+    private function seedDeadlines(Vehicle $v1, Vehicle $v2, User $admin): void
+    {
+        // v1: ITP valid (validat de service), RCA expiră curând, rovinietă expirată.
+        $itp = new VehicleDeadline($v1, DeadlineType::ITP, new \DateTimeImmutable('+200 days'), DeadlineSource::SERVICE, new \DateTimeImmutable('-165 days'));
+        $itp->markVerified($admin);
+        $rca = new VehicleDeadline($v1, DeadlineType::RCA, new \DateTimeImmutable('+18 days'), DeadlineSource::CLIENT);
+        $tax = new VehicleDeadline($v1, DeadlineType::ROAD_TAX, new \DateTimeImmutable('-9 days'), DeadlineSource::CLIENT);
+        // v2: ITP care expiră curând.
+        $itp2 = new VehicleDeadline($v2, DeadlineType::ITP, new \DateTimeImmutable('+25 days'), DeadlineSource::CLIENT);
+
+        foreach ([$itp, $rca, $tax, $itp2] as $deadline) {
+            $this->em->persist($deadline);
+        }
+    }
+
+    private function seedServiceHistory(Vehicle $v1, User $admin): void
+    {
+        $original = new ServiceRecord($v1, $admin);
+        $original->applyDetails(
+            new \DateTimeImmutable('-60 days'),
+            82000,
+            'Revizie periodică',
+            'Schimb ulei și filtre, verificare sistem de frânare, diagnoză computerizată.',
+            'Ulei 5W30 (5L), filtru ulei, filtru aer, filtru polen.',
+            35000,
+            120000,
+            '12 luni / 20.000 km',
+        );
+        $original->publish();
+        $this->em->persist($original);
+
+        // Corecție: totalul corect (piesă adăugată), ca intrare separată.
+        $correction = new ServiceRecord($v1, $admin, $original);
+        $correction->applyDetails(
+            new \DateTimeImmutable('-60 days'),
+            82000,
+            'Revizie periodică (corecție)',
+            'Corecție: s-a adăugat înlocuirea plăcuțelor de frână față.',
+            'Ulei 5W30 (5L), filtre, set plăcuțe frână față.',
+            42000,
+            139000,
+            '12 luni / 20.000 km',
+        );
+        $correction->publish();
+        $this->em->persist($correction);
+    }
+
+    private function seedQuoteConversation(User $client, Vehicle $v1, User $admin): void
+    {
+        $conversation = new Conversation($client, ConversationType::QUOTE, 'Zgomot la frânare', $v1);
+        $conversation->addMessage(new Message(
+            $conversation,
+            $client,
+            MessageAuthorRole::CLIENT,
+            'Bună ziua, se aude un scârțâit la frânare în față. Puteți estima costul verificării și reparației?',
+        ));
+        $conversation->setQuote(125000);
+        $conversation->addMessage(new Message(
+            $conversation,
+            $admin,
+            MessageAuthorRole::ADMIN,
+            'Estimare: verificare + înlocuire plăcuțe față. Ofertă: 1.250,00 RON.',
+        ));
+
+        $this->em->persist($conversation);
     }
 
     private function userExists(string $email): bool
