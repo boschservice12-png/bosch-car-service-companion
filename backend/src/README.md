@@ -9,10 +9,10 @@ publice** (fără acces la clasele interne ale altui modul). Nu există folder `
 | `Identity` | Autentificare email+parolă, sesiuni, înregistrare, 2FA admin (pregătit) | **Sprint 1 implementat** ✅ |
 | `Customer` | Profil client | **Sprint 1 implementat** ✅ |
 | `Vehicle` | Vehicule, VIN, proprietari, autorizare la nivel de obiect | **Sprint 1 implementat** ✅ |
-| `Communication` | Conversații & mesaje | planificat (S7) |
-| `Deadline` | Scadențe ITP/RCA/rovinietă/roadside, calcul stare, notificări pe praguri | **Sprint 2 implementat** ✅ |
-| `ServiceHistory` | Istoric service, corecții, PDF | planificat (S3) |
-| `QuoteRequest` | Cereri ofertă, mașină de stare (`Domain/QuoteRequestStatus.php`) | mașină de stare ✅ |
+| `Communication` | Conversații, mesaje, atașamente & cereri de ofertă (stări) | **Sprint 3 implementat** ✅ |
+| `Deadline` | Scadențe ITP/RCA/rovinietă/roadside, calcul stare, notificări pe praguri | **Sprint 1 implementat** ✅ |
+| `ServiceHistory` | Istoric service, corecții, documente | **Sprint 2 implementat** ✅ |
+| `QuoteRequest` | Mașină de stare (`Domain/QuoteRequestStatus.php`) — cererile de ofertă sunt livrate în `Communication` | mașină de stare ✅ |
 | `RoadsideAssistance` | Solicitări asistență rutieră (forwarding = intern + telefon) | planificat (S5) |
 | `Mobility` | Solicitări mobilitate | planificat (S5) |
 | `DamageClaim` | Dosar de daună (colectare date) | planificat (S6) |
