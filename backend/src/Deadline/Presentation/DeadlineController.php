@@ -153,6 +153,24 @@ final class DeadlineController extends AbstractController
             'verified' => $d->isVerified(),
             'note' => $d->note(),
             'documentId' => $d->document() !== null ? (string) $d->document()->id() : null,
+            'document' => $this->serializeDocument($d->document()),
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function serializeDocument(?\App\Document\Domain\Document $document): ?array
+    {
+        if ($document === null) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $document->id(),
+            'originalName' => $document->originalName(),
+            'mimeType' => $document->mimeType(),
+            'sizeBytes' => $document->sizeBytes(),
+            'scanStatus' => $document->scanStatus()->value,
+            'servable' => $document->isServable(),
         ];
     }
 }

@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { ApiError, type Deadline, type DeadlineType } from '@/lib/types';
 import { Loading, ErrorState } from '@/components/states';
 import { DeadlineBadge, daysLeftText } from '@/components/DeadlineBadge';
+import { DocumentControl } from '@/components/DocumentControl';
 
 const TYPES: { type: DeadlineType; label: string }[] = [
   { type: 'ITP', label: 'ITP' },
@@ -78,26 +79,29 @@ export default function AdminVehicleDeadlinesPage() {
       <div className="card">
         {deadlines.length === 0 ? <p className="muted">Nicio scadență introdusă.</p> : null}
         {deadlines.map((d) => (
-          <div key={d.id} className="list-row">
-            <div>
-              <strong>{d.typeLabel}</strong>
-              <div className="muted" style={{ fontSize: '0.82rem' }}>
-                {d.expiresAt ?? '—'} · {daysLeftText(d.daysLeft)} · {d.verified ? 'validat' : 'nevalidat'}
+          <div key={d.id} className="stack" style={{ gap: 8 }}>
+            <div className="list-row">
+              <div>
+                <strong>{d.typeLabel}</strong>
+                <div className="muted" style={{ fontSize: '0.82rem' }}>
+                  {d.expiresAt ?? '—'} · {daysLeftText(d.daysLeft)} · {d.verified ? 'validat' : 'nevalidat'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <DeadlineBadge state={d.state} label={d.stateLabel} />
+                {!d.verified ? (
+                  <button
+                    className="btn"
+                    style={{ width: 'auto', padding: '6px 12px' }}
+                    disabled={busy === d.id}
+                    onClick={() => validate(d.id)}
+                  >
+                    {busy === d.id ? '…' : 'Validează'}
+                  </button>
+                ) : null}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <DeadlineBadge state={d.state} label={d.stateLabel} />
-              {!d.verified ? (
-                <button
-                  className="btn"
-                  style={{ width: 'auto', padding: '6px 12px' }}
-                  disabled={busy === d.id}
-                  onClick={() => validate(d.id)}
-                >
-                  {busy === d.id ? '…' : 'Validează'}
-                </button>
-              ) : null}
-            </div>
+            <DocumentControl deadline={d} onChange={load} />
           </div>
         ))}
       </div>

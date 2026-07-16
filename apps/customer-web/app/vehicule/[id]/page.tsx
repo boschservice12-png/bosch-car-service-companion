@@ -8,6 +8,7 @@ import { ApiError, type Deadline, type DeadlineType, type Vehicle } from '@/lib/
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, ErrorState } from '@/components/states';
 import { DeadlineBadge, daysLeftText } from '@/components/DeadlineBadge';
+import { DocumentControl } from '@/components/DocumentControl';
 
 const TYPES: { type: DeadlineType; label: string }[] = [
   { type: 'ITP', label: 'ITP' },
@@ -72,14 +73,19 @@ export default function VehicleDetailPage() {
         {TYPES.map(({ type, label }) => {
           const d = byType.get(type);
           return (
-            <div key={type} className="list-row">
-              <div>
-                <strong>{label}</strong>
-                <div className="muted" style={{ fontSize: '0.82rem' }}>
-                  {d ? `${d.expiresAt ?? '—'} · ${daysLeftText(d.daysLeft)}${d.verified ? ' · validat' : ''}` : 'neintrodus'}
+            <div key={type} className="stack" style={{ gap: 8 }}>
+              <div className="list-row">
+                <div>
+                  <strong>{label}</strong>
+                  <div className="muted" style={{ fontSize: '0.82rem' }}>
+                    {d
+                      ? `${d.expiresAt ?? '—'} · ${daysLeftText(d.daysLeft)}${d.verified ? ' · validat' : ''}`
+                      : 'neintrodus'}
+                  </div>
                 </div>
+                <DeadlineBadge state={d?.state ?? 'UNKNOWN'} label={d?.stateLabel ?? 'Necunoscut'} />
               </div>
-              <DeadlineBadge state={d?.state ?? 'UNKNOWN'} label={d?.stateLabel ?? 'Necunoscut'} />
+              {d ? <DocumentControl deadline={d} onChange={load} /> : null}
             </div>
           );
         })}

@@ -18,6 +18,17 @@ export interface AdminVehicle {
 export type DeadlineType = 'ITP' | 'RCA' | 'ROAD_TAX' | 'ROADSIDE_ASSISTANCE';
 export type DeadlineState = 'UNKNOWN' | 'VALID' | 'DUE_SOON' | 'EXPIRED';
 
+export type ScanStatus = 'PENDING' | 'CLEAN' | 'INFECTED';
+
+export interface DeadlineDocument {
+  id: string;
+  originalName: string | null;
+  mimeType: string;
+  sizeBytes: number;
+  scanStatus: ScanStatus;
+  servable: boolean;
+}
+
 export interface Deadline {
   id: string;
   type: DeadlineType;
@@ -29,7 +40,18 @@ export interface Deadline {
   source: string;
   verified: boolean;
   note: string | null;
+  documentId: string | null;
+  document: DeadlineDocument | null;
 }
+
+/** Limitele de upload — trebuie să corespundă backend-ului (SettingsProvider). */
+export const UPLOAD_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+export const UPLOAD_ACCEPT: Record<string, string> = {
+  'image/jpeg': '.jpg,.jpeg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+};
 
 export interface ApiProblem {
   type: string;
