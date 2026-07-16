@@ -10,6 +10,10 @@ din **două sesiuni separate: CLIENT și ADMIN**.
 | **Scadențe** (ITP / RCA / rovinietă / asistență) | vede stările calculate (valid / expiră curând / expirat), adaugă scadențe, atașează documente | listează vehiculele, validează scadențe, adaugă/atașează documente |
 | **Istoric service** | vede istoricul publicat al propriilor vehicule, descarcă documente | creează ciornă → publică; corecțiile păstrează originalul vizibil |
 | **Comunicare & oferte** | trimite mesaje / cereri de ofertă cu atașamente, acceptă/refuză oferta | răspunde, trimite oferta (sumă) |
+| **Asistență rutieră** | deschide o cerere (locație, problemă, mobilitate, siguranță, telefon, foto), anulează | preia (contact telefonic), schimbă starea |
+| **Mobilitate** | cere mașină de înlocuire / taxi / transport, anulează | aprobă / asigură / respinge |
+| **Dosar de daună** | deschide un dosar (eveniment, asigurător, poliță, foto) | preia și urmărește starea |
+| **Taxe & impozite** | urmărește taxele anuale, marchează plata cu bizonjat | ajustează starea de plată |
 
 Toate acțiunile respectă **autorizarea la nivel de obiect** (un client nu vede datele
 altuia) și sunt înregistrate în **auditul** aplicației.
@@ -22,8 +26,10 @@ altuia) și sunt înregistrate în **auditul** aplicației.
 | Client | `client@bcsc.ro` | `Demo1234!` |
 
 Clientul demo are 2 vehicule (BMW Seria 3 `MS01POP`, VW Golf `MS02POP`) cu scadențe în
-stări variate, un istoric de service (o înregistrare publicată + o corecție) și o cerere
-de ofertă cu ofertă trimisă (stare **QUOTED**).
+stări variate, un istoric de service (o înregistrare publicată + o corecție), o cerere
+de ofertă cu ofertă trimisă (stare **QUOTED**), plus — pentru primul vehicul — o cerere
+de **asistență rutieră** preluată, o solicitare de **mobilitate** aprobată, un **dosar de
+daună** în lucru și două **taxe** (impozit auto plătit + taxă de mediu neplătită).
 
 ## Rulare
 
@@ -86,9 +92,20 @@ php -S 127.0.0.1:8080 -t public
 3. **Client**: firul arată starea **Ofertă trimisă** + suma → **Acceptă** (sau Refuză).
    (Conversația demo pornește deja în starea *QUOTED*, deci se poate accepta direct.)
 
-### 4. Izolare & audit (opțional)
-- Autentificați un al doilea client și încercați să accesați datele primului — răspuns **403**.
-- Acțiunile de mai sus sunt scrise în tabelul `audit_logs` (before/after, actor, IP).
+### 4. Servicii Sprint 4 (CLIENT → ADMIN)
+Din pagina **Acasă** a clientului (secțiunea „Servicii") sau din bara de sus a portalului admin:
+- **Asistență rutieră** (`/asistenta`): clientul deschide o cerere (locație, problemă, mobilitate,
+  siguranță, telefon + foto); **admin** o preia — starea devine „Preluată de service" (contact telefonic direct).
+- **Mobilitate** (`/mobilitate`): clientul cere o mașină de înlocuire; **admin** o aprobă / marchează asigurată.
+- **Dosar de daună** (`/daune`): clientul deschide un dosar (eveniment, asigurător, poliță, foto);
+  **admin** îl preia și îi urmărește starea; documentele se descarcă autorizat.
+- **Taxe & impozite** (`/taxe`): clientul urmărește taxele anuale și marchează plata cu bizonjat;
+  **admin** poate ajusta starea de plată.
+
+### 5. Izolare & audit (opțional)
+- Autentificați un al doilea client și încercați să accesați datele primului — răspuns **403**
+  (pe oricare modul: scadențe, istoric, mesaje, asistență, mobilitate, daune, taxe).
+- Toate acțiunile de mai sus sunt scrise în tabelul `audit_logs` (before/after, actor, IP).
 
 ## Staging
 
