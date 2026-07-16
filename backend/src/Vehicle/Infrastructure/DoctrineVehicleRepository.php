@@ -63,6 +63,18 @@ final class DoctrineVehicleRepository implements VehicleRepository
         return $count > 0;
     }
 
+    /** @return Vehicle[] */
+    public function findAllActive(): array
+    {
+        return $this->em->createQueryBuilder()
+            ->select('v')
+            ->from(Vehicle::class, 'v')
+            ->where('v.deletedAt IS NULL')
+            ->orderBy('v.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findActiveOwner(Vehicle $vehicle): ?CustomerProfile
     {
         $ownership = $this->em->createQueryBuilder()
