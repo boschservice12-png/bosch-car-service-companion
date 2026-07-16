@@ -10,6 +10,7 @@ import {
   type RoadsideRequest,
   type ServiceRecord,
   type ServiceRecordInput,
+  type TaxItem,
 } from './types';
 
 /** URL (same-origin, proxy /api) pentru descărcarea unui document de service. */
@@ -30,6 +31,11 @@ export function roadsideDocumentHref(requestId: string, documentId: string): str
 /** URL (same-origin) pentru descărcarea unui document dintr-un dosar de daună. */
 export function damageClaimDocumentHref(claimId: string, documentId: string): string {
   return `/api/damage-claims/${claimId}/documents/${documentId}`;
+}
+
+/** URL (same-origin) pentru descărcarea bizonjatului unei taxe. */
+export function taxDocumentHref(taxId: string, documentId: string): string {
+  return `/api/taxes/${taxId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -150,6 +156,13 @@ export const api = {
 
   updateDamageClaimStatus: (id: string, data: { status: string; note?: string }) =>
     request<DamageClaim>(`/admin/damage-claims/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  taxes: () => request<TaxItem[]>('/admin/taxes'),
+
+  tax: (id: string) => request<TaxItem>(`/admin/taxes/${id}`),
+
+  updateTaxStatus: (id: string, data: { status: string; note?: string }) =>
+    request<TaxItem>(`/admin/taxes/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

@@ -8,6 +8,7 @@ import {
   type MobilityRequest,
   type RoadsideRequest,
   type ServiceRecord,
+  type TaxItem,
   type Vehicle,
 } from './types';
 
@@ -29,6 +30,11 @@ export function roadsideDocumentHref(requestId: string, documentId: string): str
 /** URL (same-origin) pentru descărcarea unui document dintr-un dosar de daună. */
 export function damageClaimDocumentHref(claimId: string, documentId: string): string {
   return `/api/damage-claims/${claimId}/documents/${documentId}`;
+}
+
+/** URL (same-origin) pentru descărcarea bizonjatului unei taxe. */
+export function taxDocumentHref(taxId: string, documentId: string): string {
+  return `/api/taxes/${taxId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -189,6 +195,16 @@ export const api = {
   }) => request<DamageClaim>('/damage-claims', { method: 'POST', body: JSON.stringify(data) }),
 
   cancelDamageClaim: (id: string) => request<DamageClaim>(`/damage-claims/${id}/cancel`, { method: 'POST' }),
+
+  taxes: () => request<TaxItem[]>('/taxes'),
+
+  tax: (id: string) => request<TaxItem>(`/taxes/${id}`),
+
+  createTax: (data: { year: number; type: string; amount: number; dueDate?: string; vehicleId?: string }) =>
+    request<TaxItem>('/taxes', { method: 'POST', body: JSON.stringify(data) }),
+
+  payTax: (id: string, documentIds: string[]) =>
+    request<TaxItem>(`/taxes/${id}/pay`, { method: 'POST', body: JSON.stringify({ documentIds }) }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */
