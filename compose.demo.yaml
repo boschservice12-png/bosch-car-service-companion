@@ -1,0 +1,78 @@
+# Demo „one-command" — întreaga stivă (bază de date + backend + ambele frontend-uri).
+# Rulare:   docker compose -f compose.demo.yaml up --build
+# Apoi:     Client  http://localhost:3000   ·   Admin http://localhost:3001
+# Conturi:  admin@bcsc.ro / client@bcsc.ro  (parola Demo1234!)
+name: bcsc-demo
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: bcsc
+      POSTGRES_PASSWORD: bcsc
+      POSTGRES_DB: bcsc
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bcsc -d bcsc"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  # Backend Symfony: la pornire rulează migrațiile + seed-ul demo, apoi servește pe :8080.
+  backend:
+    build:
+      context: .
+      dockerfile: demo/backend.Dockerfile
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: "0"
+      DATABASE_URL: "postgresql://bcsc:bcsc@db:5432/bcsc?serverVersion=16&charset=utf8"
+      MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
+      CORS_ALLOW_ORIGIN: "http://localhost:3000,http://localhost:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  # Frontend client (PWA). Proxy /api -> http://backend:8080 (server-side, prin next.config).
+  customer-web:
+    image: node:20-bookworm-slim
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npx next dev -H 0.0.0.0 -p 3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: "http://backend:8080"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./apps/customer-web:/app
+      - cw_node_modules:/app/node_modules
+      - cw_next:/app/.next
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+  # Frontend admin (portal service).
+  service-admin:
+    image: node:20-bookworm-slim
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npx next dev -H 0.0.0.0 -p 3001"
+    environment:
+      NEXT_PUBLIC_API_BASE: "http://backend:8080"
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./apps/service-admin:/app
+      - sa_node_modules:/app/node_modules
+      - sa_next:/app/.next
+    depends_on:
+      - backend
+    ports:
+      - "3001:3001"
+
+volumes:
+  db_data:
+  cw_node_modules:
+  cw_next:
+  sa_node_modules:
+  sa_next:

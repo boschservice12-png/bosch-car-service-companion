@@ -1,0 +1,8 @@
+# Context de build minimal pentru compose.demo.yaml (imaginea backend).
+.git
+**/node_modules
+**/.next
+backend/vendor
+backend/var
+**/.env.local
+apps/*/.next
