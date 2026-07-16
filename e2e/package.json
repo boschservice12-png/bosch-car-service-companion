@@ -1,0 +1,12 @@
+{
+  "name": "bcsc-e2e",
+  "private": true,
+  "description": "End-to-end browser tests (CLIENT + ADMIN) for Bosch Car Service Companion",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}
