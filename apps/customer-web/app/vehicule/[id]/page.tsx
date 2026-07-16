@@ -93,6 +93,9 @@ export default function VehicleDetailPage() {
       <Link className="btn" href={`/vehicule/${vehicle.id}/scadente/nou`}>
         ➕ Adaugă / actualizează scadență
       </Link>
+      <Link className="btn btn-ghost" href={`/vehicule/${vehicle.id}/istoric`}>
+        🧾 Istoric service
+      </Link>
       <p className="muted" style={{ fontSize: '0.82rem' }}>
         Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.
       </p>

@@ -53,6 +53,40 @@ export const UPLOAD_ACCEPT: Record<string, string> = {
   'application/pdf': '.pdf',
 };
 
+export type ServiceRecordStatus = 'DRAFT' | 'PUBLISHED';
+
+export interface ServiceRecord {
+  id: string;
+  vehicleId: string;
+  status: ServiceRecordStatus;
+  statusLabel: string;
+  serviceDate: string | null;
+  odometerKm: number | null;
+  workType: string | null;
+  workDescription: string | null;
+  partsSummary: string | null;
+  laborCost: number;
+  totalAmount: number;
+  warranty: string | null;
+  correctionOfId: string | null;
+  corrected: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  documents: DeadlineDocument[];
+}
+
+/** Payload pentru crearea/editarea unei ciorne. Câmpurile goale se omit. */
+export interface ServiceRecordInput {
+  serviceDate?: string;
+  odometerKm?: number;
+  workType?: string;
+  workDescription?: string;
+  partsSummary?: string;
+  laborCost?: number;
+  totalAmount?: number;
+  warranty?: string;
+}
+
 export interface ApiProblem {
   type: string;
   title: string;

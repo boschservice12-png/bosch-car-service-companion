@@ -1,4 +1,17 @@
-import { ApiError, type AdminVehicle, type ApiProblem, type Deadline, type Me } from './types';
+import {
+  ApiError,
+  type AdminVehicle,
+  type ApiProblem,
+  type Deadline,
+  type Me,
+  type ServiceRecord,
+  type ServiceRecordInput,
+} from './types';
+
+/** URL (same-origin, proxy /api) pentru descărcarea unui document de service. */
+export function serviceRecordDocumentHref(recordId: string, documentId: string): string {
+  return `/api/service-records/${recordId}/documents/${documentId}`;
+}
 
 /** Metadatele unui document încărcat. */
 export interface UploadedDocument {
@@ -64,6 +77,29 @@ export const api = {
 
   documentDownloadUrl: (documentId: string) =>
     request<{ url: string; expiresAt: string }>(`/documents/${documentId}/download-url`),
+
+  serviceRecords: (vehicleId: string) => request<ServiceRecord[]>(`/admin/vehicles/${vehicleId}/service-records`),
+
+  createServiceRecord: (vehicleId: string, data: ServiceRecordInput) =>
+    request<ServiceRecord>(`/admin/vehicles/${vehicleId}/service-records`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateServiceRecord: (id: string, data: ServiceRecordInput) =>
+    request<ServiceRecord>(`/admin/service-records/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  publishServiceRecord: (id: string) =>
+    request<ServiceRecord>(`/admin/service-records/${id}/publish`, { method: 'POST' }),
+
+  correctServiceRecord: (id: string) =>
+    request<ServiceRecord>(`/admin/service-records/${id}/corrections`, { method: 'POST' }),
+
+  attachServiceRecordDocument: (id: string, documentId: string) =>
+    request<ServiceRecord>(`/admin/service-records/${id}/documents`, {
+      method: 'POST',
+      body: JSON.stringify({ documentId }),
+    }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

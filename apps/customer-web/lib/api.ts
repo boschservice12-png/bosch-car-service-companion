@@ -1,4 +1,9 @@
-import { ApiError, type ApiProblem, type Deadline, type Me, type Vehicle } from './types';
+import { ApiError, type ApiProblem, type Deadline, type Me, type ServiceRecord, type Vehicle } from './types';
+
+/** URL (same-origin, proxy /api) pentru descărcarea unui document de service. */
+export function serviceRecordDocumentHref(recordId: string, documentId: string): string {
+  return `/api/service-records/${recordId}/documents/${documentId}`;
+}
 
 /** Metadatele unui document încărcat. */
 export interface UploadedDocument {
@@ -92,6 +97,10 @@ export const api = {
 
   documentDownloadUrl: (documentId: string) =>
     request<{ url: string; expiresAt: string }>(`/documents/${documentId}/download-url`),
+
+  serviceRecords: (vehicleId: string) => request<ServiceRecord[]>(`/vehicles/${vehicleId}/service-records`),
+
+  serviceRecord: (id: string) => request<ServiceRecord>(`/service-records/${id}`),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */
