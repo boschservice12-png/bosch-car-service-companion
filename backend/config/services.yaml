@@ -29,6 +29,9 @@ services:
     App\ServiceHistory\Domain\ServiceRecordRepository:
         alias: App\ServiceHistory\Infrastructure\DoctrineServiceRecordRepository
 
+    App\Communication\Domain\ConversationRepository:
+        alias: App\Communication\Infrastructure\DoctrineConversationRepository
+
     # Calculator de stare — value object fără dependențe, aflat în Domain/
     # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
     App\Deadline\Domain\DeadlineStatusCalculator: ~
