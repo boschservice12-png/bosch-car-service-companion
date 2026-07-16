@@ -1,4 +1,4 @@
-import { ApiError, type ApiProblem, type Me, type Vehicle } from './types';
+import { ApiError, type ApiProblem, type Deadline, type Me, type Vehicle } from './types';
 
 /**
  * Client API. Folosește cookie de sesiune (httpOnly) — de aceea toate cererile
@@ -61,4 +61,11 @@ export const api = {
 
   createVehicle: (data: { vin: string; plateNumber: string; make?: string; model?: string; year?: number }) =>
     request<Vehicle>('/vehicles', { method: 'POST', body: JSON.stringify(data) }),
+
+  vehicleDeadlines: (vehicleId: string) => request<Deadline[]>(`/vehicles/${vehicleId}/deadlines`),
+
+  createDeadline: (
+    vehicleId: string,
+    data: { type: string; expiresAt: string; validFrom?: string; note?: string },
+  ) => request<Deadline>(`/vehicles/${vehicleId}/deadlines`, { method: 'POST', body: JSON.stringify(data) }),
 };

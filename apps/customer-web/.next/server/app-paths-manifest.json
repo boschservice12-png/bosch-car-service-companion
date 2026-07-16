@@ -1,0 +1,12 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/login/page": "app/login/page.js",
+  "/mesaje/page": "app/mesaje/page.js",
+  "/page": "app/page.js",
+  "/profil/page": "app/profil/page.js",
+  "/register/page": "app/register/page.js",
+  "/vehicule/[id]/page": "app/vehicule/[id]/page.js",
+  "/vehicule/[id]/scadente/nou/page": "app/vehicule/[id]/scadente/nou/page.js",
+  "/vehicule/nou/page": "app/vehicule/nou/page.js",
+  "/vehicule/page": "app/vehicule/page.js"
+}

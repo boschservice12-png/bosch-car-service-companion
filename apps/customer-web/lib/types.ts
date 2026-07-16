@@ -17,6 +17,24 @@ export interface Vehicle {
   year: number | null;
 }
 
+export type DeadlineType = 'ITP' | 'RCA' | 'ROAD_TAX' | 'ROADSIDE_ASSISTANCE';
+export type DeadlineState = 'UNKNOWN' | 'VALID' | 'DUE_SOON' | 'EXPIRED';
+
+export interface Deadline {
+  id: string;
+  type: DeadlineType;
+  typeLabel: string;
+  validFrom: string | null;
+  expiresAt: string | null;
+  state: DeadlineState;
+  stateLabel: string;
+  daysLeft: number | null;
+  source: 'CLIENT' | 'SERVICE' | 'IMPORT';
+  verified: boolean;
+  note: string | null;
+  documentId: string | null;
+}
+
 /** Structura standard de eroare (application/problem+json). */
 export interface ApiProblem {
   type: string;
