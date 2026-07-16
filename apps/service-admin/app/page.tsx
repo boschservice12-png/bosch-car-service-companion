@@ -51,6 +51,9 @@ export default function DashboardPage() {
           <Link href="/daune" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
             📋 Daune
           </Link>
+          <Link href="/taxe" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+            🧾 Taxe
+          </Link>
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} onClick={logout}>
             Ieșire
           </button>

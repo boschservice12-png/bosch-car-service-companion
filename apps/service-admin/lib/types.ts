@@ -178,6 +178,27 @@ export interface DamageClaim {
   customerName?: string;
 }
 
+export type TaxType = 'VEHICLE_TAX' | 'ENVIRONMENT' | 'OTHER';
+export type PaymentStatus = 'UNPAID' | 'PAID';
+
+export interface TaxItem {
+  id: string;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
+  year: number;
+  type: TaxType;
+  typeLabel: string;
+  amount: number;
+  dueDate: string | null;
+  status: PaymentStatus;
+  statusLabel: string;
+  paidAt: string | null;
+  note: string | null;
+  createdAt: string;
+  documents: DeadlineDocument[];
+  customerName?: string;
+}
+
 export interface ApiProblem {
   type: string;
   title: string;
