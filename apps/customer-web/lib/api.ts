@@ -4,6 +4,7 @@ import {
   type Conversation,
   type Deadline,
   type Me,
+  type RoadsideRequest,
   type ServiceRecord,
   type Vehicle,
 } from './types';
@@ -16,6 +17,11 @@ export function serviceRecordDocumentHref(recordId: string, documentId: string):
 /** URL (same-origin) pentru descărcarea unui atașament dintr-o conversație. */
 export function conversationDocumentHref(conversationId: string, documentId: string): string {
   return `/api/conversations/${conversationId}/documents/${documentId}`;
+}
+
+/** URL (same-origin) pentru descărcarea unui atașament dintr-o cerere de asistență. */
+export function roadsideDocumentHref(requestId: string, documentId: string): string {
+  return `/api/roadside-requests/${requestId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -133,6 +139,23 @@ export const api = {
   acceptQuote: (id: string) => request<Conversation>(`/conversations/${id}/quote/accept`, { method: 'POST' }),
 
   declineQuote: (id: string) => request<Conversation>(`/conversations/${id}/quote/decline`, { method: 'POST' }),
+
+  roadsideRequests: () => request<RoadsideRequest[]>('/roadside-requests'),
+
+  roadsideRequest: (id: string) => request<RoadsideRequest>(`/roadside-requests/${id}`),
+
+  createRoadsideRequest: (data: {
+    location: string;
+    problem: string;
+    mobility: string;
+    safety: string;
+    phone: string;
+    vehicleId?: string;
+    documentIds?: string[];
+  }) => request<RoadsideRequest>('/roadside-requests', { method: 'POST', body: JSON.stringify(data) }),
+
+  cancelRoadsideRequest: (id: string) =>
+    request<RoadsideRequest>(`/roadside-requests/${id}/cancel`, { method: 'POST' }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

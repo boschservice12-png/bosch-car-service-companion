@@ -118,6 +118,29 @@ export interface Conversation {
   messages?: ConversationMessage[];
 }
 
+export type MobilityState = 'DRIVABLE' | 'NOT_DRIVABLE';
+export type SafetyState = 'SAFE' | 'AT_RISK';
+export type RoadsideStatus = 'NEW' | 'FORWARDED' | 'RESOLVED' | 'CANCELLED';
+
+export interface RoadsideRequest {
+  id: string;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
+  location: string;
+  problem: string;
+  mobility: MobilityState;
+  mobilityLabel: string;
+  safety: SafetyState;
+  safetyLabel: string;
+  phone: string;
+  status: RoadsideStatus;
+  statusLabel: string;
+  note: string | null;
+  createdAt: string;
+  documents: DeadlineDocument[];
+  customerName?: string;
+}
+
 export interface ApiProblem {
   type: string;
   title: string;
