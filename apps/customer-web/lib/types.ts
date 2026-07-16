@@ -56,6 +56,28 @@ export const UPLOAD_ACCEPT: Record<string, string> = {
   'application/pdf': '.pdf',
 };
 
+export type ServiceRecordStatus = 'DRAFT' | 'PUBLISHED';
+
+export interface ServiceRecord {
+  id: string;
+  vehicleId: string;
+  status: ServiceRecordStatus;
+  statusLabel: string;
+  serviceDate: string | null;
+  odometerKm: number | null;
+  workType: string | null;
+  workDescription: string | null;
+  partsSummary: string | null;
+  laborCost: number;
+  totalAmount: number;
+  warranty: string | null;
+  correctionOfId: string | null;
+  corrected: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  documents: DeadlineDocument[];
+}
+
 /** Structura standard de eroare (application/problem+json). */
 export interface ApiProblem {
   type: string;

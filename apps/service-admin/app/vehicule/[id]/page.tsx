@@ -74,7 +74,12 @@ export default function AdminVehicleDeadlinesPage() {
       <Link href="/" className="muted">
         ← Vehicule
       </Link>
-      <h1>Scadențe</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1>Scadențe</h1>
+        <Link href={`/vehicule/${params.id}/istoric`} className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+          🧾 Istoric service
+        </Link>
+      </div>
 
       <div className="card">
         {deadlines.length === 0 ? <p className="muted">Nicio scadență introdusă.</p> : null}
