@@ -56,9 +56,15 @@ export default function HomePage() {
         <Link className="btn btn-ghost" href="/mobilitate">
           🚕 Mobilitate
         </Link>
-        <Link className="btn btn-ghost" href="/daune">
-          📋 Dosar de daună
-        </Link>
+        <a
+          className="btn btn-ghost"
+          href="https://amiabila.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textAlign: 'center', textDecoration: 'none' }}
+        >
+          📋 În caz de accident ↗
+        </a>
         <Link className="btn btn-ghost" href="/taxe">
           🧾 Taxe și impozite
         </Link>
