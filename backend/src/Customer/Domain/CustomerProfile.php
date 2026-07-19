@@ -75,6 +75,11 @@ class CustomerProfile
         return $this->phone;
     }
 
+    public function address(): ?string
+    {
+        return $this->address;
+    }
+
     public function updateContact(?string $phone, ?string $address): void
     {
         $this->phone = $phone;

@@ -1,4 +1,5 @@
 import {
+  type ImportReport,
   type QuoteRequest,
   ApiError,
   type AdminVehicle,
@@ -89,6 +90,13 @@ export const api = {
     request<Deadline>(`/deadlines/${deadlineId}`, { method: 'PATCH', body: JSON.stringify({ verify: true }) }),
 
   /** Încărcare fișier (multipart). NU setăm Content-Type — browserul adaugă boundary-ul. */
+  /** Import clienți + vehicule din Excel/CSV (multipart). */
+  importClients: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return uploadRequest<ImportReport>('/admin/import/clients', form);
+  },
+
   uploadDocument: (file: File) => {
     const form = new FormData();
     form.append('file', file);

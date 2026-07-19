@@ -246,3 +246,13 @@ export interface QuoteRequest {
   updatedAt: string;
   customerName?: string;
 }
+
+// ---- Import clienți + vehicule (Excel/CSV) ----
+export interface ImportReport {
+  totalRows: number;
+  ownersCreated: number;
+  vehiclesCreated: number;
+  vehiclesUpdated: number;
+  ownershipsCreated: number;
+  errors: { row: number; message: string }[];
+}
