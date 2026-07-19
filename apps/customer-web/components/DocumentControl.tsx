@@ -65,18 +65,11 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
     }
   }
 
-  async function download() {
+  function download() {
     if (!doc) return;
-    setError(null);
-    setBusy(true);
-    try {
-      const { url } = await api.documentDownloadUrl(doc.id);
-      window.open(url, '_blank', 'noopener');
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : t('Descărcare eșuată.'));
-    } finally {
-      setBusy(false);
-    }
+    // P0-04: descărcarea se autorizează prin scadență (proprietarul
+    // vehiculului sau adminul), nu prin cine a încărcat documentul.
+    window.open(`/api/deadlines/${deadline.id}/documents/${doc.id}`, '_blank', 'noopener');
   }
 
   return (

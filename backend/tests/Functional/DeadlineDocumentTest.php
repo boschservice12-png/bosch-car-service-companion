@@ -110,6 +110,40 @@ final class DeadlineDocumentTest extends WebTestCase
         $this->login($client, $adminEmail, 'Parola1234');
         $client->request('GET', "/api/documents/$documentId/download-url");
         self::assertResponseIsSuccessful();
+
+        // ── P0-04: ruta de descărcare PRIN SCADENȚĂ, autorizată de business ──
+        // ADMINUL încarcă și ataşează un document la scadența CLIENTULUI
+        // (cazul care era blocat de voter-ul generic „doar cine a încărcat").
+        $client->request('POST', '/api/documents', files: ['file' => $this->tempUpload('itp-service.png', base64_decode(self::PNG_BASE64), 'image/png')]);
+        self::assertResponseStatusCodeSame(201);
+        $adminDocId = json_decode((string) $client->getResponse()->getContent(), true)['id'];
+        $client->request('POST', "/api/deadlines/$deadlineId/documents", server: $this->json(), content: json_encode([
+            'documentId' => $adminDocId,
+        ]));
+        self::assertResponseIsSuccessful();
+
+        // Înainte de scanare: 404 (neservibil) chiar și pentru proprietar.
+        $this->login($client, $ownerEmail, 'Parola1234');
+        $client->request('GET', "/api/deadlines/$deadlineId/documents/$adminDocId");
+        self::assertResponseStatusCodeSame(404, 'Documentul nescanat nu se servește.');
+        $this->scan($adminDocId);
+
+        // PROPRIETARUL vehiculului descarcă documentul atașat de service.
+        $client->request('GET', "/api/deadlines/$deadlineId/documents/$adminDocId");
+        self::assertResponseIsSuccessful('Proprietarul poate descărca documentul atașat de service.');
+        self::assertSame('image/png', $client->getResponse()->headers->get('Content-Type'));
+        $cacheControl = (string) $client->getResponse()->headers->get('Cache-Control');
+        self::assertStringContainsString('no-store', $cacheControl);
+        self::assertStringContainsString('private', $cacheControl);
+
+        // Document care NU aparține scadenței → 404.
+        $client->request('GET', "/api/deadlines/$deadlineId/documents/$documentId");
+        self::assertResponseStatusCodeSame(404, 'Doar documentul efectiv atașat scadenței se servește.');
+
+        // ALT CLIENT: 403 pe ruta scadenței.
+        $this->login($client, $otherEmail, 'Parola1234');
+        $client->request('GET', "/api/deadlines/$deadlineId/documents/$adminDocId");
+        self::assertResponseStatusCodeSame(403, 'Alt client nu poate descărca documentul scadenței.');
     }
 
     private function scan(string $documentId): void

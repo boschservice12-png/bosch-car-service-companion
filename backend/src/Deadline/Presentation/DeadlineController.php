@@ -20,8 +20,10 @@ use App\Vehicle\Domain\Vehicle;
 use App\Vehicle\Domain\VehicleRepository;
 use App\Vehicle\Presentation\VehicleVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use App\Document\Domain\StorageAdapter;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
@@ -74,6 +76,37 @@ final class DeadlineController extends AbstractController
         $updated = $this->service->update($deadline, $req, $admin);
 
         return $this->json($this->serialize($updated));
+    }
+
+    /**
+     * P0-04: descărcarea documentului unei scadențe se autorizează prin
+     * OBIECTUL DE BUSINESS (proprietarul activ al vehiculului sau adminul),
+     * nu prin cine a încărcat fișierul — astfel clientul poate descărca și
+     * documentele atașate de service la scadențele vehiculului său.
+     */
+    #[Route('/api/deadlines/{id}/documents/{docId}', name: 'api_deadlines_download_document', methods: ['GET'])]
+    public function downloadDocument(string $id, string $docId, StorageAdapter $storage): Response
+    {
+        $deadline = $this->requireDeadline($id);
+        $this->denyAccessUnlessGranted(VehicleVoter::VIEW, $deadline->vehicle());
+
+        $document = $deadline->document();
+        if ($document === null || !Uuid::isValid($docId) || !$document->id()->equals(Uuid::fromString($docId))) {
+            throw $this->createNotFoundException('Documentul nu aparține acestei scadențe.');
+        }
+        if (!$document->isServable()) {
+            throw $this->createNotFoundException('Document indisponibil (în curs de scanare sau respins).');
+        }
+
+        $contents = $storage->read($document->storageKey());
+        $filename = $document->originalName() ?? ('document.'.pathinfo($document->storageKey(), PATHINFO_EXTENSION));
+
+        return new Response($contents, 200, [
+            'Content-Type' => $document->mimeType(),
+            'Content-Disposition' => sprintf('attachment; filename="%s"', addslashes($filename)),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     #[Route('/api/deadlines/{id}/documents', name: 'api_deadlines_attach_document', methods: ['POST'])]

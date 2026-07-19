@@ -17,6 +17,8 @@ security:
             pattern: ^/api
             lazy: true
             provider: app_users
+            # P0-07: conturile dezactivate nu se pot autentifica.
+            user_checker: App\Identity\Security\ActiveUserChecker
             stateless: false
             json_login:
                 check_path: api_auth_login

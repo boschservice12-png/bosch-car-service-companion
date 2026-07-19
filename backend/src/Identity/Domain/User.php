@@ -7,6 +7,7 @@ namespace App\Identity\Domain;
 use App\Customer\Domain\CustomerProfile;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
@@ -15,7 +16,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity]
 #[ORM\Table(name: 'users')]
 #[UniqueEntity(fields: ['email'], message: 'Există deja un cont cu acest email.')]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
     public const ROLE_CLIENT = 'ROLE_USER';
     public const ROLE_SERVICE_ADMIN = 'ROLE_SERVICE_ADMIN';
@@ -101,6 +102,29 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isActive(): bool
     {
         return $this->isActive;
+    }
+
+    public function deactivate(): void
+    {
+        $this->isActive = false;
+    }
+
+    public function activate(): void
+    {
+        $this->isActive = true;
+    }
+
+    /**
+     * P0-07: dacă utilizatorul reîncărcat din bază este dezactivat (sau
+     * identitatea diferă), sesiunea existentă devine invalidă la următoarea
+     * cerere — un cont blocat își pierde accesul imediat, nu doar la re-login.
+     */
+    public function isEqualTo(UserInterface $user): bool
+    {
+        return $user instanceof self
+            && $user->getUserIdentifier() === $this->getUserIdentifier()
+            && $user->isActive()
+            && $this->isActive;
     }
 
     public function customerProfile(): ?CustomerProfile
