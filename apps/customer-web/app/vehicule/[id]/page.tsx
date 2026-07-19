@@ -102,6 +102,16 @@ export default function VehicleDetailPage() {
                       Verificare RCA (AIDA) ↗
                     </a>
                   ) : null}
+                  {type === 'ROAD_TAX' ? (
+                    <a
+                      href="https://www.erovinieta.ro"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '0.82rem' }}
+                    >
+                      Verificare taxă de drum (eRovinieta) ↗
+                    </a>
+                  ) : null}
                 </div>
                 <DeadlineBadge state={d?.state ?? 'UNKNOWN'} label={d?.stateLabel ?? 'Necunoscut'} />
               </div>

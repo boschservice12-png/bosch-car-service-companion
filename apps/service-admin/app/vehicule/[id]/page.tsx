@@ -111,6 +111,16 @@ export default function AdminVehicleDeadlinesPage() {
                     Verificare RCA (AIDA) ↗
                   </a>
                 ) : null}
+                {d.type === 'ROAD_TAX' ? (
+                  <a
+                    href="https://www.erovinieta.ro"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: '0.82rem' }}
+                  >
+                    Verificare taxă de drum (eRovinieta) ↗
+                  </a>
+                ) : null}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <DeadlineBadge state={d.state} label={d.stateLabel} />

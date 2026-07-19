@@ -23,6 +23,7 @@ interface AlertRow {
 const EXTERNAL_CHECK: Partial<Record<Deadline['type'], { href: string; hint: string }>> = {
   ITP: { href: 'https://prog.rarom.ro/rarpol/', hint: ' · verificare ITP (RAR) ↗' },
   RCA: { href: 'https://www.aida.info.ro/polite-rca', hint: ' · verificare RCA (AIDA) ↗' },
+  ROAD_TAX: { href: 'https://www.erovinieta.ro', hint: ' · verificare taxă de drum (eRovinieta) ↗' },
 };
 
 export default function AlertsPage() {
