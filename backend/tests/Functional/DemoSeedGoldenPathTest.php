@@ -82,11 +82,9 @@ final class DemoSeedGoldenPathTest extends WebTestCase
         self::assertCount(1, $mobility);
         self::assertSame('CONFIRMED', $mobility[0]['status']);
 
+        // Dosarul de daună nu mai are API de client (se deschide pe amiabila.com).
         $client->request('GET', '/api/damage-claims');
-        self::assertResponseIsSuccessful();
-        $damage = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertCount(1, $damage);
-        self::assertSame('IN_REVIEW', $damage[0]['status']);
+        self::assertResponseStatusCodeSame(404);
 
         $client->request('GET', '/api/taxes');
         self::assertResponseIsSuccessful();

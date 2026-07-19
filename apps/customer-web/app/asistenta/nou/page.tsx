@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
-import { AttachmentPicker, type PickedFile } from '@/components/AttachmentPicker';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -24,7 +23,6 @@ export default function NewRoadsidePage() {
   const [safety, setSafety] = useState('SAFE');
   const [phone, setPhone] = useState('');
   const [vehicleId, setVehicleId] = useState('');
-  const [attachments, setAttachments] = useState<PickedFile[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +43,6 @@ export default function NewRoadsidePage() {
         safety,
         phone,
         vehicleId: vehicleId || undefined,
-        documentIds: attachments.map((a) => a.id),
       });
       router.replace(`/asistenta/${req.id}`);
     } catch (err) {
@@ -103,7 +100,6 @@ export default function NewRoadsidePage() {
             ))}
           </select>
         </div>
-        <AttachmentPicker files={attachments} onChange={setAttachments} />
         <button className="btn" type="submit" disabled={busy}>
           {busy ? 'Se trimite…' : 'Trimite cererea'}
         </button>

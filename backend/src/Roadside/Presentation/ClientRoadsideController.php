@@ -14,7 +14,6 @@ use App\Roadside\Domain\RoadsideRequest;
 use App\Roadside\Domain\RoadsideRequestRepository;
 use App\Roadside\Domain\SafetyState;
 use App\Roadside\Presentation\Dto\CreateRoadsideRequest;
-use App\Shared\Presentation\ResolvesAttachments;
 use App\Shared\Presentation\ValidationFailedException;
 use App\Vehicle\Domain\Vehicle;
 use App\Vehicle\Domain\VehicleRepository;
@@ -33,8 +32,6 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 final class ClientRoadsideController extends AbstractController
 {
-    use ResolvesAttachments;
-
     public function __construct(
         private readonly RoadsideRequestRepository $requests,
         private readonly RoadsideService $service,
@@ -50,8 +47,9 @@ final class ClientRoadsideController extends AbstractController
         return $this->json($this->serializer->serializeList($this->requests->findForCustomer($this->currentUser()), withCustomer: false));
     }
 
+    /** Cerere scrisă — FĂRĂ fișiere/foto (decizie de produs: clientul nu încarcă nimic). */
     #[Route('/api/roadside-requests', name: 'api_roadside_create', methods: ['POST'])]
-    public function create(#[MapRequestPayload] CreateRoadsideRequest $req, DocumentRepository $documents): JsonResponse
+    public function create(#[MapRequestPayload] CreateRoadsideRequest $req): JsonResponse
     {
         $this->assertValid($req);
 
@@ -60,7 +58,6 @@ final class ClientRoadsideController extends AbstractController
             $vehicle = $this->requireVehicle($req->vehicleId);
             $this->denyAccessUnlessGranted(VehicleVoter::VIEW, $vehicle);
         }
-        $attachments = $this->resolveAttachments($req->documentIds, $documents);
 
         $request = $this->service->create(
             $this->currentUser(),
@@ -70,7 +67,6 @@ final class ClientRoadsideController extends AbstractController
             MobilityState::from($req->mobility),
             SafetyState::from($req->safety),
             $req->phone,
-            $attachments,
         );
 
         return $this->json($this->serializer->serialize($request, withCustomer: false), 201);

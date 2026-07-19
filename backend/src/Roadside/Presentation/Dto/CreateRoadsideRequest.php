@@ -30,8 +30,4 @@ final class CreateRoadsideRequest
 
     #[Assert\Uuid(message: 'Vehicul invalid.')]
     public ?string $vehicleId = null;
-
-    /** @var string[] */
-    #[Assert\All([new Assert\Uuid(message: 'Document invalid.')])]
-    public array $documentIds = [];
 }

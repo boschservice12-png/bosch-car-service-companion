@@ -4,7 +4,6 @@ import {
   type ApiProblem,
   type Conversation,
   type Deadline,
-  type DamageClaim,
   type Me,
   type MobilityRequest,
   type RoadsideRequest,
@@ -26,11 +25,6 @@ export function conversationDocumentHref(conversationId: string, documentId: str
 /** URL (same-origin) pentru descărcarea unui atașament dintr-o cerere de asistență. */
 export function roadsideDocumentHref(requestId: string, documentId: string): string {
   return `/api/roadside-requests/${requestId}/documents/${documentId}`;
-}
-
-/** URL (same-origin) pentru descărcarea unui document dintr-un dosar de daună. */
-export function damageClaimDocumentHref(claimId: string, documentId: string): string {
-  return `/api/damage-claims/${claimId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */
@@ -173,6 +167,7 @@ export const api = {
 
   roadsideRequest: (id: string) => request<RoadsideRequest>(`/roadside-requests/${id}`),
 
+  /** Cerere scrisă — fără fișiere/foto (clientul nu încarcă nimic). */
   createRoadsideRequest: (data: {
     location: string;
     problem: string;
@@ -180,7 +175,6 @@ export const api = {
     safety: string;
     phone: string;
     vehicleId?: string;
-    documentIds?: string[];
   }) => request<RoadsideRequest>('/roadside-requests', { method: 'POST', body: JSON.stringify(data) }),
 
   cancelRoadsideRequest: (id: string) =>
@@ -196,21 +190,7 @@ export const api = {
   cancelMobilityRequest: (id: string) =>
     request<MobilityRequest>(`/mobility-requests/${id}/cancel`, { method: 'POST' }),
 
-  damageClaims: () => request<DamageClaim[]>('/damage-claims'),
-
-  damageClaim: (id: string) => request<DamageClaim>(`/damage-claims/${id}`),
-
-  createDamageClaim: (data: {
-    incidentDate?: string;
-    incidentLocation?: string;
-    incidentDescription: string;
-    insurer?: string;
-    policyNumber?: string;
-    vehicleId?: string;
-    documentIds?: string[];
-  }) => request<DamageClaim>('/damage-claims', { method: 'POST', body: JSON.stringify(data) }),
-
-  cancelDamageClaim: (id: string) => request<DamageClaim>(`/damage-claims/${id}/cancel`, { method: 'POST' }),
+  // Dosarul de daună se deschide EXCLUSIV pe amiabila.com — fără API de client.
 
   taxes: () => request<TaxItem[]>('/taxes'),
 

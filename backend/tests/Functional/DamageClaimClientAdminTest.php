@@ -4,81 +4,67 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use App\Document\Application\Message\ScanDocument;
-use App\Document\Application\ScanDocumentHandler;
+use App\DamageClaim\Domain\DamageClaim;
+use App\DamageClaim\Domain\DamageClaimStatus;
 use App\Identity\Domain\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Slice vertical „dosar de daună" end-to-end (CLIENT + ADMIN):
- *  - clientul deschide un dosar (eveniment, asigurător, poliță, fotografii);
- *  - un alt client NU are acces (403);
- *  - service-ul îl preia (IN_PROGRESS) și clientul vede noua stare;
- *  - descărcarea fotografiilor/documentelor e autorizată prin proprietar;
- *  - anularea de client e permisă doar cât timp dosarul e nou;
- *  - operațiunile ajung în audit.
+ * Dosar de daună — decizie de produs: clientul se conectează EXCLUSIV la
+ * platforma oficială amiabila.com; aplicația NU expune API de client pentru
+ * dosare (nici creare, nici listare). Service-ul (admin) urmărește dosarele:
+ *  - rutele de client nu mai există (404);
+ *  - adminul vede dosarul și îi schimbă starea (SUBMITTED → IN_REVIEW);
+ *  - clientul obișnuit nu are acces la portalul admin (403);
+ *  - schimbările ajung în audit.
  *
  * @group functional
  */
 final class DamageClaimClientAdminTest extends WebTestCase
 {
-    private const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-
-    public function testDamageClaimFlowWithIsolationAndStatus(): void
+    public function testClientApiRemovedAdminTracksClaims(): void
     {
         $client = static::createClient();
         $ownerEmail = 'own-'.uniqid().'@example.test';
-        $otherEmail = 'oth-'.uniqid().'@example.test';
         $adminEmail = 'ad-'.uniqid().'@bcsc.ro';
         $this->createAdmin($adminEmail, 'Parola1234');
-
         $this->register($client, $ownerEmail);
-        $this->register($client, $otherEmail);
+
+        // Dosarul există în sistem (deschis prin amiabila.com, urmărit de service).
+        /** @var EntityManagerInterface $em */
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = $em->getRepository(User::class)->findOneBy(['email' => $ownerEmail]);
+        self::assertInstanceOf(User::class, $owner);
+        $claim = new DamageClaim(
+            $owner,
+            null,
+            new \DateTimeImmutable('-2 days'),
+            'Intersecție Târgu Mureș',
+            'Coliziune ușoară în parcare, aripă dreapta spate.',
+            'Allianz-Țiriac',
+            'POL-123456',
+        );
+        $em->persist($claim);
+        $em->flush();
+        $claimId = (string) $claim->id();
+
+        // CLIENT: nu există API de dosare — nici creare, nici listare (404).
         $this->login($client, $ownerEmail, 'Parola1234');
-
-        // Fotografie de la locul evenimentului.
-        $client->request('POST', '/api/documents', files: ['file' => $this->tempUpload('avarie.png', base64_decode(self::PNG_BASE64), 'image/png')]);
-        self::assertResponseStatusCodeSame(201);
-        $documentId = json_decode((string) $client->getResponse()->getContent(), true)['id'];
-
-        // CLIENT: deschide dosarul de daună.
         $client->request('POST', '/api/damage-claims', server: $this->json(), content: json_encode([
-            'incidentDate' => (new \DateTimeImmutable('-2 days'))->format('Y-m-d'),
-            'incidentLocation' => 'Intersecție Târgu Mureș',
-            'incidentDescription' => 'Coliziune ușoară în parcare, aripă dreapta spate.',
-            'insurer' => 'Allianz-Țiriac',
-            'policyNumber' => 'POL-123456',
-            'documentIds' => [$documentId],
+            'incidentDescription' => 'Încercare de creare în aplicație.',
         ]));
-        self::assertResponseStatusCodeSame(201);
-        $claim = json_decode((string) $client->getResponse()->getContent(), true);
-        $claimId = $claim['id'];
-        self::assertSame('SUBMITTED', $claim['status']);
-        self::assertSame('Allianz-Țiriac', $claim['insurer']);
-        self::assertSame('POL-123456', $claim['policyNumber']);
-        self::assertCount(1, $claim['documents']);
-        $this->scan($documentId);
-
-        // CLIENT: descărcare autorizată a fotografiei.
-        $client->request('GET', "/api/damage-claims/$claimId/documents/$documentId");
-        self::assertResponseIsSuccessful();
-        self::assertSame('image/png', $client->getResponse()->headers->get('Content-Type'));
-
-        // ALT CLIENT: fără acces.
-        $this->login($client, $otherEmail, 'Parola1234');
+        self::assertResponseStatusCodeSame(404, 'Dosarul se deschide doar pe amiabila.com.');
         $client->request('GET', '/api/damage-claims');
-        self::assertResponseIsSuccessful();
-        self::assertCount(0, json_decode((string) $client->getResponse()->getContent(), true));
-        $client->request('GET', "/api/damage-claims/$claimId");
-        self::assertResponseStatusCodeSame(403);
-        $client->request('GET', "/api/damage-claims/$claimId/documents/$documentId");
+        self::assertResponseStatusCodeSame(404);
+
+        // CLIENT: portalul admin rămâne interzis.
+        $client->request('GET', '/api/admin/damage-claims');
         self::assertResponseStatusCodeSame(403);
 
-        // ADMIN: vede și preia dosarul.
+        // ADMIN: vede dosarul și îl preia.
         $this->login($client, $adminEmail, 'Parola1234');
         $client->request('GET', '/api/admin/damage-claims');
         self::assertResponseIsSuccessful();
@@ -88,51 +74,20 @@ final class DamageClaimClientAdminTest extends WebTestCase
             'status' => 'IN_REVIEW', 'note' => 'Am transmis dosarul către asigurător.',
         ]));
         self::assertResponseIsSuccessful();
-        self::assertSame('IN_REVIEW', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+        $updated = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame('IN_REVIEW', $updated['status']);
+        self::assertSame('Allianz-Țiriac', $updated['insurer']);
 
-        // CLIENT: vede noua stare și nota.
-        $this->login($client, $ownerEmail, 'Parola1234');
-        $client->request('GET', "/api/damage-claims/$claimId");
-        self::assertResponseIsSuccessful();
-        $seen = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('IN_REVIEW', $seen['status']);
-
-        // CLIENT: nu mai poate anula un dosar în lucru.
-        $client->request('POST', "/api/damage-claims/$claimId/cancel");
-        self::assertResponseStatusCodeSame(422);
-
-        // CLIENT: poate anula un dosar nou.
-        $client->request('POST', '/api/damage-claims', server: $this->json(), content: json_encode([
-            'incidentDescription' => 'Zgârietură minoră, verific dacă deschid dosar.',
-        ]));
-        self::assertResponseStatusCodeSame(201);
-        $secondId = json_decode((string) $client->getResponse()->getContent(), true)['id'];
-        $client->request('POST', "/api/damage-claims/$secondId/cancel");
-        self::assertResponseIsSuccessful();
-        self::assertSame('CLOSED', json_decode((string) $client->getResponse()->getContent(), true)['status']);
-
-        // AUDIT.
-        /** @var EntityManagerInterface $em */
-        $em = static::getContainer()->get(EntityManagerInterface::class);
-        foreach (['damage_claim.created', 'damage_claim.status_changed', 'damage_claim.cancelled'] as $action) {
-            $count = (int) $em->getConnection()->fetchOne('SELECT COUNT(*) FROM audit_logs WHERE action = ?', [$action]);
-            self::assertGreaterThanOrEqual(1, $count, "Acțiunea $action trebuie să apară în audit.");
-        }
-    }
-
-    private function scan(string $documentId): void
-    {
-        /** @var ScanDocumentHandler $handler */
-        $handler = static::getContainer()->get(ScanDocumentHandler::class);
-        $handler(new ScanDocument($documentId));
-    }
-
-    private function tempUpload(string $name, string $contents, string $mime): UploadedFile
-    {
-        $path = sys_get_temp_dir().'/bcsc_'.uniqid().'_'.$name;
-        file_put_contents($path, $contents);
-
-        return new UploadedFile($path, $name, $mime, null, true);
+        // Starea s-a schimbat efectiv și acțiunea e în audit.
+        $em->clear();
+        $fresh = $em->find(DamageClaim::class, $claim->id());
+        self::assertInstanceOf(DamageClaim::class, $fresh);
+        self::assertSame(DamageClaimStatus::IN_REVIEW, $fresh->status());
+        $count = (int) $em->getConnection()->fetchOne(
+            'SELECT COUNT(*) FROM audit_logs WHERE action = ?',
+            ['damage_claim.status_changed'],
+        );
+        self::assertGreaterThanOrEqual(1, $count);
     }
 
     private function createAdmin(string $email, string $password): void

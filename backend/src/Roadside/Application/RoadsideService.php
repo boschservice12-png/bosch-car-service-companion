@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Roadside\Application;
 
 use App\Audit\Application\AuditRecorder;
-use App\Document\Domain\Document;
 use App\Identity\Domain\User;
 use App\Roadside\Domain\MobilityState;
 use App\Roadside\Domain\RoadsideRequest;
@@ -23,9 +22,6 @@ final class RoadsideService
     ) {
     }
 
-    /**
-     * @param Document[] $attachments
-     */
     public function create(
         User $customer,
         ?Vehicle $vehicle,
@@ -34,12 +30,8 @@ final class RoadsideService
         MobilityState $mobility,
         SafetyState $safety,
         string $phone,
-        array $attachments,
     ): RoadsideRequest {
         $request = new RoadsideRequest($customer, $vehicle, $location, $problem, $mobility, $safety, $phone);
-        foreach ($attachments as $document) {
-            $request->attach($document);
-        }
         $this->requests->save($request);
 
         $this->audit->record('roadside.created', 'RoadsideRequest', (string) $request->id(), null, [

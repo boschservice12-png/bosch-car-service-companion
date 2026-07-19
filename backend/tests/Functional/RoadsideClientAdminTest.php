@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use App\Document\Application\Message\ScanDocument;
-use App\Document\Application\ScanDocumentHandler;
 use App\Identity\Domain\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
  * Slice vertical „asistență rutieră" end-to-end (CLIENT + ADMIN):
- *  - clientul deschide o cerere (locație, problemă, mobilitate, siguranță, telefon, foto);
+ *  - clientul deschide o cerere (locație, problemă, mobilitate, siguranță,
+ *    telefon) — FĂRĂ fișiere/foto (clientul nu încarcă nimic);
  *  - un alt client NU are acces (403);
  *  - service-ul o preia (FORWARDED) și clientul vede noua stare;
- *  - descărcarea atașamentelor e autorizată prin proprietar;
  *  - anularea de client e permisă doar cât timp cererea e nouă;
  *  - operațiunile ajung în audit.
  *
@@ -26,8 +23,6 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  */
 final class RoadsideClientAdminTest extends WebTestCase
 {
-    private const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-
     public function testRoadsideRequestFlowWithIsolationAndStatus(): void
     {
         $client = static::createClient();
@@ -40,32 +35,20 @@ final class RoadsideClientAdminTest extends WebTestCase
         $this->register($client, $otherEmail);
         $this->login($client, $ownerEmail, 'Parola1234');
 
-        // Atașament (foto de la fața locului).
-        $client->request('POST', '/api/documents', files: ['file' => $this->tempUpload('loc.png', base64_decode(self::PNG_BASE64), 'image/png')]);
-        self::assertResponseStatusCodeSame(201);
-        $documentId = json_decode((string) $client->getResponse()->getContent(), true)['id'];
-
-        // CLIENT: deschide cererea de asistență.
+        // CLIENT: deschide cererea de asistență — FĂRĂ fișiere/foto (decizie de produs).
         $client->request('POST', '/api/roadside-requests', server: $this->json(), content: json_encode([
             'location' => 'DN13, km 12, lângă Sighișoara',
             'problem' => 'Pană de cauciuc, roata dreapta față.',
             'mobility' => 'NOT_DRIVABLE',
             'safety' => 'AT_RISK',
             'phone' => '+40711223344',
-            'documentIds' => [$documentId],
         ]));
         self::assertResponseStatusCodeSame(201);
         $req = json_decode((string) $client->getResponse()->getContent(), true);
         $requestId = $req['id'];
         self::assertSame('SUBMITTED', $req['status']);
         self::assertSame('NOT_DRIVABLE', $req['mobility']);
-        self::assertCount(1, $req['documents']);
-        $this->scan($documentId);
-
-        // CLIENT: descărcare autorizată a atașamentului.
-        $client->request('GET', "/api/roadside-requests/$requestId/documents/$documentId");
-        self::assertResponseIsSuccessful();
-        self::assertSame('image/png', $client->getResponse()->headers->get('Content-Type'));
+        self::assertCount(0, $req['documents'], 'Cererea de asistență nu are fișiere încărcate de client.');
 
         // ALT CLIENT: fără acces.
         $this->login($client, $otherEmail, 'Parola1234');
@@ -73,8 +56,6 @@ final class RoadsideClientAdminTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(0, json_decode((string) $client->getResponse()->getContent(), true));
         $client->request('GET', "/api/roadside-requests/$requestId");
-        self::assertResponseStatusCodeSame(403);
-        $client->request('GET', "/api/roadside-requests/$requestId/documents/$documentId");
         self::assertResponseStatusCodeSame(403);
 
         // ADMIN: vede cererea și o preia (FORWARDED, marcaj intern + telefon).
@@ -130,21 +111,6 @@ final class RoadsideClientAdminTest extends WebTestCase
             $count = (int) $em->getConnection()->fetchOne('SELECT COUNT(*) FROM audit_logs WHERE action = ?', [$action]);
             self::assertGreaterThanOrEqual(1, $count, "Acțiunea $action trebuie să apară în audit.");
         }
-    }
-
-    private function scan(string $documentId): void
-    {
-        /** @var ScanDocumentHandler $handler */
-        $handler = static::getContainer()->get(ScanDocumentHandler::class);
-        $handler(new ScanDocument($documentId));
-    }
-
-    private function tempUpload(string $name, string $contents, string $mime): UploadedFile
-    {
-        $path = sys_get_temp_dir().'/bcsc_'.uniqid().'_'.$name;
-        file_put_contents($path, $contents);
-
-        return new UploadedFile($path, $name, $mime, null, true);
     }
 
     private function createAdmin(string $email, string $password): void
