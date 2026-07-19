@@ -42,7 +42,7 @@ export default function HomePage() {
       <h2>Servicii</h2>
       <div className="stack">
         <Link className="btn btn-ghost" href="/alerte">
-          🔔 Alerte (ITP · RCA · taxă de drum)
+          🔔 Alerte (ITP · RCA · taxă de drum · asistență)
         </Link>
         <Link className="btn btn-ghost" href="/oferte">
           🧰 Cere ofertă
