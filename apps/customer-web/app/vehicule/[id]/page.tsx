@@ -92,6 +92,16 @@ export default function VehicleDetailPage() {
                       Verificare ITP (RAR) ↗
                     </a>
                   ) : null}
+                  {type === 'RCA' ? (
+                    <a
+                      href="https://www.aida.info.ro/polite-rca"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '0.82rem' }}
+                    >
+                      Verificare RCA (AIDA) ↗
+                    </a>
+                  ) : null}
                 </div>
                 <DeadlineBadge state={d?.state ?? 'UNKNOWN'} label={d?.stateLabel ?? 'Necunoscut'} />
               </div>

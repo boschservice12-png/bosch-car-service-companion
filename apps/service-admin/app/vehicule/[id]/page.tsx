@@ -101,6 +101,16 @@ export default function AdminVehicleDeadlinesPage() {
                     Verificare ITP (RAR) ↗
                   </a>
                 ) : null}
+                {d.type === 'RCA' ? (
+                  <a
+                    href="https://www.aida.info.ro/polite-rca"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: '0.82rem' }}
+                  >
+                    Verificare RCA (AIDA) ↗
+                  </a>
+                ) : null}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <DeadlineBadge state={d.state} label={d.stateLabel} />

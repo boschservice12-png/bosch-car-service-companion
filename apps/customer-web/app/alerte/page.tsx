@@ -19,6 +19,12 @@ interface AlertRow {
   deadline: Deadline;
 }
 
+/** Alerte cu verificare externă: ITP la RAR, RCA la AIDA — se deschid direct. */
+const EXTERNAL_CHECK: Partial<Record<Deadline['type'], { href: string; hint: string }>> = {
+  ITP: { href: 'https://prog.rarom.ro/rarpol/', hint: ' · verificare ITP (RAR) ↗' },
+  RCA: { href: 'https://www.aida.info.ro/polite-rca', hint: ' · verificare RCA (AIDA) ↗' },
+};
+
 export default function AlertsPage() {
   const router = useRouter();
   const [rows, setRows] = useState<AlertRow[] | null>(null);
@@ -75,6 +81,7 @@ export default function AlertsPage() {
       ) : (
         <div className="stack">
           {rows.map(({ vehicle, deadline }) => {
+            const external = EXTERNAL_CHECK[deadline.type];
             const body = (
               <div className="list-row">
                 <div>
@@ -84,17 +91,16 @@ export default function AlertsPage() {
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
                     {deadline.expiresAt ?? '—'} · {daysLeftText(deadline.daysLeft)}
                     {deadline.verified ? ' · validat de service' : ''}
-                    {deadline.type === 'ITP' ? ' · verificare ITP (RAR) ↗' : ''}
+                    {external?.hint ?? ''}
                   </div>
                 </div>
                 <DeadlineBadge state={deadline.state} label={deadline.stateLabel} />
               </div>
             );
-            // Alerta ITP deschide direct verificarea ITP la RAR (prog.rarom.ro).
-            return deadline.type === 'ITP' ? (
+            return external ? (
               <a
                 key={deadline.id}
-                href="https://prog.rarom.ro/rarpol/"
+                href={external.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="card"
