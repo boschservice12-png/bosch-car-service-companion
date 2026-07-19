@@ -18,15 +18,15 @@ const CALL_LINES = [
     key: 'activ',
     label: '🚨 Am asistență rutieră activă',
     name: 'Linia de asistență NON-STOP',
-    phone: '+40 800 890 000',
-    note: 'Apel gratuit, 24/7 — pentru clienții cu asistență rutieră activă.',
+    phone: '0372 500 000',
+    note: 'NON-STOP, 24/7 — pentru clienții cu asistență rutieră activă.',
   },
   {
     key: 'fara',
     label: 'Fără asistență rutieră',
     name: 'Dispeceratul service-ului',
-    phone: '+40 265 210 000',
-    note: 'Program 07–19; intervenția se facturează separat.',
+    phone: '0730 508 343',
+    note: 'Intervenția se facturează separat.',
   },
 ] as const;
 
