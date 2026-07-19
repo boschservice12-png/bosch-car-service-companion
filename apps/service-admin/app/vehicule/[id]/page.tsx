@@ -91,6 +91,16 @@ export default function AdminVehicleDeadlinesPage() {
                 <div className="muted" style={{ fontSize: '0.82rem' }}>
                   {d.expiresAt ?? '—'} · {daysLeftText(d.daysLeft)} · {d.verified ? 'validat' : 'nevalidat'}
                 </div>
+                {d.type === 'ITP' ? (
+                  <a
+                    href="https://prog.rarom.ro/rarpol/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: '0.82rem' }}
+                  >
+                    Programare ITP (RAR) ↗
+                  </a>
+                ) : null}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <DeadlineBadge state={d.state} label={d.stateLabel} />

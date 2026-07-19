@@ -74,13 +74,8 @@ export default function AlertsPage() {
         />
       ) : (
         <div className="stack">
-          {rows.map(({ vehicle, deadline }) => (
-            <Link
-              key={deadline.id}
-              href={`/vehicule/${vehicle.id}`}
-              className="card"
-              style={{ textDecoration: 'none', color: 'inherit' }}
-            >
+          {rows.map(({ vehicle, deadline }) => {
+            const body = (
               <div className="list-row">
                 <div>
                   <strong>
@@ -89,12 +84,35 @@ export default function AlertsPage() {
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
                     {deadline.expiresAt ?? '—'} · {daysLeftText(deadline.daysLeft)}
                     {deadline.verified ? ' · validat de service' : ''}
+                    {deadline.type === 'ITP' ? ' · programare RAR ↗' : ''}
                   </div>
                 </div>
                 <DeadlineBadge state={deadline.state} label={deadline.stateLabel} />
               </div>
-            </Link>
-          ))}
+            );
+            // Alerta ITP deschide direct programarea RAR (prog.rarom.ro).
+            return deadline.type === 'ITP' ? (
+              <a
+                key={deadline.id}
+                href="https://prog.rarom.ro/rarpol/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="card"
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                {body}
+              </a>
+            ) : (
+              <Link
+                key={deadline.id}
+                href={`/vehicule/${vehicle.id}`}
+                className="card"
+                style={{ textDecoration: 'none', color: 'inherit' }}
+              >
+                {body}
+              </Link>
+            );
+          })}
         </div>
       )}
 

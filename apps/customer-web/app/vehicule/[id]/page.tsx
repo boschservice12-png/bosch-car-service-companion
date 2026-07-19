@@ -82,6 +82,16 @@ export default function VehicleDetailPage() {
                       ? `${d.expiresAt ?? '—'} · ${daysLeftText(d.daysLeft)}${d.verified ? ' · validat' : ''}`
                       : 'neintrodus'}
                   </div>
+                  {type === 'ITP' ? (
+                    <a
+                      href="https://prog.rarom.ro/rarpol/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: '0.82rem' }}
+                    >
+                      Programare ITP (RAR) ↗
+                    </a>
+                  ) : null}
                 </div>
                 <DeadlineBadge state={d?.state ?? 'UNKNOWN'} label={d?.stateLabel ?? 'Necunoscut'} />
               </div>
