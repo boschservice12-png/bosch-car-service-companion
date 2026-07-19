@@ -1,4 +1,5 @@
 import {
+  type QuoteRequest,
   ApiError,
   type ApiProblem,
   type Conversation,
@@ -139,7 +140,6 @@ export const api = {
   conversation: (id: string) => request<Conversation>(`/conversations/${id}`),
 
   startConversation: (data: {
-    type: string;
     subject: string;
     body: string;
     vehicleId?: string;
@@ -149,9 +149,30 @@ export const api = {
   postMessage: (id: string, data: { body: string; documentIds?: string[] }) =>
     request<Conversation>(`/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify(data) }),
 
-  acceptQuote: (id: string) => request<Conversation>(`/conversations/${id}/quote/accept`, { method: 'POST' }),
+  // ---- Cereri de ofertă (specificație pct. 7) ----
+  quoteRequests: () => request<QuoteRequest[]>('/quote-requests'),
 
-  declineQuote: (id: string) => request<Conversation>(`/conversations/${id}/quote/decline`, { method: 'POST' }),
+  quoteRequest: (id: string) => request<QuoteRequest>(`/quote-requests/${id}`),
+
+  createQuoteRequest: (data: {
+    vehicleId?: string | null;
+    mileage?: number | null;
+    symptomDescription: string;
+    occurrenceConditions?: string | null;
+    vehicleDrivable: boolean;
+    warningLights?: string | null;
+    preferredContactMethod?: string | null;
+    preferredInterval?: string | null;
+    draft?: boolean;
+  }) => request<QuoteRequest>('/quote-requests', { method: 'POST', body: JSON.stringify(data) }),
+
+  submitQuoteRequest: (id: string) => request<QuoteRequest>(`/quote-requests/${id}/submit`, { method: 'POST' }),
+
+  resubmitQuoteRequest: (id: string) => request<QuoteRequest>(`/quote-requests/${id}/resubmit`, { method: 'POST' }),
+
+  acceptQuoteRequest: (id: string) => request<QuoteRequest>(`/quote-requests/${id}/accept`, { method: 'POST' }),
+
+  declineQuoteRequest: (id: string) => request<QuoteRequest>(`/quote-requests/${id}/decline`, { method: 'POST' }),
 
   roadsideRequests: () => request<RoadsideRequest[]>('/roadside-requests'),
 

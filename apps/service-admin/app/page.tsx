@@ -39,6 +39,9 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Vehicule</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link href="/oferte" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+            🧰 Cereri ofertă
+          </Link>
           <Link href="/mesaje" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
             💬 Mesaje
           </Link>

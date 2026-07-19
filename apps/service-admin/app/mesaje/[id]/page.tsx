@@ -8,9 +8,6 @@ import { ApiError, type Conversation } from '@/lib/types';
 import { Loading, ErrorState } from '@/components/states';
 import { AttachmentPicker, type PickedFile } from '@/components/AttachmentPicker';
 
-function money(ron: number): string {
-  return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON' }).format(ron);
-}
 
 export default function AdminConversationThreadPage() {
   const router = useRouter();
@@ -19,8 +16,6 @@ export default function AdminConversationThreadPage() {
   const [error, setError] = useState<string | null>(null);
   const [body, setBody] = useState('');
   const [attachments, setAttachments] = useState<PickedFile[]>([]);
-  const [amount, setAmount] = useState('');
-  const [quoteBody, setQuoteBody] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -54,16 +49,13 @@ export default function AdminConversationThreadPage() {
     }
   }
 
-  async function sendQuote(e: React.FormEvent) {
-    e.preventDefault();
+  async function setClosed(closed: boolean) {
     setBusy(true);
     try {
-      await api.quote(params.id, { amount: Number.parseFloat(amount), body: quoteBody || undefined });
-      setAmount('');
-      setQuoteBody('');
+      await (closed ? api.closeConversation(params.id) : api.reopenConversation(params.id));
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : 'Trimiterea ofertei a eșuat.');
+      setError(err instanceof ApiError ? err.problem.title : 'Operațiune eșuată.');
     } finally {
       setBusy(false);
     }
@@ -88,7 +80,7 @@ export default function AdminConversationThreadPage() {
       </Link>
       <h1 style={{ marginBottom: 4 }}>{conv.subject}</h1>
       <div className="muted" style={{ fontSize: '0.85rem', marginBottom: 12 }}>
-        {conv.customerName ?? '—'} · {conv.typeLabel} · {conv.statusLabel}
+        {conv.customerName ?? '—'} · {conv.statusLabel}
         {conv.vehiclePlate ? ` · ${conv.vehiclePlate}` : ''}
       </div>
 
@@ -132,25 +124,20 @@ export default function AdminConversationThreadPage() {
         ))}
       </div>
 
-      {conv.type === 'QUOTE' ? (
-        <>
-          <h2 style={{ marginTop: 16 }}>Ofertă</h2>
-          <form onSubmit={sendQuote} className="card stack" style={{ gap: 10 }}>
-            {conv.quoteAmount != null ? (
-              <div className="muted" style={{ fontSize: '0.85rem' }}>Ofertă curentă: {money(conv.quoteAmount)} · {conv.statusLabel}</div>
-            ) : null}
-            <div className="field">
-              <label htmlFor="amount">Sumă ofertă (RON)</label>
-              <input id="amount" type="number" min={0} step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-            </div>
-            <textarea value={quoteBody} onChange={(e) => setQuoteBody(e.target.value)} rows={2} placeholder="Detalii ofertă (opțional)…" style={textareaStyle} />
-            <button className="btn" type="submit" disabled={busy}>
-              {busy ? 'Se trimite…' : 'Trimite oferta'}
-            </button>
-          </form>
-        </>
-      ) : null}
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        {conv.status === 'CLOSED' ? (
+          <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => setClosed(false)}>
+            Redeschide conversația
+          </button>
+        ) : (
+          <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => setClosed(true)}>
+            Închide conversația
+          </button>
+        )}
+      </div>
 
+      {conv.status !== 'CLOSED' ? (
+      <>
       <h2 style={{ marginTop: 16 }}>Răspunde</h2>
       <form onSubmit={send} className="card stack" style={{ gap: 10 }}>
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} required placeholder="Scrieți un mesaj…" style={textareaStyle} />
@@ -159,6 +146,8 @@ export default function AdminConversationThreadPage() {
           {busy ? 'Se trimite…' : 'Trimite'}
         </button>
       </form>
+      </>
+      ) : null}
     </>
   );
 }

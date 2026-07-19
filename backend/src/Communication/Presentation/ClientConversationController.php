@@ -7,7 +7,6 @@ namespace App\Communication\Presentation;
 use App\Communication\Application\CommunicationService;
 use App\Communication\Domain\Conversation;
 use App\Communication\Domain\ConversationRepository;
-use App\Communication\Domain\ConversationType;
 use App\Communication\Domain\Message;
 use App\Communication\Domain\MessageAuthorRole;
 use App\Communication\Presentation\Dto\PostMessageRequest;
@@ -66,7 +65,6 @@ final class ClientConversationController extends AbstractController
 
         $conversation = $this->service->start(
             $this->currentUser(),
-            ConversationType::from($req->type),
             $req->subject,
             $vehicle,
             $req->body,
@@ -85,6 +83,16 @@ final class ClientConversationController extends AbstractController
         return $this->json($this->serializer->detail($conversation, withCustomer: false));
     }
 
+    /** Mesajele conversației (specificație: GET /api/conversations/{id}/messages). */
+    #[Route('/api/conversations/{id}/messages', name: 'api_conversations_messages', methods: ['GET'])]
+    public function messages(string $id): JsonResponse
+    {
+        $conversation = $this->requireConversation($id);
+        $this->denyAccessUnlessGranted(ConversationVoter::VIEW, $conversation);
+
+        return $this->json($this->serializer->messages($conversation));
+    }
+
     #[Route('/api/conversations/{id}/messages', name: 'api_conversations_post_message', methods: ['POST'])]
     public function postMessage(string $id, #[MapRequestPayload] PostMessageRequest $req, DocumentRepository $documents): JsonResponse
     {
@@ -98,19 +106,6 @@ final class ClientConversationController extends AbstractController
         return $this->json($this->serializer->detail($conversation, withCustomer: false));
     }
 
-    #[Route('/api/conversations/{id}/quote/accept', name: 'api_conversations_quote_accept', methods: ['POST'])]
-    public function acceptQuote(string $id): JsonResponse
-    {
-        return $this->respond($id, true);
-    }
-
-    #[Route('/api/conversations/{id}/quote/decline', name: 'api_conversations_quote_decline', methods: ['POST'])]
-    public function declineQuote(string $id): JsonResponse
-    {
-        return $this->respond($id, false);
-    }
-
-    /** Descărcare autorizată a unui atașament — prin proprietarul conversației. */
     #[Route('/api/conversations/{id}/documents/{docId}', name: 'api_conversations_document', methods: ['GET'])]
     public function document(string $id, string $docId, DocumentRepository $documents, StorageAdapter $storage): Response
     {
@@ -137,18 +132,6 @@ final class ClientConversationController extends AbstractController
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store',
         ]);
-    }
-
-    private function respond(string $id, bool $accept): JsonResponse
-    {
-        $conversation = $this->requireConversation($id);
-        // Doar clientul proprietar poate accepta/refuza oferta (nu adminul).
-        if (!$conversation->customer()->id()->equals($this->currentUser()->id())) {
-            throw $this->createAccessDeniedException('Doar clientul poate răspunde ofertei.');
-        }
-        $updated = $this->service->respondToQuote($conversation, $this->currentUser(), $accept);
-
-        return $this->json($this->serializer->detail($updated, withCustomer: false));
     }
 
     private function conversationHasAttachment(Conversation $conversation, Document $document): bool

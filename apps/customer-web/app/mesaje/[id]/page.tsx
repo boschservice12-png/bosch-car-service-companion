@@ -6,11 +6,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { api, conversationDocumentHref } from '@/lib/api';
 import { ApiError, type Conversation } from '@/lib/types';
 import { Loading, ErrorState } from '@/components/states';
-import { AttachmentPicker, type PickedFile } from '@/components/AttachmentPicker';
-
-function money(ron: number): string {
-  return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON' }).format(ron);
-}
 
 export default function ConversationThreadPage() {
   const router = useRouter();
@@ -18,7 +13,6 @@ export default function ConversationThreadPage() {
   const [conv, setConv] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [body, setBody] = useState('');
-  const [attachments, setAttachments] = useState<PickedFile[]>([]);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
@@ -45,9 +39,8 @@ export default function ConversationThreadPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      await api.postMessage(params.id, { body, documentIds: attachments.map((a) => a.id) });
+      await api.postMessage(params.id, { body });
       setBody('');
-      setAttachments([]);
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.problem.title : 'Trimitere eșuată.');
@@ -56,22 +49,8 @@ export default function ConversationThreadPage() {
     }
   }
 
-  async function respond(accept: boolean) {
-    setBusy(true);
-    try {
-      await (accept ? api.acceptQuote(params.id) : api.declineQuote(params.id));
-      load();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : 'Operațiune eșuată.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (error && conv === null) return <ErrorState message={error} onRetry={load} />;
   if (conv === null) return <Loading rows={4} />;
-
-  const pendingQuote = conv.type === 'QUOTE' && conv.status === 'QUOTED';
 
   return (
     <>
@@ -80,7 +59,7 @@ export default function ConversationThreadPage() {
       </Link>
       <h1 style={{ marginBottom: 4 }}>{conv.subject}</h1>
       <div className="muted" style={{ fontSize: '0.85rem', marginBottom: 12 }}>
-        {conv.typeLabel} · {conv.statusLabel}
+        {conv.statusLabel}
         {conv.vehiclePlate ? ` · ${conv.vehiclePlate}` : ''}
       </div>
 
@@ -124,24 +103,10 @@ export default function ConversationThreadPage() {
         ))}
       </div>
 
-      {conv.quoteAmount != null ? (
-        <div className="card" style={{ marginTop: 12 }}>
-          <strong>Ofertă service: {money(conv.quoteAmount)}</strong>
-          {pendingQuote ? (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <button className="btn" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => respond(true)}>
-                Acceptă
-              </button>
-              <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => respond(false)}>
-                Refuză
-              </button>
-            </div>
-          ) : (
-            <div className="muted" style={{ fontSize: '0.85rem', marginTop: 4 }}>{conv.statusLabel}</div>
-          )}
-        </div>
-      ) : null}
-
+      {conv.status === 'CLOSED' ? (
+        <div className="card muted" style={{ marginTop: 16 }}>Conversație închisă de service. Nu se mai pot trimite mesaje.</div>
+      ) : (
+      <>
       <h2 style={{ marginTop: 16 }}>Răspunde</h2>
       <form onSubmit={send} className="card stack" style={{ gap: 10 }}>
         <textarea
@@ -152,11 +117,12 @@ export default function ConversationThreadPage() {
           placeholder="Scrieți un mesaj…"
           style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: '1rem', background: '#fff' }}
         />
-        <AttachmentPicker files={attachments} onChange={setAttachments} />
         <button className="btn" type="submit" disabled={busy}>
           {busy ? 'Se trimite…' : 'Trimite'}
         </button>
       </form>
+      </>
+      )}
     </>
   );
 }

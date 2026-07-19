@@ -44,6 +44,9 @@ services:
     App\Tax\Domain\TaxItemRepository:
         alias: App\Tax\Infrastructure\DoctrineTaxItemRepository
 
+    App\QuoteRequest\Domain\QuoteRequestRepository:
+        alias: App\QuoteRequest\Infrastructure\DoctrineQuoteRequestRepository
+
     # Calculator de stare — value object fără dependențe, aflat în Domain/
     # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
     App\Deadline\Domain\DeadlineStatusCalculator: ~

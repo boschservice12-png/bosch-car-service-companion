@@ -10,15 +10,10 @@ import { Loading, EmptyState, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<ConversationStatus, string> = {
   OPEN: 'badge-unknown',
-  QUOTED: 'badge-warn',
-  ACCEPTED: 'badge-ok',
-  DECLINED: 'badge-err',
-  CLOSED: 'badge-unknown',
+  WAITING_CLIENT: 'badge-warn',
+  WAITING_SERVICE: 'badge-warn',
+  CLOSED: 'badge-ok',
 };
-
-function money(ron: number): string {
-  return new Intl.NumberFormat('ro-RO', { style: 'currency', currency: 'RON' }).format(ron);
-}
 
 export default function MessagesPage() {
   const router = useRouter();
@@ -62,21 +57,13 @@ export default function MessagesPage() {
             <Link key={c.id} href={`/mesaje/${c.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
                 <div>
-                  <strong>
-                    {c.type === 'QUOTE' ? '🧾 ' : '💬 '}
-                    {c.subject}
-                  </strong>
+                  <strong>💬 {c.subject}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {c.lastMessagePreview ?? c.typeLabel}
+                    {c.lastMessagePreview ?? ''}
                   </div>
                 </div>
                 <span className={`badge ${STATUS_CLASS[c.status]}`}>{c.statusLabel}</span>
               </div>
-              {c.quoteAmount != null ? (
-                <div style={{ fontSize: '0.9rem', marginTop: 4 }}>
-                  <span className="muted">Ofertă:</span> {money(c.quoteAmount)}
-                </div>
-              ) : null}
             </Link>
           ))}
         </div>

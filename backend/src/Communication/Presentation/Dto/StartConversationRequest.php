@@ -8,10 +8,6 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 final class StartConversationRequest
 {
-    #[Assert\NotBlank(message: 'Tipul conversației este obligatoriu.')]
-    #[Assert\Choice(choices: ['GENERAL', 'QUOTE'], message: 'Tip de conversație invalid.')]
-    public string $type = 'GENERAL';
-
     #[Assert\NotBlank(message: 'Subiectul este obligatoriu.')]
     #[Assert\Length(max: 200)]
     public string $subject = '';

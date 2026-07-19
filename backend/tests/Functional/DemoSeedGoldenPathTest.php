@@ -53,15 +53,21 @@ final class DemoSeedGoldenPathTest extends WebTestCase
         self::assertNotEmpty(array_filter($records, static fn (array $r): bool => $r['correctionOfId'] !== null), 'O intrare este corecție.');
         self::assertNotEmpty(array_filter($records, static fn (array $r): bool => $r['corrected'] === true), 'Originalul e marcat corectat.');
 
-        // Comunicare: clientul demo are exact o cerere de ofertă, în stare QUOTED.
+        // Comunicare: clientul demo are o conversație în care e rândul lui să răspundă.
         $client->request('GET', '/api/conversations');
         self::assertResponseIsSuccessful();
         $conversations = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertCount(1, $conversations);
-        self::assertSame('QUOTE', $conversations[0]['type']);
-        self::assertSame('QUOTED', $conversations[0]['status']);
-        self::assertEqualsWithDelta(1250, $conversations[0]['quoteAmount'], 0.001);
+        self::assertSame('WAITING_CLIENT', $conversations[0]['status']);
         $conversationId = $conversations[0]['id'];
+
+        // Cerere de ofertă (modul propriu): una singură, cu răspuns (REPLIED).
+        $client->request('GET', '/api/quote-requests');
+        self::assertResponseIsSuccessful();
+        $quotes = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertCount(1, $quotes);
+        self::assertSame('REPLIED', $quotes[0]['status']);
+        self::assertCount(1, $quotes[0]['responses']);
 
         // Sprint 4: asistență rutieră (preluată), mobilitate (aprobată), dosar (în lucru), taxe.
         $client->request('GET', '/api/roadside-requests');

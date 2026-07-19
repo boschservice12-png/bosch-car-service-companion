@@ -9,10 +9,9 @@ import { Loading, EmptyState, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<ConversationStatus, string> = {
   OPEN: 'badge-unknown',
-  QUOTED: 'badge-warn',
-  ACCEPTED: 'badge-ok',
-  DECLINED: 'badge-err',
-  CLOSED: 'badge-unknown',
+  WAITING_CLIENT: 'badge-warn',
+  WAITING_SERVICE: 'badge-warn',
+  CLOSED: 'badge-ok',
 };
 
 export default function AdminConversationsPage() {
@@ -55,13 +54,11 @@ export default function AdminConversationsPage() {
             <Link key={c.id} href={`/mesaje/${c.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
                 <div>
-                  <strong>
-                    {c.type === 'QUOTE' ? '🧾 ' : '💬 '}
-                    {c.subject}
-                  </strong>
+                  <strong>💬 {c.subject}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
                     {c.customerName ?? '—'}
-                    {c.vehiclePlate ? ` · ${c.vehiclePlate}` : ''} · {c.lastMessagePreview ?? c.typeLabel}
+                    {c.vehiclePlate ? ` · ${c.vehiclePlate}` : ''}
+                    {c.lastMessagePreview ? ` · ${c.lastMessagePreview}` : ''}
                   </div>
                 </div>
                 <span className={`badge ${STATUS_CLASS[c.status]}`}>{c.statusLabel}</span>

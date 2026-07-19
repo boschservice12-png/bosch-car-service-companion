@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Settings\Presentation\Console;
 
 use App\Communication\Domain\Conversation;
-use App\Communication\Domain\ConversationType;
+use App\QuoteRequest\Domain\QuoteRequest;
+use App\QuoteRequest\Domain\QuoteRequestStatus;
+use App\QuoteRequest\Domain\QuoteResponse;
 use App\Communication\Domain\Message;
 use App\Communication\Domain\MessageAuthorRole;
 use App\Customer\Domain\Consent;
@@ -104,8 +106,9 @@ final class SeedDemoCommand extends Command
         $this->seedDeadlines($v1, $v2, $admin);
         // Istoric de service: o înregistrare publicată + o corecție.
         $this->seedServiceHistory($v1, $admin);
-        // O cerere de ofertă cu răspuns (stare QUOTED).
-        $this->seedQuoteConversation($client, $v1, $admin);
+        // O conversație generală + o cerere de ofertă cu răspuns (REPLIED).
+        $this->seedConversation($client, $admin);
+        $this->seedQuoteRequest($client, $v1, $admin);
         // Sprint 4: asistență rutieră, mobilitate, dosar de daună, taxe.
         $this->seedRoadside($client, $v1);
         $this->seedMobility($client, $v1);
@@ -120,7 +123,7 @@ final class SeedDemoCommand extends Command
             sprintf('Client: %s / %s', self::CLIENT_EMAIL, self::DEMO_PASSWORD),
             '2 vehicule (BMW Seria 3, VW Golf) cu scadențe (valid / expiră curând / expirat)',
             'Istoric service: 1 înregistrare publicată + 1 corecție',
-            'Cerere de ofertă cu ofertă trimisă (stare QUOTED)',
+            'Cerere de ofertă cu răspuns (stare REPLIED) + conversație deschisă',
             'Asistență rutieră (preluată), mobilitate (aprobată), dosar de daună (în lucru)',
             'Taxe: impozit auto plătit + taxă de mediu neplătită',
         ]);
@@ -175,24 +178,48 @@ final class SeedDemoCommand extends Command
         $this->em->persist($correction);
     }
 
-    private function seedQuoteConversation(User $client, Vehicle $v1, User $admin): void
+    private function seedConversation(User $client, User $admin): void
     {
-        $conversation = new Conversation($client, ConversationType::QUOTE, 'Zgomot la frânare', $v1);
+        $conversation = new Conversation($client, 'Programare revizie');
         $conversation->addMessage(new Message(
             $conversation,
             $client,
             MessageAuthorRole::CLIENT,
-            'Bună ziua, se aude un scârțâit la frânare în față. Puteți estima costul verificării și reparației?',
+            'Bună ziua, aș dori o programare pentru revizia anuală săptămâna viitoare.',
         ));
-        $conversation->setQuote(125000);
         $conversation->addMessage(new Message(
             $conversation,
             $admin,
             MessageAuthorRole::ADMIN,
-            'Estimare: verificare + înlocuire plăcuțe față. Ofertă: 1.250,00 RON.',
+            'Bună ziua! Vă putem primi marți la 09:00. Vă convine?',
         ));
+        $conversation->markWaitingClient();
 
         $this->em->persist($conversation);
+    }
+
+    private function seedQuoteRequest(User $client, Vehicle $v1, User $admin): void
+    {
+        $request = new QuoteRequest(
+            $client,
+            $v1,
+            78400,
+            'Se aude un scârțâit la frânare în față, mai ales la frânări puternice.',
+            'La frânări de la viteză mare; dimineața e mai zgomotos.',
+            true,
+            'Niciun martor aprins',
+            'PHONE',
+            'Luni-vineri după 16:00',
+        );
+        $request->changeStatus(QuoteRequestStatus::IN_REVIEW);
+        $request->changeStatus(QuoteRequestStatus::REPLIED);
+        $request->addResponse(new QuoteResponse(
+            $request,
+            $admin,
+            'Estimare: verificare sistem de frânare + înlocuire plăcuțe față. Ofertă: 1.250,00 RON (piese + manoperă).',
+        ));
+
+        $this->em->persist($request);
     }
 
     private function seedRoadside(User $client, Vehicle $v1): void

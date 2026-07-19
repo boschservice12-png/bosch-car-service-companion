@@ -5,25 +5,25 @@ declare(strict_types=1);
 namespace App\Communication\Domain;
 
 /**
- * Starea unei conversații. Pentru mesageria generală: OPEN/CLOSED. Pentru cererile
- * de ofertă: OPEN (trimisă) → QUOTED (service a răspuns cu sumă) → ACCEPTED/DECLINED.
+ * Starea unei conversații — conform specificației: OPEN, WAITING_CLIENT,
+ * WAITING_SERVICE, CLOSED. Starea se schimbă prin mesaje (cine e așteptat să
+ * răspundă) și prin închidere/redeschidere de către service. Fluxul de ofertă
+ * NU mai trece pe aici — are modulul propriu (QuoteRequest).
  */
 enum ConversationStatus: string
 {
     case OPEN = 'OPEN';
-    case QUOTED = 'QUOTED';
-    case ACCEPTED = 'ACCEPTED';
-    case DECLINED = 'DECLINED';
+    case WAITING_CLIENT = 'WAITING_CLIENT';
+    case WAITING_SERVICE = 'WAITING_SERVICE';
     case CLOSED = 'CLOSED';
 
     public function label(): string
     {
         return match ($this) {
-            self::OPEN => 'Deschis',
-            self::QUOTED => 'Ofertă trimisă',
-            self::ACCEPTED => 'Acceptată',
-            self::DECLINED => 'Refuzată',
-            self::CLOSED => 'Închis',
+            self::OPEN => 'Deschisă',
+            self::WAITING_CLIENT => 'Așteaptă clientul',
+            self::WAITING_SERVICE => 'Așteaptă service-ul',
+            self::CLOSED => 'Închisă',
         };
     }
 }

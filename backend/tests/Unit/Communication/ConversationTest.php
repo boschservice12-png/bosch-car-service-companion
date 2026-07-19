@@ -6,40 +6,53 @@ namespace App\Tests\Unit\Communication;
 
 use App\Communication\Domain\Conversation;
 use App\Communication\Domain\ConversationStatus;
-use App\Communication\Domain\ConversationType;
 use App\Communication\Domain\Message;
 use App\Communication\Domain\MessageAuthorRole;
 use App\Identity\Domain\User;
+use App\Shared\Domain\InvalidStateTransition;
 use PHPUnit\Framework\TestCase;
 
-/** Reguli de stare pentru fluxul cererii de ofertă (domeniu pur, fără DB). */
+/** Stările conversației conform specificației (domeniu pur, fără DB). */
 final class ConversationTest extends TestCase
 {
-    public function testQuoteFlowTransitions(): void
+    public function testStatusFollowsWhoIsExpectedToReply(): void
     {
-        $conversation = new Conversation($this->user(), ConversationType::QUOTE, 'Reparație frâne');
+        $conversation = new Conversation($this->user(), 'Programare revizie');
         self::assertSame(ConversationStatus::OPEN, $conversation->status());
-        self::assertTrue($conversation->isQuote());
 
-        $conversation->setQuote(125000);
-        self::assertSame(ConversationStatus::QUOTED, $conversation->status());
-        self::assertSame(125000, $conversation->quoteAmountBani());
+        $conversation->markWaitingClient();
+        self::assertSame(ConversationStatus::WAITING_CLIENT, $conversation->status());
 
-        $conversation->acceptQuote();
-        self::assertSame(ConversationStatus::ACCEPTED, $conversation->status());
+        $conversation->markWaitingService();
+        self::assertSame(ConversationStatus::WAITING_SERVICE, $conversation->status());
     }
 
-    public function testDeclineSetsDeclined(): void
+    public function testCloseAndReopen(): void
     {
-        $conversation = new Conversation($this->user(), ConversationType::QUOTE, 'Diagnoză');
-        $conversation->setQuote(50000);
-        $conversation->declineQuote();
-        self::assertSame(ConversationStatus::DECLINED, $conversation->status());
+        $conversation = new Conversation($this->user(), 'Întrebare');
+        $conversation->close();
+        self::assertSame(ConversationStatus::CLOSED, $conversation->status());
+
+        // Pe o conversație închisă nu se mai schimbă starea prin mesaje.
+        $this->expectException(InvalidStateTransition::class);
+        $conversation->markWaitingService();
+    }
+
+    public function testReopenOnlyFromClosed(): void
+    {
+        $conversation = new Conversation($this->user(), 'Întrebare');
+        $conversation->close();
+        $conversation->reopen();
+        self::assertSame(ConversationStatus::OPEN, $conversation->status());
+
+        // Redeschiderea unei conversații deja deschise este respinsă.
+        $this->expectException(InvalidStateTransition::class);
+        $conversation->reopen();
     }
 
     public function testAddMessageUpdatesCountAndLastMessageAt(): void
     {
-        $conversation = new Conversation($this->user(), ConversationType::GENERAL, 'Întrebare');
+        $conversation = new Conversation($this->user(), 'Întrebare');
         self::assertCount(0, $conversation->messages());
 
         $message = new Message($conversation, $this->user(), MessageAuthorRole::CLIENT, 'Salut');

@@ -26,6 +26,25 @@ enum QuoteRequestStatus: string
     case DECLINED = 'DECLINED';
     case CLOSED = 'CLOSED';
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::DRAFT => 'Ciornă',
+            self::SUBMITTED => 'Trimisă',
+            self::IN_REVIEW => 'În analiză',
+            self::NEEDS_INFORMATION => 'Informații necesare',
+            self::REPLIED => 'Ofertă trimisă',
+            self::ACCEPTED => 'Acceptată',
+            self::DECLINED => 'Refuzată',
+            self::CLOSED => 'Închisă',
+        };
+    }
+
+    public function isTerminal(): bool
+    {
+        return $this->allowedTransitions() === [];
+    }
+
     /** @return self[] Tranzițiile permise din starea curentă. */
     public function allowedTransitions(): array
     {

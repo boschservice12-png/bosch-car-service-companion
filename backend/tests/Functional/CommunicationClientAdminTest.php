@@ -14,13 +14,12 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Slice vertical „comunicare + cerere de ofertă" end-to-end (CLIENT + ADMIN):
- *  - clientul deschide o cerere de ofertă cu mesaj + atașament;
- *  - service-ul răspunde și trimite o sumă (ofertă);
- *  - clientul o vede și o acceptă;
- *  - un alt client NU are acces (403);
- *  - descărcarea atașamentelor este autorizată prin proprietarul conversației;
- *  - operațiunile ajung în auditul aplicației.
+ * Comunicare client ↔ service end-to-end, pe stările din specificație:
+ *  - clientul deschide o conversație (OPEN) cu mesaj + atașament;
+ *  - service-ul răspunde → WAITING_CLIENT; clientul răspunde → WAITING_SERVICE;
+ *  - service-ul închide → CLOSED; mesaj pe conversație închisă → 409; redeschidere → OPEN;
+ *  - un alt client NU are acces (403); atașamentele rămân autorizate per proprietar;
+ *  - operațiunile ajung în audit.
  *
  * @group functional
  */
@@ -28,7 +27,7 @@ final class CommunicationClientAdminTest extends WebTestCase
 {
     private const PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
-    public function testQuoteRequestFlowWithMessagesAttachmentsAndIsolation(): void
+    public function testConversationFlowWithSpecStatesAttachmentsAndIsolation(): void
     {
         $client = static::createClient();
         $ownerEmail = 'own-'.uniqid().'@example.test';
@@ -54,16 +53,14 @@ final class CommunicationClientAdminTest extends WebTestCase
 
         // CLIENT: deschide o cerere de ofertă cu mesaj + atașament.
         $client->request('POST', '/api/conversations', server: $this->json(), content: json_encode([
-            'type' => 'QUOTE',
             'subject' => 'Zgomot la frânare',
-            'body' => 'Se aude un scârțâit la frânare. Vă rog o estimare.',
+            'body' => 'Se aude un scârțâit la frânare. Vă rog un sfat.',
             'vehicleId' => $vehicleId,
             'documentIds' => [$documentId],
         ]));
         self::assertResponseStatusCodeSame(201);
         $conv = json_decode((string) $client->getResponse()->getContent(), true);
         $conversationId = $conv['id'];
-        self::assertSame('QUOTE', $conv['type']);
         self::assertSame('OPEN', $conv['status']);
         self::assertCount(1, $conv['messages']);
         self::assertCount(1, $conv['messages'][0]['attachments']);
@@ -95,36 +92,49 @@ final class CommunicationClientAdminTest extends WebTestCase
             'body' => 'Bună ziua, putem programa o verificare.',
         ]));
         self::assertResponseIsSuccessful();
-
-        $client->request('POST', "/api/admin/conversations/$conversationId/quote", server: $this->json(), content: json_encode([
-            'amount' => 1250.5,
-            'body' => 'Estimare înlocuire plăcuțe + verificare discuri.',
-        ]));
-        self::assertResponseIsSuccessful();
-        $quoted = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('QUOTED', $quoted['status']);
-        self::assertEqualsWithDelta(1250.5, $quoted['quoteAmount'], 0.001);
+        self::assertSame('WAITING_CLIENT', json_decode((string) $client->getResponse()->getContent(), true)['status']);
 
         // Adminul poate și el descărca atașamentul (rol privilegiat).
         $client->request('GET', "/api/conversations/$conversationId/documents/$documentId");
         self::assertResponseIsSuccessful();
 
-        // CLIENT: vede oferta și o acceptă.
+        // CLIENT: vede răspunsul (WAITING_CLIENT), citește mesajele și răspunde.
         $this->login($client, $ownerEmail, 'Parola1234');
         $client->request('GET', "/api/conversations/$conversationId");
         self::assertResponseIsSuccessful();
-        $seen = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('QUOTED', $seen['status']);
-        self::assertEqualsWithDelta(1250.5, $seen['quoteAmount'], 0.001);
+        self::assertSame('WAITING_CLIENT', json_decode((string) $client->getResponse()->getContent(), true)['status']);
 
-        $client->request('POST', "/api/conversations/$conversationId/quote/accept");
+        $client->request('GET', "/api/conversations/$conversationId/messages");
         self::assertResponseIsSuccessful();
-        self::assertSame('ACCEPTED', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+        self::assertCount(2, json_decode((string) $client->getResponse()->getContent(), true));
 
-        // AUDIT: deschiderea și oferta au fost înregistrate.
+        $client->request('POST', "/api/conversations/$conversationId/messages", server: $this->json(), content: json_encode([
+            'body' => 'Mulțumesc, aștept programarea.',
+        ]));
+        self::assertResponseIsSuccessful();
+        self::assertSame('WAITING_SERVICE', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+
+        // ADMIN: închide conversația; mesaj pe închisă → 409; redeschidere → OPEN.
+        $this->login($client, $adminEmail, 'Parola1234');
+        $client->request('POST', "/api/admin/conversations/$conversationId/close");
+        self::assertResponseIsSuccessful();
+        self::assertSame('CLOSED', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+
+        $this->login($client, $ownerEmail, 'Parola1234');
+        $client->request('POST', "/api/conversations/$conversationId/messages", server: $this->json(), content: json_encode([
+            'body' => 'Mai am o întrebare.',
+        ]));
+        self::assertResponseStatusCodeSame(409, 'Pe o conversație închisă nu se mai scrie.');
+
+        $this->login($client, $adminEmail, 'Parola1234');
+        $client->request('POST', "/api/admin/conversations/$conversationId/reopen");
+        self::assertResponseIsSuccessful();
+        self::assertSame('OPEN', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+
+        // AUDIT: pașii cheie au fost înregistrați.
         /** @var EntityManagerInterface $em */
         $em = static::getContainer()->get(EntityManagerInterface::class);
-        foreach (['conversation.started', 'conversation.quoted', 'conversation.quote_accepted'] as $action) {
+        foreach (['conversation.started', 'conversation.closed', 'conversation.reopened'] as $action) {
             $count = (int) $em->getConnection()->fetchOne('SELECT COUNT(*) FROM audit_logs WHERE action = ?', [$action]);
             self::assertGreaterThanOrEqual(1, $count, "Acțiunea $action trebuie să apară în audit.");
         }

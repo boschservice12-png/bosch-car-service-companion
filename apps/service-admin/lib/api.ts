@@ -1,4 +1,5 @@
 import {
+  type QuoteRequest,
   ApiError,
   type AdminVehicle,
   type ApiProblem,
@@ -133,8 +134,20 @@ export const api = {
   reply: (id: string, data: { body: string; documentIds?: string[] }) =>
     request<Conversation>(`/admin/conversations/${id}/messages`, { method: 'POST', body: JSON.stringify(data) }),
 
-  quote: (id: string, data: { amount: number; body?: string }) =>
-    request<Conversation>(`/admin/conversations/${id}/quote`, { method: 'POST', body: JSON.stringify(data) }),
+  closeConversation: (id: string) => request<Conversation>(`/admin/conversations/${id}/close`, { method: 'POST' }),
+
+  reopenConversation: (id: string) => request<Conversation>(`/admin/conversations/${id}/reopen`, { method: 'POST' }),
+
+  // ---- Cereri de ofertă (specificație pct. 7) ----
+  quoteRequests: () => request<QuoteRequest[]>('/admin/quote-requests'),
+
+  quoteRequest: (id: string) => request<QuoteRequest>(`/admin/quote-requests/${id}`),
+
+  quoteRequestStatus: (id: string, status: string) =>
+    request<QuoteRequest>(`/admin/quote-requests/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+  respondQuoteRequest: (id: string, data: { message: string; documentId?: string | null }) =>
+    request<QuoteRequest>(`/admin/quote-requests/${id}/response`, { method: 'POST', body: JSON.stringify(data) }),
 
   roadsideRequests: () => request<RoadsideRequest[]>('/admin/roadside-requests'),
 

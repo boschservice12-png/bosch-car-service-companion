@@ -29,14 +29,11 @@ final class ConversationSerializer
 
         $data = [
             'id' => (string) $c->id(),
-            'type' => $c->type()->value,
-            'typeLabel' => $c->type()->label(),
             'subject' => $c->subject(),
             'status' => $c->status()->value,
             'statusLabel' => $c->status()->label(),
             'vehicleId' => $c->vehicle() !== null ? (string) $c->vehicle()->id() : null,
             'vehiclePlate' => $c->vehicle()?->plateNumber(),
-            'quoteAmount' => $c->quoteAmountBani() !== null ? round($c->quoteAmountBani() / 100, 2) : null,
             'messageCount' => \count($messages),
             'lastMessagePreview' => $last !== null ? mb_substr($last->body(), 0, 120) : null,
             'createdAt' => $c->createdAt()->format(DATE_ATOM),
@@ -61,6 +58,13 @@ final class ConversationSerializer
     }
 
     /** @return array<string, mixed> */
+
+    /** @return array<int, array<string, mixed>> Doar mesajele (GET /messages). */
+    public function messages(\App\Communication\Domain\Conversation $c): array
+    {
+        return array_map($this->serializeMessage(...), $c->messages());
+    }
+
     private function serializeMessage(Message $m): array
     {
         return [

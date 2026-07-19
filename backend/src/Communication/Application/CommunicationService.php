@@ -8,7 +8,6 @@ use App\Audit\Application\AuditRecorder;
 use App\Communication\Domain\Conversation;
 use App\Communication\Domain\ConversationRepository;
 use App\Communication\Domain\ConversationStatus;
-use App\Communication\Domain\ConversationType;
 use App\Communication\Domain\Message;
 use App\Communication\Domain\MessageAuthorRole;
 use App\Document\Domain\Document;
@@ -29,18 +28,16 @@ final class CommunicationService
      */
     public function start(
         User $customer,
-        ConversationType $type,
         string $subject,
         ?Vehicle $vehicle,
         string $body,
         array $attachments,
     ): Conversation {
-        $conversation = new Conversation($customer, $type, $subject, $vehicle);
+        $conversation = new Conversation($customer, $subject, $vehicle);
         $this->appendMessage($conversation, $customer, MessageAuthorRole::CLIENT, $body, $attachments);
         $this->conversations->save($conversation);
 
         $this->audit->record('conversation.started', 'Conversation', (string) $conversation->id(), null, [
-            'type' => $type->value,
             'vehicleId' => $vehicle !== null ? (string) $vehicle->id() : null,
         ]);
 
@@ -58,6 +55,12 @@ final class CommunicationService
         array $attachments,
     ): Message {
         $message = $this->appendMessage($conversation, $sender, $role, $body, $attachments);
+        // Starea reflectă cine urmează să răspundă (specificație).
+        if ($role === MessageAuthorRole::ADMIN) {
+            $conversation->markWaitingClient();
+        } else {
+            $conversation->markWaitingService();
+        }
         $this->conversations->save($conversation);
 
         $this->audit->record('conversation.message_posted', 'Conversation', (string) $conversation->id(), null, [
@@ -68,60 +71,21 @@ final class CommunicationService
         return $message;
     }
 
-    /**
-     * Service-ul răspunde unei cereri de ofertă cu o sumă (bani). Adaugă și un mesaj
-     * din partea service-ului cu textul ofertei.
-     */
-    public function quote(Conversation $conversation, User $admin, int $amountBani, ?string $body): Conversation
+    /** Service-ul închide conversația (specificație: „închide și redeschide"). */
+    public function close(Conversation $conversation): Conversation
     {
-        if (!$conversation->isQuote()) {
-            throw ValidationFailedException::fromArray(['quote' => ['Doar cererile de ofertă pot primi o sumă.']]);
-        }
-        if ($amountBani < 0) {
-            throw ValidationFailedException::fromArray(['amount' => ['Suma nu poate fi negativă.']]);
-        }
-
-        $conversation->setQuote($amountBani);
-        $text = $body !== null && trim($body) !== ''
-            ? $body
-            : sprintf('Ofertă: %s RON.', number_format($amountBani / 100, 2, ',', '.'));
-        $this->appendMessage($conversation, $admin, MessageAuthorRole::ADMIN, $text, []);
+        $conversation->close();
         $this->conversations->save($conversation);
-
-        $this->audit->record('conversation.quoted', 'Conversation', (string) $conversation->id(), null, [
-            'amountBani' => $amountBani,
-        ]);
+        $this->audit->record('conversation.closed', 'Conversation', (string) $conversation->id());
 
         return $conversation;
     }
 
-    public function respondToQuote(Conversation $conversation, User $customer, bool $accept): Conversation
+    public function reopen(Conversation $conversation): Conversation
     {
-        if (!$conversation->isQuote() || $conversation->status() !== ConversationStatus::QUOTED) {
-            throw ValidationFailedException::fromArray([
-                'quote' => ['Nu există o ofertă în așteptare pentru această cerere.'],
-            ]);
-        }
-
-        if ($accept) {
-            $conversation->acceptQuote();
-        } else {
-            $conversation->declineQuote();
-        }
-        $this->appendMessage(
-            $conversation,
-            $customer,
-            MessageAuthorRole::CLIENT,
-            $accept ? 'Ofertă acceptată.' : 'Ofertă refuzată.',
-            [],
-        );
+        $conversation->reopen();
         $this->conversations->save($conversation);
-
-        $this->audit->record(
-            $accept ? 'conversation.quote_accepted' : 'conversation.quote_declined',
-            'Conversation',
-            (string) $conversation->id(),
-        );
+        $this->audit->record('conversation.reopened', 'Conversation', (string) $conversation->id());
 
         return $conversation;
     }

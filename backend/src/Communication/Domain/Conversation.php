@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Communication\Domain;
 
 use App\Identity\Domain\User;
+use App\Shared\Domain\InvalidStateTransition;
 use App\Vehicle\Domain\Vehicle;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -12,8 +13,9 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Un fir de conversație client ↔ service. Poate fi mesagerie generală sau o cerere
- * de ofertă (reparație) cu flux de stări. Conversația aparține unui client
+ * Un fir de conversație client ↔ service (mesagerie). Starea urmează
+ * specificația (OPEN / WAITING_CLIENT / WAITING_SERVICE / CLOSED); cererile de
+ * ofertă au modulul propriu (QuoteRequest). Conversația aparține unui client
  * (autorizare la nivel de obiect: doar proprietarul sau un admin o pot vedea).
  */
 #[ORM\Entity]
@@ -30,9 +32,6 @@ class Conversation
     #[ORM\JoinColumn(name: 'customer_id', nullable: false)]
     private User $customer;
 
-    #[ORM\Column(length: 16, enumType: ConversationType::class)]
-    private ConversationType $type;
-
     #[ORM\Column(length: 200)]
     private string $subject;
 
@@ -40,12 +39,8 @@ class Conversation
     #[ORM\JoinColumn(name: 'vehicle_id', nullable: true, onDelete: 'SET NULL')]
     private ?Vehicle $vehicle;
 
-    #[ORM\Column(length: 16, enumType: ConversationStatus::class)]
+    #[ORM\Column(length: 20, enumType: ConversationStatus::class)]
     private ConversationStatus $status = ConversationStatus::OPEN;
-
-    /** Suma ofertei în bani (RON * 100), setată de service la cererile de ofertă. */
-    #[ORM\Column(nullable: true)]
-    private ?int $quoteAmountBani = null;
 
     /** @var Collection<int, Message> */
     #[ORM\OneToMany(mappedBy: 'conversation', targetEntity: Message::class, cascade: ['persist'])]
@@ -61,11 +56,10 @@ class Conversation
     #[ORM\Column(type: 'datetimetz_immutable')]
     private \DateTimeImmutable $lastMessageAt;
 
-    public function __construct(User $customer, ConversationType $type, string $subject, ?Vehicle $vehicle = null)
+    public function __construct(User $customer, string $subject, ?Vehicle $vehicle = null)
     {
         $this->id = Uuid::v7();
         $this->customer = $customer;
-        $this->type = $type;
         $this->subject = $subject;
         $this->vehicle = $vehicle;
         $this->messages = new ArrayCollection();
@@ -84,11 +78,6 @@ class Conversation
         return $this->customer;
     }
 
-    public function type(): ConversationType
-    {
-        return $this->type;
-    }
-
     public function subject(): string
     {
         return $this->subject;
@@ -102,11 +91,6 @@ class Conversation
     public function status(): ConversationStatus
     {
         return $this->status;
-    }
-
-    public function quoteAmountBani(): ?int
-    {
-        return $this->quoteAmountBani;
     }
 
     /** @return Message[] */
@@ -124,29 +108,50 @@ class Conversation
         $this->touch();
     }
 
-    public function isQuote(): bool
+    /** Clientul a scris → e rândul service-ului să răspundă. */
+    public function markWaitingService(): void
     {
-        return $this->type === ConversationType::QUOTE;
-    }
-
-    /** Service-ul răspunde cererii de ofertă cu o sumă → starea devine QUOTED. */
-    public function setQuote(int $amountBani): void
-    {
-        $this->quoteAmountBani = $amountBani;
-        $this->status = ConversationStatus::QUOTED;
+        $this->assertNotClosed();
+        $this->status = ConversationStatus::WAITING_SERVICE;
         $this->touch();
     }
 
-    public function acceptQuote(): void
+    /** Service-ul a răspuns → e rândul clientului. */
+    public function markWaitingClient(): void
     {
-        $this->status = ConversationStatus::ACCEPTED;
+        $this->assertNotClosed();
+        $this->status = ConversationStatus::WAITING_CLIENT;
         $this->touch();
     }
 
-    public function declineQuote(): void
+    /** Service-ul închide conversația. */
+    public function close(): void
     {
-        $this->status = ConversationStatus::DECLINED;
+        $this->assertNotClosed();
+        $this->status = ConversationStatus::CLOSED;
         $this->touch();
+    }
+
+    /** Service-ul redeschide o conversație închisă. */
+    public function reopen(): void
+    {
+        if ($this->status !== ConversationStatus::CLOSED) {
+            throw InvalidStateTransition::between($this->status->value, ConversationStatus::OPEN->value);
+        }
+        $this->status = ConversationStatus::OPEN;
+        $this->touch();
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->status === ConversationStatus::CLOSED;
+    }
+
+    private function assertNotClosed(): void
+    {
+        if ($this->status === ConversationStatus::CLOSED) {
+            throw InvalidStateTransition::between(ConversationStatus::CLOSED->value, 'MESSAGE');
+        }
     }
 
     public function createdAt(): \DateTimeImmutable

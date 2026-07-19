@@ -87,8 +87,7 @@ export interface ServiceRecordInput {
   warranty?: string;
 }
 
-export type ConversationType = 'GENERAL' | 'QUOTE';
-export type ConversationStatus = 'OPEN' | 'QUOTED' | 'ACCEPTED' | 'DECLINED' | 'CLOSED';
+export type ConversationStatus = 'OPEN' | 'WAITING_CLIENT' | 'WAITING_SERVICE' | 'CLOSED';
 export type MessageAuthorRole = 'CLIENT' | 'ADMIN';
 
 export interface ConversationMessage {
@@ -102,14 +101,11 @@ export interface ConversationMessage {
 
 export interface Conversation {
   id: string;
-  type: ConversationType;
-  typeLabel: string;
   subject: string;
   status: ConversationStatus;
   statusLabel: string;
   vehicleId: string | null;
   vehiclePlate: string | null;
-  quoteAmount: number | null;
   messageCount: number;
   lastMessagePreview: string | null;
   createdAt: string;
@@ -217,4 +213,35 @@ export class ApiError extends Error {
     super(problem.title);
     this.name = 'ApiError';
   }
+}
+
+// ---- Cereri de ofertă (modul propriu, specificație pct. 7) ----
+export type QuoteRequestStatus =
+  | 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'NEEDS_INFORMATION'
+  | 'REPLIED' | 'ACCEPTED' | 'DECLINED' | 'CLOSED';
+
+export interface QuoteResponse {
+  id: string;
+  message: string;
+  document: { id: string; originalName: string | null; mimeType: string; servable: boolean } | null;
+  createdAt: string;
+}
+
+export interface QuoteRequest {
+  id: string;
+  vehicleId: string | null;
+  vehiclePlate: string | null;
+  mileage: number | null;
+  symptomDescription: string;
+  occurrenceConditions: string | null;
+  vehicleDrivable: boolean;
+  warningLights: string | null;
+  preferredContactMethod: string | null;
+  preferredInterval: string | null;
+  status: QuoteRequestStatus;
+  statusLabel: string;
+  responses: QuoteResponse[];
+  createdAt: string;
+  updatedAt: string;
+  customerName?: string;
 }

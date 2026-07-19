@@ -41,8 +41,11 @@ export default function HomePage() {
 
       <h2>Servicii</h2>
       <div className="stack">
+        <Link className="btn btn-ghost" href="/oferte">
+          🧰 Cere ofertă
+        </Link>
         <Link className="btn btn-ghost" href="/mesaje">
-          💬 Mesaje și oferte
+          💬 Mesaje
         </Link>
         <Link className="btn btn-ghost" href="/asistenta">
           🆘 Asistență rutieră

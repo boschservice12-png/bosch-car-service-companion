@@ -9,7 +9,6 @@ use App\Communication\Domain\Conversation;
 use App\Communication\Domain\ConversationRepository;
 use App\Communication\Domain\MessageAuthorRole;
 use App\Communication\Presentation\Dto\PostMessageRequest;
-use App\Communication\Presentation\Dto\QuoteAmountRequest;
 use App\Document\Domain\DocumentRepository;
 use App\Identity\Domain\User;
 use App\Shared\Presentation\ValidationFailedException;
@@ -61,14 +60,19 @@ final class AdminConversationController extends AbstractController
         return $this->json($this->serializer->detail($conversation, withCustomer: true));
     }
 
-    #[Route('/{id}/quote', name: 'api_admin_conversations_quote', methods: ['POST'])]
-    public function quote(string $id, #[MapRequestPayload] QuoteAmountRequest $req): JsonResponse
+    /** Închide conversația (specificație: adminul „închide și redeschide"). */
+    #[Route('/{id}/close', name: 'api_admin_conversations_close', methods: ['POST'])]
+    public function close(string $id): JsonResponse
     {
-        $this->assertValid($req);
-        $conversation = $this->requireConversation($id);
+        $updated = $this->service->close($this->requireConversation($id));
 
-        $amountBani = (int) round((float) $req->amount * 100);
-        $updated = $this->service->quote($conversation, $this->currentUser(), $amountBani, $req->body);
+        return $this->json($this->serializer->detail($updated, withCustomer: true));
+    }
+
+    #[Route('/{id}/reopen', name: 'api_admin_conversations_reopen', methods: ['POST'])]
+    public function reopen(string $id): JsonResponse
+    {
+        $updated = $this->service->reopen($this->requireConversation($id));
 
         return $this->json($this->serializer->detail($updated, withCustomer: true));
     }
