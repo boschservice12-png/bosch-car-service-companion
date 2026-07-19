@@ -45,6 +45,10 @@ class ServiceRecord
     #[ORM\Column(length: 120, nullable: true)]
     private ?string $workType = null;
 
+    /** Numărul comenzii/devizului din atelier (opțional; folosit și la import). */
+    #[ORM\Column(length: 60, nullable: true)]
+    private ?string $workOrderNumber = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $workDescription = null;
 
@@ -122,6 +126,18 @@ class ServiceRecord
     public function odometerKm(): ?int
     {
         return $this->odometerKm;
+    }
+
+    public function workOrderNumber(): ?string
+    {
+        return $this->workOrderNumber;
+    }
+
+    public function setWorkOrderNumber(?string $number): void
+    {
+        $this->assertMutable();
+        $this->workOrderNumber = $number;
+        $this->touch();
     }
 
     public function workType(): ?string

@@ -41,6 +41,7 @@ final class ServiceRecordSerializer
             'serviceDate' => $record->serviceDate()?->format('Y-m-d'),
             'odometerKm' => $record->odometerKm(),
             'workType' => $record->workType(),
+            'workOrderNumber' => $record->workOrderNumber(),
             'workDescription' => $record->workDescription(),
             'partsSummary' => $record->partsSummary(),
             'laborCost' => round($record->laborBani() / 100, 2),

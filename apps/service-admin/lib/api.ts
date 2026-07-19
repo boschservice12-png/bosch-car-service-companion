@@ -1,4 +1,5 @@
 import {
+  type HistoryImportReport,
   type ImportReport,
   type QuoteRequest,
   ApiError,
@@ -95,6 +96,13 @@ export const api = {
     const form = new FormData();
     form.append('file', file);
     return uploadRequest<ImportReport>('/admin/import/clients', form);
+  },
+
+  /** Import istoric reparații (multipart), legat de vehicule prin VIN. */
+  importServiceHistory: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return uploadRequest<HistoryImportReport>('/admin/import/service-history', form);
   },
 
   uploadDocument: (file: File) => {

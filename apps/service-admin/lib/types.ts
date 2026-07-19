@@ -256,3 +256,11 @@ export interface ImportReport {
   ownershipsCreated: number;
   errors: { row: number; message: string }[];
 }
+
+export interface HistoryImportReport {
+  totalRows: number;
+  recordsPublished: number;
+  recordsDraft: number;
+  recordsSkipped: number;
+  errors: { row: number; message: string }[];
+}

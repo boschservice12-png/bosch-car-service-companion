@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Customer\Presentation;
 
 use App\Customer\Application\OwnerVehicleImportService;
+use App\Identity\Domain\User;
+use App\ServiceHistory\Application\ServiceHistoryImportService;
 use App\Shared\Infrastructure\Spreadsheet\SimpleXlsxReader;
 use App\Shared\Presentation\ValidationFailedException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,12 +26,37 @@ final class AdminImportController extends AbstractController
 
     public function __construct(
         private readonly OwnerVehicleImportService $importer,
+        private readonly ServiceHistoryImportService $historyImporter,
         private readonly SimpleXlsxReader $xlsx,
     ) {
     }
 
     #[Route('/api/admin/import/clients', name: 'api_admin_import_clients', methods: ['POST'])]
-    public function import(Request $request): JsonResponse
+    public function importClients(Request $request): JsonResponse
+    {
+        $rows = $this->rowsFromUpload($request);
+        try {
+            return $this->json($this->importer->import($rows));
+        } catch (\InvalidArgumentException $e) {
+            throw ValidationFailedException::fromArray(['file' => [$e->getMessage()]]);
+        }
+    }
+
+    /** Pasul 2: istoricul de reparații, legat de vehicule prin VIN. */
+    #[Route('/api/admin/import/service-history', name: 'api_admin_import_service_history', methods: ['POST'])]
+    public function importServiceHistory(Request $request): JsonResponse
+    {
+        $rows = $this->rowsFromUpload($request);
+        $user = $this->getUser();
+        try {
+            return $this->json($this->historyImporter->import($rows, $user instanceof User ? $user : null));
+        } catch (\InvalidArgumentException $e) {
+            throw ValidationFailedException::fromArray(['file' => [$e->getMessage()]]);
+        }
+    }
+
+    /** @return list<list<string>> */
+    private function rowsFromUpload(Request $request): array
     {
         $file = $request->files->get('file');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
@@ -41,13 +68,11 @@ final class AdminImportController extends AbstractController
 
         $extension = strtolower($file->getClientOriginalExtension());
         try {
-            $rows = match ($extension) {
+            return match ($extension) {
                 'xlsx' => $this->xlsx->rows($file->getPathname()),
                 'csv' => $this->csvRows($file->getPathname()),
                 default => throw new \InvalidArgumentException('Format neacceptat — folosiți .xlsx sau .csv.'),
             };
-
-            return $this->json($this->importer->import($rows));
         } catch (\InvalidArgumentException $e) {
             throw ValidationFailedException::fromArray(['file' => [$e->getMessage()]]);
         }
