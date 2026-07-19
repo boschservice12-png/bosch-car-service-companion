@@ -10,7 +10,7 @@ import { Loading, ErrorState, EmptyState } from '@/components/states';
 import { DeadlineBadge, daysLeftText } from '@/components/DeadlineBadge';
 
 /**
- * Alerte — toate scadențele (ITP, RCA, rovinietă, asistență rutieră) ale
+ * Alerte — toate scadențele (ITP, RCA, taxă de drum, asistență rutieră) ale
  * vehiculelor PROPRII, într-un singur loc. Datele vin strict din vehiculele
  * clientului autentificat (autorizare la nivel de obiect pe fiecare apel).
  */
@@ -64,13 +64,13 @@ export default function AlertsPage() {
       </Link>
       <h1>Alerte</h1>
       <p className="muted" style={{ fontSize: '0.85rem' }}>
-        ITP · RCA · Rovinietă · Asistență rutieră — pentru toate vehiculele dumneavoastră.
+        ITP · RCA · Taxă de drum · Asistență rutieră — pentru toate vehiculele dumneavoastră.
       </p>
 
       {rows.length === 0 ? (
         <EmptyState
           title="Nicio alertă"
-          hint="Adăugați scadențele (ITP, RCA, rovinietă) pe pagina fiecărui vehicul."
+          hint="Adăugați scadențele (ITP, RCA, taxă de drum) pe pagina fiecărui vehicul."
         />
       ) : (
         <div className="stack">

@@ -133,7 +133,7 @@ final class SeedDemoCommand extends Command
 
     private function seedDeadlines(Vehicle $v1, Vehicle $v2, User $admin): void
     {
-        // v1: ITP valid (validat de service), RCA expiră curând, rovinietă expirată.
+        // v1: ITP valid (validat de service), RCA expiră curând, taxă de drum expirată.
         $itp = new VehicleDeadline($v1, DeadlineType::ITP, new \DateTimeImmutable('+200 days'), DeadlineSource::SERVICE, new \DateTimeImmutable('-165 days'));
         $itp->markVerified($admin);
         $rca = new VehicleDeadline($v1, DeadlineType::RCA, new \DateTimeImmutable('+18 days'), DeadlineSource::CLIENT);

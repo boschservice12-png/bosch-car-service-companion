@@ -8,7 +8,7 @@ import { ApiError, type DeadlineType } from '@/lib/types';
 const TYPES: { value: DeadlineType; label: string }[] = [
   { value: 'ITP', label: 'ITP' },
   { value: 'RCA', label: 'RCA' },
-  { value: 'ROAD_TAX', label: 'Rovinietă / taxă de drum' },
+  { value: 'ROAD_TAX', label: 'Taxă de drum' },
   { value: 'ROADSIDE_ASSISTANCE', label: 'Asistență rutieră' },
 ];
 

@@ -18,7 +18,7 @@ enum DeadlineType: string
         return match ($this) {
             self::ITP => 'ITP',
             self::RCA => 'RCA',
-            self::ROAD_TAX => 'Rovinietă / taxă de drum',
+            self::ROAD_TAX => 'Taxă de drum',
             self::ROADSIDE_ASSISTANCE => 'Asistență rutieră',
         };
     }

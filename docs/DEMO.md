@@ -7,7 +7,7 @@ din **două sesiuni separate: CLIENT și ADMIN**.
 
 | Modul | Client | Service (admin) |
 |---|---|---|
-| **Scadențe** (ITP / RCA / rovinietă / asistență) | vede stările calculate (valid / expiră curând / expirat), adaugă scadențe, atașează documente | listează vehiculele, validează scadențe, adaugă/atașează documente |
+| **Scadențe** (ITP / RCA / taxă de drum / asistență) | vede stările calculate (valid / expiră curând / expirat), adaugă scadențe, atașează documente | listează vehiculele, validează scadențe, adaugă/atașează documente |
 | **Istoric service** | vede istoricul publicat al propriilor vehicule, descarcă documente | creează ciornă → publică; corecțiile păstrează originalul vizibil |
 | **Comunicare & oferte** | trimite mesaje / cereri de ofertă cu atașamente, acceptă/refuză oferta | răspunde, trimite oferta (sumă) |
 | **Asistență rutieră** | deschide o cerere (locație, problemă, mobilitate, siguranță, telefon, foto), anulează | preia (contact telefonic), schimbă starea |
@@ -82,7 +82,7 @@ php -S 127.0.0.1:8080 -t public
 
 ### 1. Scadențe (CLIENT → ADMIN → CLIENT)
 1. **Client** (`client@bcsc.ro`): *Vehicule → MS01POP*. Se văd scadențele: ITP **valid**,
-   RCA **expiră curând**, rovinietă **expirată** (culoare + text + zile rămase).
+   RCA **expiră curând**, taxă de drum **expirată** (culoare + text + zile rămase).
 2. Adăugați un document la o scadență (JPG/PNG/PDF, max 10 MB) → apare „în curs de scanare",
    apoi devine descărcabil.
 3. **Admin** (`admin@bcsc.ro`): *Vehicule → MS01POP* → **Validează** o scadență introdusă de client.

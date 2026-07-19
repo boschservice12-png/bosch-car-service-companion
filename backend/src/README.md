@@ -10,7 +10,7 @@ publice** (fără acces la clasele interne ale altui modul). Nu există folder `
 | `Customer` | Profil client | **Sprint 1 implementat** ✅ |
 | `Vehicle` | Vehicule, VIN, proprietari, autorizare la nivel de obiect | **Sprint 1 implementat** ✅ |
 | `Communication` | Conversații, mesaje, atașamente & cereri de ofertă (stări) | **Sprint 3 implementat** ✅ |
-| `Deadline` | Scadențe ITP/RCA/rovinietă/roadside, calcul stare, notificări pe praguri | **Sprint 1 implementat** ✅ |
+| `Deadline` | Scadențe ITP/RCA/taxă de drum/roadside, calcul stare, notificări pe praguri | **Sprint 1 implementat** ✅ |
 | `ServiceHistory` | Istoric service, corecții, documente | **Sprint 2 implementat** ✅ |
 | `QuoteRequest` | Mașină de stare (`Domain/QuoteRequestStatus.php`) — cererile de ofertă sunt livrate în `Communication` | mașină de stare ✅ |
 | `RoadsideAssistance` | Solicitări asistență rutieră (forwarding = intern + telefon) | planificat (S5) |

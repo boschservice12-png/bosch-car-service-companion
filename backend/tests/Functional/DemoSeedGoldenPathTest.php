@@ -41,7 +41,7 @@ final class DemoSeedGoldenPathTest extends WebTestCase
         $deadlines = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertCount(3, $deadlines);
         $states = array_column($deadlines, 'state');
-        self::assertContains('EXPIRED', $states, 'Trebuie să existe o scadență expirată (rovinietă).');
+        self::assertContains('EXPIRED', $states, 'Trebuie să existe o scadență expirată (taxă de drum).');
         self::assertContains('DUE_SOON', $states, 'Trebuie să existe o scadență care expiră curând (RCA).');
         self::assertNotEmpty(array_filter($deadlines, static fn (array $d): bool => $d['verified'] === true));
 

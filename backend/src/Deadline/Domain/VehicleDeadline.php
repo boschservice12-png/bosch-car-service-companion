@@ -11,7 +11,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * Scadență a unui vehicul (ITP / RCA / rovinietă / asistență rutieră).
+ * Scadență a unui vehicul (ITP / RCA / taxă de drum / asistență rutieră).
  * Starea (VALID / DUE_SOON / EXPIRED / UNKNOWN) NU se stochează — se calculează
  * din `expiresAt` prin DeadlineStatusCalculator.
  */

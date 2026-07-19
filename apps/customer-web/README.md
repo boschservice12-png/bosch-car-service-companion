@@ -3,7 +3,7 @@
 Next.js + TypeScript strict, mobile-first, RO, WCAG 2.1 AA.
 
 ## Navigație client (RO)
-Acasă · Mesaje · ITP · RCA · Rovinietă · Valabilitate asistență rutieră ·
+Acasă · Mesaje · ITP · RCA · Taxă de drum · Valabilitate asistență rutieră ·
 Istoric service · Cere ofertă · Solicită asistență rutieră · Solicită mobilitate ·
 Dosar de daună · Taxe și impozite · Profil.
 

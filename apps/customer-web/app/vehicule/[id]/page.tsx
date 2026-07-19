@@ -13,7 +13,7 @@ import { DocumentControl } from '@/components/DocumentControl';
 const TYPES: { type: DeadlineType; label: string }[] = [
   { type: 'ITP', label: 'ITP' },
   { type: 'RCA', label: 'RCA' },
-  { type: 'ROAD_TAX', label: 'Rovinietă' },
+  { type: 'ROAD_TAX', label: 'Taxă de drum' },
   { type: 'ROADSIDE_ASSISTANCE', label: 'Asistență rutieră' },
 ];
 
