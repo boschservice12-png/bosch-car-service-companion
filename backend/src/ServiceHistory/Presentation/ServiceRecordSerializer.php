@@ -47,6 +47,7 @@ final class ServiceRecordSerializer
             'totalAmount' => round($record->totalBani() / 100, 2),
             'warranty' => $record->warranty(),
             'correctionOfId' => $record->correctionOf() !== null ? (string) $record->correctionOf()->id() : null,
+            'correctionReason' => $record->correctionReason(),
             'corrected' => \in_array((string) $record->id(), $correctedIds, true),
             'publishedAt' => $record->publishedAt()?->format(DATE_ATOM),
             'createdAt' => $record->createdAt()->format(DATE_ATOM),

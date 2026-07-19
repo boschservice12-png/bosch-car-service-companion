@@ -113,8 +113,14 @@ final class ServiceHistoryClientAdminTest extends WebTestCase
         $client->request('PATCH', "/api/admin/service-records/$recordId", server: $this->json(), content: json_encode(['totalAmount' => 9999]));
         self::assertResponseStatusCodeSame(422, 'O înregistrare publicată nu poate fi suprascrisă.');
 
-        // ADMIN: corecție → intrare nouă (ciornă) care referă originalul.
+        // ADMIN: corecție fără motiv → 422 (motivul este obligatoriu, specificație).
         $client->request('POST', "/api/admin/service-records/$recordId/corrections");
+        self::assertResponseStatusCodeSame(422, 'Corecția cere un motiv.');
+
+        // ADMIN: corecție cu motiv → intrare nouă (ciornă) care referă originalul.
+        $client->request('POST', "/api/admin/service-records/$recordId/corrections", server: $this->json(), content: json_encode([
+            'reason' => 'Total greșit — factură refăcută.',
+        ]));
         self::assertResponseStatusCodeSame(201);
         $correction = json_decode((string) $client->getResponse()->getContent(), true);
         $correctionId = $correction['id'];
@@ -139,8 +145,22 @@ final class ServiceHistoryClientAdminTest extends WebTestCase
             $byId[$r['id']] = $r;
         }
         self::assertTrue($byId[$recordId]['corrected'], 'Originalul este marcat drept corectat.');
+        self::assertSame('CORRECTED', $byId[$recordId]['status'], 'Originalul trece în starea CORRECTED (specificație).');
         self::assertSame($recordId, $byId[$correctionId]['correctionOfId']);
+        self::assertSame('Total greșit — factură refăcută.', $byId[$correctionId]['correctionReason']);
         self::assertEqualsWithDelta(1500, $byId[$correctionId]['totalAmount'], 0.001);
+
+        // PDF: pentru o intrare și pentru întregul istoric (specificație).
+        $client->request('GET', "/api/service-records/$correctionId/pdf");
+        self::assertResponseIsSuccessful();
+        self::assertSame('application/pdf', $client->getResponse()->headers->get('Content-Type'));
+        self::assertStringStartsWith('%PDF', (string) $client->getResponse()->getContent());
+
+        $client->request('GET', "/api/vehicles/$vehicleId/service-records/pdf");
+        self::assertResponseIsSuccessful();
+        $historyPdf = (string) $client->getResponse()->getContent();
+        self::assertStringStartsWith('%PDF', $historyPdf);
+        self::assertStringContainsString('CORECTAT', $historyPdf, 'Istoricul marchează intrarea corectată.');
 
         // AUDIT: publicările au fost înregistrate (original + corecție).
         /** @var EntityManagerInterface $em */

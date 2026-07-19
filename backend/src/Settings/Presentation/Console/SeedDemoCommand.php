@@ -163,7 +163,7 @@ final class SeedDemoCommand extends Command
         $this->em->persist($original);
 
         // Corecție: totalul corect (piesă adăugată), ca intrare separată.
-        $correction = new ServiceRecord($v1, $admin, $original);
+        $correction = new ServiceRecord($v1, $admin, $original, 'Kilometraj corectat — cifră inversată la introducere.');
         $correction->applyDetails(
             new \DateTimeImmutable('-60 days'),
             82000,
@@ -175,6 +175,7 @@ final class SeedDemoCommand extends Command
             '12 luni / 20.000 km',
         );
         $correction->publish();
+        $original->markCorrected();
         $this->em->persist($correction);
     }
 

@@ -41,8 +41,9 @@ final class DoctrineServiceRecordRepository implements ServiceRecordRepository
             ->addOrderBy('r.createdAt', 'DESC');
 
         if (!$includeDrafts) {
-            $qb->andWhere('r.status = :published')
-                ->setParameter('published', ServiceRecordStatus::PUBLISHED);
+            // Clientul vede publicatele + originalele corectate (rămân vizibile).
+            $qb->andWhere('r.status IN (:visible)')
+                ->setParameter('visible', [ServiceRecordStatus::PUBLISHED, ServiceRecordStatus::CORRECTED]);
         }
 
         return $qb->getQuery()->getResult();

@@ -12,6 +12,7 @@ use App\ServiceHistory\Domain\ServiceRecord;
 use App\ServiceHistory\Domain\ServiceRecordRepository;
 use App\Vehicle\Domain\Vehicle;
 use App\Vehicle\Domain\VehicleRepository;
+use App\ServiceHistory\Application\ServiceRecordPdfGenerator;
 use App\Vehicle\Presentation\VehicleVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -61,6 +62,35 @@ final class ClientServiceRecordController extends AbstractController
      * proprietarul documentului (care e adminul care l-a încărcat). Servire directă,
      * same-origin, în spatele firewall-ului.
      */
+    /** PDF pentru o intrare publicată (specificație: „se poate genera PDF"). */
+    #[Route('/api/service-records/{id}/pdf', name: 'api_service_records_pdf', methods: ['GET'])]
+    public function pdf(string $id, ServiceRecordPdfGenerator $generator): Response
+    {
+        $record = $this->requireRecord($id);
+        $this->denyAccessUnlessGranted(VehicleVoter::VIEW, $record->vehicle());
+        $this->assertVisible($record);
+
+        return new Response($generator->forRecord($record), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('attachment; filename="istoric-service-%s.pdf"', $record->serviceDate()?->format('Y-m-d') ?? 'intrare'),
+        ]);
+    }
+
+    /** PDF pentru întregul istoric publicat al vehiculului. */
+    #[Route('/api/vehicles/{vehicleId}/service-records/pdf', name: 'api_service_records_vehicle_pdf', methods: ['GET'])]
+    public function vehiclePdf(string $vehicleId, ServiceRecordPdfGenerator $generator): Response
+    {
+        $vehicle = $this->requireVehicle($vehicleId);
+        $this->denyAccessUnlessGranted(VehicleVoter::VIEW, $vehicle);
+
+        $records = $this->records->findForVehicle($vehicle, includeDrafts: false);
+
+        return new Response($generator->forVehicle($vehicle, $records), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('attachment; filename="istoric-%s.pdf"', preg_replace('/[^A-Za-z0-9]+/', '-', $vehicle->plateNumber())),
+        ]);
+    }
+
     #[Route('/api/service-records/{recordId}/documents/{docId}', name: 'api_service_records_document', methods: ['GET'])]
     public function document(string $recordId, string $docId, DocumentRepository $documents, StorageAdapter $storage): Response
     {

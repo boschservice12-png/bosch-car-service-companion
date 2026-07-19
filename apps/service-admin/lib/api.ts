@@ -118,8 +118,8 @@ export const api = {
   publishServiceRecord: (id: string) =>
     request<ServiceRecord>(`/admin/service-records/${id}/publish`, { method: 'POST' }),
 
-  correctServiceRecord: (id: string) =>
-    request<ServiceRecord>(`/admin/service-records/${id}/corrections`, { method: 'POST' }),
+  correctServiceRecord: (id: string, reason: string) =>
+    request<ServiceRecord>(`/admin/service-records/${id}/corrections`, { method: 'POST', body: JSON.stringify({ reason }) }),
 
   attachServiceRecordDocument: (id: string, documentId: string) =>
     request<ServiceRecord>(`/admin/service-records/${id}/documents`, {

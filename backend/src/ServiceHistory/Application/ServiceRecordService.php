@@ -9,6 +9,7 @@ use App\Document\Domain\Document;
 use App\Identity\Domain\User;
 use App\ServiceHistory\Domain\ServiceRecord;
 use App\ServiceHistory\Domain\ServiceRecordRepository;
+use App\ServiceHistory\Domain\ServiceRecordStatus;
 use App\ServiceHistory\Presentation\Dto\ServiceRecordRequest;
 use App\Shared\Presentation\ValidationFailedException;
 use App\Vehicle\Domain\Vehicle;
@@ -76,6 +77,17 @@ final class ServiceRecordService
             'publishedAt' => $record->publishedAt()?->format(DATE_ATOM),
         ]);
 
+        // Publicarea unei corecții marchează originalul drept CORRECTED (specificație).
+        $original = $record->correctionOf();
+        if ($original !== null && $original->status() === ServiceRecordStatus::PUBLISHED) {
+            $original->markCorrected();
+            $this->records->save($original);
+            $this->audit->record('service_record.marked_corrected', 'ServiceRecord', (string) $original->id(), null, [
+                'correctedBy' => (string) $record->id(),
+                'reason' => $record->correctionReason(),
+            ]);
+        }
+
         return $record;
     }
 
@@ -84,15 +96,20 @@ final class ServiceRecordService
      * originalul, pornind de la valorile acestuia. Originalul rămâne neschimbat și
      * vizibil; corecția devine o intrare separată după publicare.
      */
-    public function createCorrection(ServiceRecord $original, ?User $admin): ServiceRecord
+    public function createCorrection(ServiceRecord $original, ?User $admin, string $reason): ServiceRecord
     {
         if (!$original->isPublished()) {
             throw ValidationFailedException::fromArray([
                 'correction' => ['Doar o înregistrare publicată poate fi corectată.'],
             ]);
         }
+        if (trim($reason) === '') {
+            throw ValidationFailedException::fromArray([
+                'reason' => ['Motivul corecției este obligatoriu.'],
+            ]);
+        }
 
-        $correction = new ServiceRecord($original->vehicle(), $admin, $original);
+        $correction = new ServiceRecord($original->vehicle(), $admin, $original, trim($reason));
         $correction->applyDetails(
             $original->serviceDate(),
             $original->odometerKm(),
@@ -107,6 +124,7 @@ final class ServiceRecordService
 
         $this->audit->record('service_record.correction_created', 'ServiceRecord', (string) $correction->id(), null, [
             'correctionOf' => (string) $original->id(),
+            'reason' => trim($reason),
         ]);
 
         return $correction;

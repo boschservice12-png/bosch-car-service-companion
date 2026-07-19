@@ -43,7 +43,14 @@ export default function VehicleServiceHistoryPage() {
       <Link href={`/vehicule/${params.id}`} className="muted">
         ← Vehicul
       </Link>
-      <h1>Istoric service</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+        <h1>Istoric service</h1>
+        {records.length > 0 ? (
+          <a className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} href={`/api/vehicles/${params.id}/service-records/pdf`} target="_blank" rel="noopener">
+            ⬇ PDF
+          </a>
+        ) : null}
+      </div>
 
       {records.length === 0 ? (
         <EmptyState title="Nicio intrare în istoric" hint="Service-ul va publica aici lucrările efectuate." />

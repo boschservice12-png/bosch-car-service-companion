@@ -53,12 +53,13 @@ export const UPLOAD_ACCEPT: Record<string, string> = {
   'application/pdf': '.pdf',
 };
 
-export type ServiceRecordStatus = 'DRAFT' | 'PUBLISHED';
+export type ServiceRecordStatus = 'DRAFT' | 'PUBLISHED' | 'CORRECTED';
 
 export interface ServiceRecord {
   id: string;
   vehicleId: string;
   status: ServiceRecordStatus;
+  correctionReason: string | null;
   statusLabel: string;
   serviceDate: string | null;
   odometerKm: number | null;

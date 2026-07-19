@@ -70,6 +70,10 @@ class ServiceRecord
     #[ORM\JoinColumn(name: 'correction_of_id', nullable: true, onDelete: 'SET NULL')]
     private ?ServiceRecord $correctionOf = null;
 
+    /** Motivul corecției (obligatoriu la creare) — apare și în audit și către client. */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $correctionReason = null;
+
     /** @var Collection<int, Document> */
     #[ORM\ManyToMany(targetEntity: Document::class)]
     #[ORM\JoinTable(name: 'service_record_documents')]
@@ -88,12 +92,13 @@ class ServiceRecord
     #[ORM\Column(type: 'datetimetz_immutable')]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(Vehicle $vehicle, ?User $createdBy = null, ?ServiceRecord $correctionOf = null)
+    public function __construct(Vehicle $vehicle, ?User $createdBy = null, ?ServiceRecord $correctionOf = null, ?string $correctionReason = null)
     {
         $this->id = Uuid::v7();
         $this->vehicle = $vehicle;
         $this->createdBy = $createdBy;
         $this->correctionOf = $correctionOf;
+        $this->correctionReason = $correctionReason;
         $this->documents = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
@@ -162,6 +167,11 @@ class ServiceRecord
     public function isPublished(): bool
     {
         return $this->status === ServiceRecordStatus::PUBLISHED;
+    }
+
+    public function correctionReason(): ?string
+    {
+        return $this->correctionReason;
     }
 
     public function correctionOf(): ?ServiceRecord
@@ -235,8 +245,24 @@ class ServiceRecord
         if ($this->status === ServiceRecordStatus::PUBLISHED) {
             return;
         }
+        if ($this->status === ServiceRecordStatus::CORRECTED) {
+            throw new \LogicException('O înregistrare corectată (înlocuită) nu se republică.');
+        }
         $this->status = ServiceRecordStatus::PUBLISHED;
         $this->publishedAt = new \DateTimeImmutable();
+        $this->touch();
+    }
+
+    /**
+     * Originalul devine CORRECTED când corecția lui este publicată. Rândul
+     * rămâne neschimbat și vizibil (specificație: nimic nu se șterge silențios).
+     */
+    public function markCorrected(): void
+    {
+        if ($this->status !== ServiceRecordStatus::PUBLISHED) {
+            throw new \LogicException('Doar o înregistrare publicată poate fi marcată drept corectată.');
+        }
+        $this->status = ServiceRecordStatus::CORRECTED;
         $this->touch();
     }
 

@@ -24,6 +24,9 @@ export function ServiceRecordView({ record }: { record: ServiceRecord }) {
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           {record.correctionOfId ? <span className="badge badge-warn">✎ Corecție</span> : null}
+          {record.correctionOfId && record.correctionReason ? (
+            <span className="muted" style={{ fontSize: '0.8rem' }}>Motiv: {record.correctionReason}</span>
+          ) : null}
           {record.corrected ? <span className="badge badge-unknown">• Corectat ulterior</span> : null}
         </div>
       </div>

@@ -55,7 +55,7 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span className={`badge ${isDraft ? 'badge-warn' : 'badge-ok'}`}>
+          <span className={`badge ${isDraft ? 'badge-warn' : record.status === 'CORRECTED' ? 'badge-unknown' : 'badge-ok'}`}>
             <span aria-hidden>{isDraft ? '✎' : '✓'}</span> {record.statusLabel}
           </span>
           {record.correctionOfId ? <span className="badge badge-unknown">corecție</span> : null}
@@ -115,7 +115,10 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
             </button>
           </>
         ) : (
-          <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 12px' }} disabled={busy} onClick={() => run(() => api.correctServiceRecord(record.id))}>
+          <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 12px' }} disabled={busy} onClick={() => {
+              const reason = window.prompt('Motivul corecției (obligatoriu):');
+              if (reason && reason.trim() !== '') run(() => api.correctServiceRecord(record.id, reason.trim()));
+            }}>
             {busy ? '…' : 'Creează corecție'}
           </button>
         )}

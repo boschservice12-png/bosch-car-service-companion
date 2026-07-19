@@ -88,10 +88,12 @@ final class AdminServiceRecordController extends AbstractController
     }
 
     #[Route('/service-records/{id}/corrections', name: 'api_admin_service_records_correct', methods: ['POST'])]
-    public function correct(string $id): JsonResponse
+    public function correct(string $id, Request $request): JsonResponse
     {
         $record = $this->requireRecord($id);
-        $correction = $this->service->createCorrection($record, $this->currentUser());
+        /** @var array{reason?: string} $payload */
+        $payload = json_decode((string) $request->getContent(), true) ?: [];
+        $correction = $this->service->createCorrection($record, $this->currentUser(), (string) ($payload['reason'] ?? ''));
 
         return $this->json($this->serializer->serialize($correction), 201);
     }

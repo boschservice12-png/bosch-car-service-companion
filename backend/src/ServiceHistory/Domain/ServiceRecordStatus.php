@@ -9,12 +9,14 @@ enum ServiceRecordStatus: string
 {
     case DRAFT = 'DRAFT';
     case PUBLISHED = 'PUBLISHED';
+    case CORRECTED = 'CORRECTED';
 
     public function label(): string
     {
         return match ($this) {
             self::DRAFT => 'Ciornă',
             self::PUBLISHED => 'Publicat',
+            self::CORRECTED => 'Corectat',
         };
     }
 }
