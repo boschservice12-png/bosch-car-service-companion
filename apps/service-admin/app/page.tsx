@@ -7,10 +7,16 @@ import { api } from '@/lib/api';
 import { ApiError, type AdminVehicle } from '@/lib/types';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
+/** Normalizare pentru căutare: litere mici, fără spații („MS 77 IST" = „ms77ist"). */
+function norm(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, '');
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<AdminVehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const load = useCallback(() => {
     setError(null);
@@ -70,22 +76,56 @@ export default function DashboardPage() {
       {!error && vehicles === null ? <Loading /> : null}
       {!error && vehicles?.length === 0 ? <EmptyState title="Niciun vehicul înregistrat" /> : null}
 
-      {vehicles && vehicles.length > 0 ? (
-        <div className="card">
-          {vehicles.map((v) => (
-            <div key={v.id} className="list-row">
-              <div>
-                <strong>{v.plateNumber}</strong>
-                <div className="muted" style={{ fontSize: '0.85rem' }}>
-                  {[v.make, v.model, v.year].filter(Boolean).join(' ') || v.vin}
-                  {v.ownerName ? ` · ${v.ownerName}` : ''}
+      {vehicles && vehicles.length > 0
+        ? (() => {
+            const needle = norm(query);
+            const filtered = needle
+              ? vehicles.filter((v) =>
+                  norm([v.plateNumber, v.vin, v.ownerName ?? '', v.make ?? '', v.model ?? ''].join(' ')).includes(needle),
+                )
+              : vehicles;
+            return (
+              <>
+                <div className="field" style={{ marginTop: 12 }}>
+                  <label htmlFor="q">Caută vehiculul</label>
+                  <input
+                    id="q"
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Nume proprietar, nr. înmatriculare sau VIN…"
+                  />
+                  {needle ? (
+                    <span className="muted" style={{ fontSize: '0.82rem' }}>
+                      {filtered.length} din {vehicles.length} vehicule
+                    </span>
+                  ) : null}
                 </div>
-              </div>
-              <Link href={`/vehicule/${v.id}`}>Scadențe →</Link>
-            </div>
-          ))}
-        </div>
-      ) : null}
+                {filtered.length === 0 ? (
+                  <EmptyState
+                    title="Niciun vehicul găsit"
+                    hint={`Nimic pentru „${query.trim()}" — căutați după numele proprietarului, numărul de înmatriculare sau VIN.`}
+                  />
+                ) : (
+                  <div className="card">
+                    {filtered.map((v) => (
+                      <div key={v.id} className="list-row">
+                        <div>
+                          <strong>{v.plateNumber}</strong>
+                          <div className="muted" style={{ fontSize: '0.85rem' }}>
+                            {[v.make, v.model, v.year].filter(Boolean).join(' ') || v.vin}
+                            {v.ownerName ? ` · ${v.ownerName}` : ''}
+                          </div>
+                        </div>
+                        <Link href={`/vehicule/${v.id}`}>Scadențe →</Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()
+        : null}
     </>
   );
 }
