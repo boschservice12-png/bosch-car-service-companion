@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { Me } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading } from '@/components/states';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const t = useT();
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -30,23 +32,23 @@ export default function ProfilePage() {
 
   return (
     <>
-      <h1>Profil</h1>
+      <h1>{t('Profil')}</h1>
       <div className="card stack">
         {me.name ? (
           <div>
-            <span className="muted">Nume:</span> {me.name}
+            <span className="muted">{t('Nume:')}</span> {me.name}
           </div>
         ) : null}
         <div>
-          <span className="muted">Email:</span> {me.email}
+          <span className="muted">{t('Email:')}</span> {me.email}
         </div>
         <div>
-          <span className="muted">Rol:</span> {me.role === 'SERVICE_ADMIN' ? 'Administrator service' : 'Client'}
+          <span className="muted">{t('Rol:')}</span> {me.role === 'SERVICE_ADMIN' ? t('Administrator service') : t('Client')}
         </div>
       </div>
 
       <button className="btn btn-ghost" onClick={logout}>
-        Deconectare
+        {t('Deconectare')}
       </button>
 
       <BottomNav />

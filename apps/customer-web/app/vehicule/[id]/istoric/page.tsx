@@ -5,12 +5,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type ServiceRecord } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 import { ServiceRecordView } from '@/components/ServiceRecordView';
 
 export default function VehicleServiceHistoryPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [records, setRecords] = useState<ServiceRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,16 +37,16 @@ export default function VehicleServiceHistoryPage() {
 
   useEffect(load, [load]);
 
-  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (error) return <ErrorState message={t(error)} onRetry={load} />;
   if (records === null) return <Loading rows={3} />;
 
   return (
     <>
       <Link href={`/vehicule/${params.id}`} className="muted">
-        ← Vehicul
+        {t('← Vehicul')}
       </Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <h1>Istoric service</h1>
+        <h1>{t('Istoric service')}</h1>
         {records.length > 0 ? (
           <a className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} href={`/api/vehicles/${params.id}/service-records/pdf`} target="_blank" rel="noopener">
             ⬇ PDF
@@ -53,7 +55,7 @@ export default function VehicleServiceHistoryPage() {
       </div>
 
       {records.length === 0 ? (
-        <EmptyState title="Nicio intrare în istoric" hint="Service-ul va publica aici lucrările efectuate." />
+        <EmptyState title={t('Nicio intrare în istoric')} hint={t('Service-ul va publica aici lucrările efectuate.')} />
       ) : (
         <div className="stack" style={{ gap: 12 }}>
           {records.map((r) => (
@@ -63,7 +65,7 @@ export default function VehicleServiceHistoryPage() {
       )}
 
       <p className="muted" style={{ fontSize: '0.82rem' }}>
-        Istoricul este publicat de service. Corecțiile apar ca intrări separate, păstrând înregistrarea originală.
+        {t('Istoricul este publicat de service. Corecțiile apar ca intrări separate, păstrând înregistrarea originală.')}
       </p>
 
       <BottomNav />

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type MobilityRequest, type MobilityStatus } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
@@ -20,6 +21,7 @@ const STATUS_CLASS: Record<MobilityStatus, string> = {
 
 export default function MobilityListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<MobilityRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,26 +44,26 @@ export default function MobilityListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Mobilitate</h1>
+        <h1>{t('Mobilitate')}</h1>
         <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/mobilitate/nou">
-          + Cerere
+          {t('+ Cerere')}
         </Link>
       </div>
 
       <div className="card stack" style={{ gap: 8 }}>
-        <strong>Aveți nevoie de mobilitate acum?</strong>
+        <strong>{t('Aveți nevoie de mobilitate acum?')}</strong>
         <span className="muted" style={{ fontSize: '0.85rem' }}>
-          Trimiteți o cerere, sau sunați direct dispeceratul.
+          {t('Trimiteți o cerere, sau sunați direct dispeceratul.')}
         </span>
         <a className="btn" href="tel:0730508343" style={{ textAlign: 'center', textDecoration: 'none' }}>
-          📞 Sună 0730 508 343
+          {t('📞 Sună {phone}', { phone: '0730 508 343' })}
         </a>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
       {!error && items?.length === 0 ? (
-        <EmptyState title="Nicio solicitare" hint="Cereți o mașină de înlocuire, un taxi sau transport acasă." />
+        <EmptyState title={t('Nicio solicitare')} hint={t('Cereți o mașină de înlocuire, un taxi sau transport acasă.')} />
       ) : null}
 
       {items && items.length > 0 ? (
@@ -70,12 +72,12 @@ export default function MobilityListPage() {
             <Link key={m.id} href={`/mobilitate/${m.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
                 <div>
-                  <strong>{m.typeLabel}</strong>
+                  <strong>{t(m.typeLabel)}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {m.preferredDate ? `Pentru ${m.preferredDate}` : new Date(m.createdAt).toLocaleDateString('ro-RO')}
+                    {m.preferredDate ? t('Pentru {date}', { date: m.preferredDate }) : new Date(m.createdAt).toLocaleDateString('ro-RO')}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[m.status]}`}>{m.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[m.status]}`}>{t(m.statusLabel)}</span>
               </div>
             </Link>
           ))}

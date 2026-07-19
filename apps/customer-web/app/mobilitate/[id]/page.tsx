@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type MobilityRequest, type MobilityStatus } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<MobilityStatus, string> = {
@@ -19,6 +20,7 @@ const STATUS_CLASS: Record<MobilityStatus, string> = {
 
 export default function MobilityDetailPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [req, setReq] = useState<MobilityRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,31 +58,31 @@ export default function MobilityDetailPage() {
     }
   }
 
-  if (error && req === null) return <ErrorState message={error} onRetry={load} />;
+  if (error && req === null) return <ErrorState message={t(error)} onRetry={load} />;
   if (req === null) return <Loading rows={3} />;
 
   return (
     <>
       <Link href="/mobilitate" className="muted">
-        ← Mobilitate
+        {t('← Mobilitate')}
       </Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ marginBottom: 0 }}>{req.typeLabel}</h1>
-        <span className={`badge ${STATUS_CLASS[req.status]}`}>{req.statusLabel}</span>
+        <h1 style={{ marginBottom: 0 }}>{t(req.typeLabel)}</h1>
+        <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
       </div>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <div className="card stack" style={{ gap: 8 }}>
-        <div><span className="muted">Detalii:</span> {req.details}</div>
-        {req.preferredDate ? <div><span className="muted">Data preferată:</span> {req.preferredDate}</div> : null}
-        {req.vehiclePlate ? <div><span className="muted">Vehicul:</span> {req.vehiclePlate}</div> : null}
-        {req.note ? <div><span className="muted">Notă service:</span> {req.note}</div> : null}
+        <div><span className="muted">{t('Detalii:')}</span> {req.details}</div>
+        {req.preferredDate ? <div><span className="muted">{t('Data preferată:')}</span> {req.preferredDate}</div> : null}
+        {req.vehiclePlate ? <div><span className="muted">{t('Vehicul:')}</span> {req.vehiclePlate}</div> : null}
+        {req.note ? <div><span className="muted">{t('Notă service:')}</span> {req.note}</div> : null}
       </div>
 
       {req.status === 'SUBMITTED' ? (
         <button className="btn btn-ghost" disabled={busy} onClick={cancel}>
-          {busy ? '…' : 'Anulează solicitarea'}
+          {busy ? '…' : t('Anulează solicitarea')}
         </button>
       ) : null}
     </>

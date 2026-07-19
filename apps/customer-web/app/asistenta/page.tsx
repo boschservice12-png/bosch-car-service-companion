@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type RoadsideRequest, type RoadsideStatus } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
@@ -41,6 +42,7 @@ const STATUS_CLASS: Record<RoadsideStatus, string> = {
 
 export default function RoadsideListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<RoadsideRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,14 +65,14 @@ export default function RoadsideListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Asistență rutieră</h1>
+        <h1>{t('Asistență rutieră')}</h1>
         <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/asistenta/nou">
-          + Cerere
+          {t('+ Cerere')}
         </Link>
       </div>
 
       <div className="card stack" style={{ gap: 10 }}>
-        <strong>Solicită asistență — alege situația ta</strong>
+        <strong>{t('Solicită asistență — alege situația ta')}</strong>
         {CALL_LINES.map((line) => (
           <a
             key={line.key}
@@ -78,18 +80,18 @@ export default function RoadsideListPage() {
             href={`tel:${line.phone.replace(/\s/g, '')}`}
             style={{ textAlign: 'center', textDecoration: 'none' }}
           >
-            {line.label} — {line.phone}
+            {t(line.label)} — {line.phone}
           </a>
         ))}
         <span className="muted" style={{ fontSize: '0.8rem' }}>
-          {CALL_LINES[0].name}: {CALL_LINES[0].note} {CALL_LINES[1].name}: {CALL_LINES[1].note}
+          {t(CALL_LINES[0].name)}: {t(CALL_LINES[0].note)} {t(CALL_LINES[1].name)}: {t(CALL_LINES[1].note)}
         </span>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
       {!error && items?.length === 0 ? (
-        <EmptyState title="Nicio cerere" hint="Deschideți o cerere de asistență dacă aveți nevoie de ajutor pe drum." />
+        <EmptyState title={t('Nicio cerere')} hint={t('Deschideți o cerere de asistență dacă aveți nevoie de ajutor pe drum.')} />
       ) : null}
 
       {items && items.length > 0 ? (
@@ -100,10 +102,10 @@ export default function RoadsideListPage() {
                 <div>
                   <strong>{r.location}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {r.mobilityLabel} · {new Date(r.createdAt).toLocaleDateString('ro-RO')}
+                    {t(r.mobilityLabel)} · {new Date(r.createdAt).toLocaleDateString('ro-RO')}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[r.status]}`}>{r.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[r.status]}`}>{t(r.statusLabel)}</span>
               </div>
             </Link>
           ))}

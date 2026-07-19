@@ -85,3 +85,10 @@ a { color: var(--primary); }
 .bottom-nav a.active { color: var(--primary); font-weight: 700; }
 
 .skeleton { background: linear-gradient(90deg,#eee,#f5f5f5,#eee); border-radius: 8px; height: 56px; margin-bottom: 10px; }
+
+/* Comutator de limbă (RO implicit · HU · EN) */
+.lang-switcher { position: fixed; top: 10px; right: 12px; z-index: 50; display: flex; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 2px; }
+.lang-switcher button { border: none; background: transparent; color: var(--muted); font-size: 0.72rem;
+  font-weight: 700; padding: 4px 8px; border-radius: 999px; cursor: pointer; }
+.lang-switcher button.active { background: var(--primary); color: #fff; }

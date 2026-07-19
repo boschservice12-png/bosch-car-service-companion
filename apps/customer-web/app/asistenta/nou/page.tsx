@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -17,6 +18,7 @@ const inputStyle: React.CSSProperties = {
 
 export default function NewRoadsidePage() {
   const router = useRouter();
+  const t = useT();
   const [location, setLocation] = useState('');
   const [problem, setProblem] = useState('');
   const [mobility, setMobility] = useState('NOT_DRIVABLE');
@@ -54,45 +56,45 @@ export default function NewRoadsidePage() {
   return (
     <>
       <Link href="/asistenta" className="muted">
-        ← Asistență rutieră
+        {t('← Asistență rutieră')}
       </Link>
-      <h1>Cerere de asistență</h1>
+      <h1>{t('Cerere de asistență')}</h1>
       {error ? (
         <div className="alert alert-err" role="alert">
-          {error}
+          {t(error)}
         </div>
       ) : null}
       <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
         <div className="field">
-          <label htmlFor="location">Locația</label>
-          <input id="location" type="text" maxLength={500} value={location} onChange={(e) => setLocation(e.target.value)} required placeholder="Ex: DN13, km 12" />
+          <label htmlFor="location">{t('Locația')}</label>
+          <input id="location" type="text" maxLength={500} value={location} onChange={(e) => setLocation(e.target.value)} required placeholder={t('Ex: DN13, km 12')} />
         </div>
         <div className="field">
-          <label htmlFor="problem">Problema</label>
+          <label htmlFor="problem">{t('Problema')}</label>
           <textarea id="problem" rows={3} value={problem} onChange={(e) => setProblem(e.target.value)} required style={inputStyle} />
         </div>
         <div className="field">
-          <label htmlFor="mobility">Mașina se poate deplasa?</label>
+          <label htmlFor="mobility">{t('Mașina se poate deplasa?')}</label>
           <select id="mobility" value={mobility} onChange={(e) => setMobility(e.target.value)} style={inputStyle}>
-            <option value="DRIVABLE">Da, se poate deplasa</option>
-            <option value="NOT_DRIVABLE">Nu, este imobilizată</option>
+            <option value="DRIVABLE">{t('Da, se poate deplasa')}</option>
+            <option value="NOT_DRIVABLE">{t('Nu, este imobilizată')}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="safety">Sunteți în siguranță?</label>
+          <label htmlFor="safety">{t('Sunteți în siguranță?')}</label>
           <select id="safety" value={safety} onChange={(e) => setSafety(e.target.value)} style={inputStyle}>
-            <option value="SAFE">Da, în siguranță</option>
-            <option value="AT_RISK">Nu, situație periculoasă</option>
+            <option value="SAFE">{t('Da, în siguranță')}</option>
+            <option value="AT_RISK">{t('Nu, situație periculoasă')}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="phone">Telefon de contact</label>
+          <label htmlFor="phone">{t('Telefon de contact')}</label>
           <input id="phone" type="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} required placeholder="+40…" />
         </div>
         <div className="field">
-          <label htmlFor="vehicle">Vehicul (opțional)</label>
+          <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
           <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
-            <option value="">— fără vehicul —</option>
+            <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.plateNumber}
@@ -101,7 +103,7 @@ export default function NewRoadsidePage() {
           </select>
         </div>
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se trimite…' : 'Trimite cererea'}
+          {busy ? t('Se trimite…') : t('Trimite cererea')}
         </button>
       </form>
     </>

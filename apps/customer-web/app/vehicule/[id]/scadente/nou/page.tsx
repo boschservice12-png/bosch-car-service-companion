@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type DeadlineType } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const TYPES: { value: DeadlineType; label: string }[] = [
   { value: 'ITP', label: 'ITP' },
@@ -14,6 +15,7 @@ const TYPES: { value: DeadlineType; label: string }[] = [
 
 export default function NewDeadlinePage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [form, setForm] = useState({ type: 'ITP', expiresAt: '', validFrom: '', note: '' });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
@@ -39,7 +41,7 @@ export default function NewDeadlinePage() {
       router.replace(`/vehicule/${params.id}`);
     } catch (err) {
       if (err instanceof ApiError && err.problem.errors) setErrors(err.problem.errors);
-      else setGeneral(err instanceof ApiError ? err.problem.title : 'A apărut o eroare.');
+      else setGeneral(err instanceof ApiError ? err.problem.title : t('A apărut o eroare.'));
     } finally {
       setBusy(false);
     }
@@ -49,7 +51,7 @@ export default function NewDeadlinePage() {
 
   return (
     <>
-      <h1>Adaugă scadență</h1>
+      <h1>{t('Adaugă scadență')}</h1>
       {general ? (
         <div className="alert alert-err" role="alert">
           {general}
@@ -57,39 +59,39 @@ export default function NewDeadlinePage() {
       ) : null}
       <form onSubmit={onSubmit} noValidate>
         <div className="field">
-          <label htmlFor="type">Tip</label>
+          <label htmlFor="type">{t('Tip')}</label>
           <select
             id="type"
             value={form.type}
             onChange={(e) => set('type', e.target.value)}
             style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: '1rem', background: '#fff' }}
           >
-            {TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
+            {TYPES.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {t(opt.label)}
               </option>
             ))}
           </select>
         </div>
         <div className="field">
-          <label htmlFor="expiresAt">Data expirării</label>
+          <label htmlFor="expiresAt">{t('Data expirării')}</label>
           <input id="expiresAt" type="date" value={form.expiresAt} onChange={(e) => set('expiresAt', e.target.value)} required />
           {fieldErr('expiresAt') ? <div className="err">{fieldErr('expiresAt')}</div> : null}
         </div>
         <div className="field">
-          <label htmlFor="validFrom">Valabil de la (opțional)</label>
+          <label htmlFor="validFrom">{t('Valabil de la (opțional)')}</label>
           <input id="validFrom" type="date" value={form.validFrom} onChange={(e) => set('validFrom', e.target.value)} />
           {fieldErr('validFrom') ? <div className="err">{fieldErr('validFrom')}</div> : null}
         </div>
         <div className="field">
-          <label htmlFor="note">Notă (opțional)</label>
+          <label htmlFor="note">{t('Notă (opțional)')}</label>
           <input id="note" value={form.note} onChange={(e) => set('note', e.target.value)} />
         </div>
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se salvează…' : 'Salvează scadența'}
+          {busy ? t('Se salvează…') : t('Salvează scadența')}
         </button>
         <button type="button" className="btn btn-ghost" style={{ marginTop: 10 }} onClick={() => router.back()}>
-          Renunță
+          {t('Renunță')}
         </button>
       </form>
     </>

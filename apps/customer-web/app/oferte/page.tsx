@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type QuoteRequest, type QuoteRequestStatus } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
@@ -21,6 +22,7 @@ const STATUS_CLASS: Record<QuoteRequestStatus, string> = {
 
 export default function QuoteRequestListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<QuoteRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,16 +45,16 @@ export default function QuoteRequestListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Cere ofertă</h1>
+        <h1>{t('Cere ofertă')}</h1>
         <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/oferte/nou">
-          + Cerere
+          {t('+ Cerere')}
         </Link>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
       {!error && items?.length === 0 ? (
-        <EmptyState title="Nicio cerere de ofertă" hint="Descrieți problema și primiți o estimare de preț de la service." />
+        <EmptyState title={t('Nicio cerere de ofertă')} hint={t('Descrieți problema și primiți o estimare de preț de la service.')} />
       ) : null}
 
       {items && items.length > 0 ? (
@@ -69,7 +71,7 @@ export default function QuoteRequestListPage() {
                     {new Date(q.createdAt).toLocaleDateString('ro-RO')}
                   </span>
                 </div>
-                <span className={`badge ${STATUS_CLASS[q.status]}`}>{q.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[q.status]}`}>{t(q.statusLabel)}</span>
               </div>
             </Link>
           ))}

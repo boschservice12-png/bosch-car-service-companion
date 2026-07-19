@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api, roadsideDocumentHref } from '@/lib/api';
 import { ApiError, type RoadsideRequest, type RoadsideStatus } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<RoadsideStatus, string> = {
@@ -18,6 +19,7 @@ const STATUS_CLASS: Record<RoadsideStatus, string> = {
 
 export default function RoadsideDetailPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [req, setReq] = useState<RoadsideRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,44 +57,44 @@ export default function RoadsideDetailPage() {
     }
   }
 
-  if (error && req === null) return <ErrorState message={error} onRetry={load} />;
+  if (error && req === null) return <ErrorState message={t(error)} onRetry={load} />;
   if (req === null) return <Loading rows={3} />;
 
   return (
     <>
       <Link href="/asistenta" className="muted">
-        ← Asistență rutieră
+        {t('← Asistență rutieră')}
       </Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ marginBottom: 0 }}>Cerere de asistență</h1>
-        <span className={`badge ${STATUS_CLASS[req.status]}`}>{req.statusLabel}</span>
+        <h1 style={{ marginBottom: 0 }}>{t('Cerere de asistență')}</h1>
+        <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
       </div>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <div className="card stack" style={{ gap: 8 }}>
-        <div><span className="muted">Locație:</span> {req.location}</div>
-        <div><span className="muted">Problemă:</span> {req.problem}</div>
-        <div><span className="muted">Mobilitate:</span> {req.mobilityLabel}</div>
-        <div><span className="muted">Siguranță:</span> {req.safetyLabel}</div>
-        <div><span className="muted">Telefon:</span> {req.phone}</div>
-        {req.vehiclePlate ? <div><span className="muted">Vehicul:</span> {req.vehiclePlate}</div> : null}
-        {req.note ? <div><span className="muted">Notă service:</span> {req.note}</div> : null}
+        <div><span className="muted">{t('Locație:')}</span> {req.location}</div>
+        <div><span className="muted">{t('Problemă:')}</span> {req.problem}</div>
+        <div><span className="muted">{t('Mobilitate:')}</span> {t(req.mobilityLabel)}</div>
+        <div><span className="muted">{t('Siguranță:')}</span> {t(req.safetyLabel)}</div>
+        <div><span className="muted">{t('Telefon:')}</span> {req.phone}</div>
+        {req.vehiclePlate ? <div><span className="muted">{t('Vehicul:')}</span> {req.vehiclePlate}</div> : null}
+        {req.note ? <div><span className="muted">{t('Notă service:')}</span> {req.note}</div> : null}
       </div>
 
       {req.documents.length > 0 ? (
         <div className="card stack" style={{ gap: 4 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>Documente:</span>
+          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('Documente:')}</span>
           {req.documents.map((d) => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span aria-hidden>📎</span>
-              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? 'document'}</span>
+              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
               {d.servable ? (
                 <a className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px' }} href={roadsideDocumentHref(req.id, d.id)} target="_blank" rel="noopener">
-                  Descarcă
+                  {t('Descarcă')}
                 </a>
               ) : (
-                <span className="muted" style={{ fontSize: '0.8rem' }}>în curs de scanare</span>
+                <span className="muted" style={{ fontSize: '0.8rem' }}>{t('în curs de scanare')}</span>
               )}
             </div>
           ))}
@@ -101,7 +103,7 @@ export default function RoadsideDetailPage() {
 
       {req.status === 'SUBMITTED' ? (
         <button className="btn btn-ghost" disabled={busy} onClick={cancel}>
-          {busy ? '…' : 'Anulează cererea'}
+          {busy ? '…' : t('Anulează cererea')}
         </button>
       ) : null}
     </>

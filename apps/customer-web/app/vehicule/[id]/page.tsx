@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Deadline, type DeadlineType, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, ErrorState } from '@/components/states';
 import { DeadlineBadge, daysLeftText } from '@/components/DeadlineBadge';
@@ -19,6 +20,7 @@ const TYPES: { type: DeadlineType; label: string }[] = [
 
 export default function VehicleDetailPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [deadlines, setDeadlines] = useState<Deadline[] | null>(null);
@@ -48,7 +50,7 @@ export default function VehicleDetailPage() {
 
   useEffect(load, [load]);
 
-  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (error) return <ErrorState message={t(error)} onRetry={load} />;
   if (!vehicle || deadlines === null) return <Loading rows={3} />;
 
   const byType = new Map(deadlines.map((d) => [d.type, d]));
@@ -58,17 +60,17 @@ export default function VehicleDetailPage() {
       <h1>{vehicle.plateNumber}</h1>
       <div className="card stack">
         <div>
-          <span className="muted">VIN:</span> {vehicle.vin}
+          <span className="muted">{t('VIN:')}</span> {vehicle.vin}
         </div>
         {vehicle.make ? (
           <div>
-            <span className="muted">Vehicul:</span>{' '}
+            <span className="muted">{t('Vehicul:')}</span>{' '}
             {[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(' ')}
           </div>
         ) : null}
       </div>
 
-      <h2>Scadențe</h2>
+      <h2>{t('Scadențe')}</h2>
       <div className="card">
         {TYPES.map(({ type, label }) => {
           const d = byType.get(type);
@@ -76,11 +78,11 @@ export default function VehicleDetailPage() {
             <div key={type} className="stack" style={{ gap: 8 }}>
               <div className="list-row">
                 <div>
-                  <strong>{label}</strong>
+                  <strong>{t(label)}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
                     {d
-                      ? `${d.expiresAt ?? '—'} · ${daysLeftText(d.daysLeft)}${d.verified ? ' · validat' : ''}`
-                      : 'neintrodus'}
+                      ? `${d.expiresAt ?? '—'} · ${daysLeftText(t, d.daysLeft)}${d.verified ? t(' · validat') : ''}`
+                      : t('neintrodus')}
                   </div>
                   {type === 'ITP' ? (
                     <a
@@ -89,7 +91,7 @@ export default function VehicleDetailPage() {
                       rel="noopener noreferrer"
                       style={{ fontSize: '0.82rem' }}
                     >
-                      Verificare ITP (RAR) ↗
+                      {t('Verificare ITP (RAR) ↗')}
                     </a>
                   ) : null}
                   {type === 'RCA' ? (
@@ -99,7 +101,7 @@ export default function VehicleDetailPage() {
                       rel="noopener noreferrer"
                       style={{ fontSize: '0.82rem' }}
                     >
-                      Verificare RCA (AIDA) ↗
+                      {t('Verificare RCA (AIDA) ↗')}
                     </a>
                   ) : null}
                   {type === 'ROAD_TAX' ? (
@@ -109,11 +111,11 @@ export default function VehicleDetailPage() {
                       rel="noopener noreferrer"
                       style={{ fontSize: '0.82rem' }}
                     >
-                      Verificare taxă de drum (eRovinieta) ↗
+                      {t('Verificare taxă de drum (eRovinieta) ↗')}
                     </a>
                   ) : null}
                 </div>
-                <DeadlineBadge state={d?.state ?? 'UNKNOWN'} label={d?.stateLabel ?? 'Necunoscut'} />
+                <DeadlineBadge state={d?.state ?? 'UNKNOWN'} label={t(d?.stateLabel ?? 'Necunoscut')} />
               </div>
               {d ? <DocumentControl deadline={d} onChange={load} /> : null}
             </div>
@@ -121,13 +123,13 @@ export default function VehicleDetailPage() {
         })}
       </div>
       <Link className="btn" href={`/vehicule/${vehicle.id}/scadente/nou`}>
-        ➕ Adaugă / actualizează scadență
+        {t('➕ Adaugă / actualizează scadență')}
       </Link>
       <Link className="btn btn-ghost" href={`/vehicule/${vehicle.id}/istoric`}>
-        🧾 Istoric service
+        {t('🧾 Istoric service')}
       </Link>
       <p className="muted" style={{ fontSize: '0.82rem' }}>
-        Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.
+        {t('Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.')}
       </p>
 
       <BottomNav />

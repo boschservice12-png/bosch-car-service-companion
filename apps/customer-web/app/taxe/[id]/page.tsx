@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type TaxItem, type PaymentStatus, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<PaymentStatus, string> = {
@@ -29,6 +30,7 @@ function money(ron: number): string {
 
 export default function TaxDetailPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [tax, setTax] = useState<TaxItem | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -69,12 +71,12 @@ export default function TaxDetailPage() {
     api.vehicles().then(setVehicles).catch(() => setVehicles([]));
   }, []);
 
-  function startEdit(t: TaxItem) {
-    setYear(String(t.year));
-    setType(t.type);
-    setAmount(String(t.amount));
-    setDueDate(t.dueDate ?? '');
-    setVehicleId(t.vehicleId ?? '');
+  function startEdit(item: TaxItem) {
+    setYear(String(item.year));
+    setType(item.type);
+    setAmount(String(item.amount));
+    setDueDate(item.dueDate ?? '');
+    setVehicleId(item.vehicleId ?? '');
     setEditing(true);
   }
 
@@ -115,7 +117,7 @@ export default function TaxDetailPage() {
   }
 
   async function remove() {
-    if (!window.confirm('Ștergeți această taxă din evidență?')) return;
+    if (!window.confirm(t('Ștergeți această taxă din evidență?'))) return;
     setBusy(true);
     setError(null);
     try {
@@ -127,63 +129,63 @@ export default function TaxDetailPage() {
     }
   }
 
-  if (error && tax === null) return <ErrorState message={error} onRetry={load} />;
+  if (error && tax === null) return <ErrorState message={t(error)} onRetry={load} />;
   if (tax === null) return <Loading rows={3} />;
 
   return (
     <>
       <Link href="/taxe" className="muted">
-        ← Taxe și impozite
+        {t('← Taxe și impozite')}
       </Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ marginBottom: 0 }}>{tax.typeLabel} · {tax.year}</h1>
-        <span className={`badge ${STATUS_CLASS[tax.status]}`}>{tax.statusLabel}</span>
+        <h1 style={{ marginBottom: 0 }}>{t(tax.typeLabel)} · {tax.year}</h1>
+        <span className={`badge ${STATUS_CLASS[tax.status]}`}>{t(tax.statusLabel)}</span>
       </div>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <div className="card stack" style={{ gap: 8 }}>
         <div><strong>{money(tax.amount)}</strong></div>
         {tax.paidAmount !== null && tax.status !== 'PAID' ? (
-          <div><span className="muted">Plătit până acum:</span> {money(tax.paidAmount)}</div>
+          <div><span className="muted">{t('Plătit până acum:')}</span> {money(tax.paidAmount)}</div>
         ) : null}
-        {tax.dueDate ? <div><span className="muted">Scadență:</span> {tax.dueDate}</div> : null}
-        {tax.vehiclePlate ? <div><span className="muted">Vehicul:</span> {tax.vehiclePlate}</div> : null}
-        {tax.paidAt ? <div><span className="muted">Plătită la:</span> {new Date(tax.paidAt).toLocaleDateString('ro-RO')}</div> : null}
-        {tax.note ? <div><span className="muted">Notă service:</span> {tax.note}</div> : null}
+        {tax.dueDate ? <div><span className="muted">{t('Scadență:')}</span> {tax.dueDate}</div> : null}
+        {tax.vehiclePlate ? <div><span className="muted">{t('Vehicul:')}</span> {tax.vehiclePlate}</div> : null}
+        {tax.paidAt ? <div><span className="muted">{t('Plătită la:')}</span> {new Date(tax.paidAt).toLocaleDateString('ro-RO')}</div> : null}
+        {tax.note ? <div><span className="muted">{t('Notă service:')}</span> {tax.note}</div> : null}
       </div>
 
       {tax.status === 'PAID' ? (
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          Taxa este plătită integral. Pentru corecții contactați service-ul.
+          {t('Taxa este plătită integral. Pentru corecții contactați service-ul.')}
         </p>
       ) : editing ? (
         <form onSubmit={saveEdit} className="card stack" style={{ gap: 10 }}>
-          <strong>Editează taxa</strong>
+          <strong>{t('Editează taxa')}</strong>
           <div className="field">
-            <label htmlFor="year">An</label>
+            <label htmlFor="year">{t('An')}</label>
             <input id="year" type="number" min={2000} max={2100} value={year} onChange={(e) => setYear(e.target.value)} required />
           </div>
           <div className="field">
-            <label htmlFor="type">Tip</label>
+            <label htmlFor="type">{t('Tip')}</label>
             <select id="type" value={type} onChange={(e) => setType(e.target.value)} style={inputStyle}>
-              <option value="VEHICLE_TAX">Impozit auto</option>
-              <option value="ENVIRONMENT">Taxă de mediu</option>
-              <option value="OTHER">Altă taxă</option>
+              <option value="VEHICLE_TAX">{t('Impozit auto')}</option>
+              <option value="ENVIRONMENT">{t('Taxă de mediu')}</option>
+              <option value="OTHER">{t('Altă taxă')}</option>
             </select>
           </div>
           <div className="field">
-            <label htmlFor="amount">Sumă (RON)</label>
+            <label htmlFor="amount">{t('Sumă (RON)')}</label>
             <input id="amount" type="number" min={0} step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required />
           </div>
           <div className="field">
-            <label htmlFor="dueDate">Scadență (opțional)</label>
+            <label htmlFor="dueDate">{t('Scadență (opțional)')}</label>
             <input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="vehicle">Vehicul (opțional)</label>
+            <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
             <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
-              <option value="">— fără vehicul —</option>
+              <option value="">{t('— fără vehicul —')}</option>
               {vehicles.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.plateNumber}
@@ -193,22 +195,22 @@ export default function TaxDetailPage() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn" type="submit" disabled={busy}>
-              {busy ? 'Se salvează…' : 'Salvează'}
+              {busy ? t('Se salvează…') : t('Salvează')}
             </button>
             <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => setEditing(false)}>
-              Renunță
+              {t('Renunță')}
             </button>
           </div>
         </form>
       ) : (
         <>
           <div className="card stack" style={{ gap: 10 }}>
-            <strong>Marchează plata</strong>
+            <strong>{t('Marchează plata')}</strong>
             <span className="muted" style={{ fontSize: '0.85rem' }}>
-              Evidență declarativă — nu se încarcă niciun document. Goliți suma pentru plată integrală.
+              {t('Evidență declarativă — nu se încarcă niciun document. Goliți suma pentru plată integrală.')}
             </span>
             <div className="field">
-              <label htmlFor="payAmount">Sumă plătită (RON, opțional — pentru plată parțială)</label>
+              <label htmlFor="payAmount">{t('Sumă plătită (RON, opțional — pentru plată parțială)')}</label>
               <input
                 id="payAmount"
                 type="number"
@@ -220,16 +222,16 @@ export default function TaxDetailPage() {
               />
             </div>
             <button className="btn" disabled={busy} onClick={pay}>
-              {busy ? '…' : payAmount !== '' ? 'Înregistrează plata parțială' : 'Marchează plătită integral'}
+              {busy ? '…' : payAmount !== '' ? t('Înregistrează plata parțială') : t('Marchează plătită integral')}
             </button>
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => startEdit(tax)}>
-              ✏️ Editează
+              {t('✏️ Editează')}
             </button>
             <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px', color: 'var(--err, #b3261e)' }} disabled={busy} onClick={remove}>
-              🗑 Șterge
+              {t('🗑 Șterge')}
             </button>
           </div>
         </>

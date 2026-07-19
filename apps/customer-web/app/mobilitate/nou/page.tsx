@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -17,6 +18,7 @@ const inputStyle: React.CSSProperties = {
 
 export default function NewMobilityPage() {
   const router = useRouter();
+  const t = useT();
   const [type, setType] = useState('REPLACEMENT_CAR');
   const [details, setDetails] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
@@ -50,37 +52,37 @@ export default function NewMobilityPage() {
   return (
     <>
       <Link href="/mobilitate" className="muted">
-        ← Mobilitate
+        {t('← Mobilitate')}
       </Link>
-      <h1>Solicitare de mobilitate</h1>
+      <h1>{t('Solicitare de mobilitate')}</h1>
       {error ? (
         <div className="alert alert-err" role="alert">
-          {error}
+          {t(error)}
         </div>
       ) : null}
       <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
         <div className="field">
-          <label htmlFor="type">Tip</label>
+          <label htmlFor="type">{t('Tip')}</label>
           <select id="type" value={type} onChange={(e) => setType(e.target.value)} style={inputStyle}>
-            <option value="REPLACEMENT_CAR">Mașină de înlocuire</option>
-            <option value="TAXI">Taxi</option>
-            <option value="PERSON_TRANSPORT">Transport persoane</option>
-            <option value="ACCOMMODATION">Cazare</option>
-            <option value="OTHER">Altă solicitare</option>
+            <option value="REPLACEMENT_CAR">{t('Mașină de înlocuire')}</option>
+            <option value="TAXI">{t('Taxi')}</option>
+            <option value="PERSON_TRANSPORT">{t('Transport persoane')}</option>
+            <option value="ACCOMMODATION">{t('Cazare')}</option>
+            <option value="OTHER">{t('Altă solicitare')}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="details">Detalii</label>
+          <label htmlFor="details">{t('Detalii')}</label>
           <textarea id="details" rows={3} value={details} onChange={(e) => setDetails(e.target.value)} required style={inputStyle} />
         </div>
         <div className="field">
-          <label htmlFor="preferredDate">Data preferată (opțional)</label>
+          <label htmlFor="preferredDate">{t('Data preferată (opțional)')}</label>
           <input id="preferredDate" type="date" value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="vehicle">Vehicul (opțional)</label>
+          <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
           <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
-            <option value="">— fără vehicul —</option>
+            <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.plateNumber}
@@ -89,7 +91,7 @@ export default function NewMobilityPage() {
           </select>
         </div>
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se trimite…' : 'Trimite solicitarea'}
+          {busy ? t('Se trimite…') : t('Trimite solicitarea')}
         </button>
       </form>
     </>

@@ -5,11 +5,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
 export default function VehiclesPage() {
   const router = useRouter();
+  const t = useT();
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,19 +34,19 @@ export default function VehiclesPage() {
 
   return (
     <>
-      <h1>Vehiculele mele</h1>
+      <h1>{t('Vehiculele mele')}</h1>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
 
       {!error && vehicles === null ? <Loading /> : null}
 
       {!error && vehicles !== null && vehicles.length === 0 ? (
         <EmptyState
-          title="Niciun vehicul încă"
-          hint="Adăugați primul vehicul pentru a urmări scadențele și istoricul."
+          title={t('Niciun vehicul încă')}
+          hint={t('Adăugați primul vehicul pentru a urmări scadențele și istoricul.')}
           action={
             <Link className="btn" href="/vehicule/nou">
-              ➕ Adaugă vehicul
+              {t('➕ Adaugă vehicul')}
             </Link>
           }
         />
@@ -61,14 +63,14 @@ export default function VehiclesPage() {
                     {[v.make, v.model, v.year].filter(Boolean).join(' · ') || v.vin}
                   </div>
                 </div>
-                <Link href={`/vehicule/${v.id}`} aria-label={`Detalii ${v.plateNumber}`}>
-                  Detalii →
+                <Link href={`/vehicule/${v.id}`} aria-label={t('Detalii {plate}', { plate: v.plateNumber })}>
+                  {t('Detalii →')}
                 </Link>
               </div>
             ))}
           </div>
           <Link className="btn btn-ghost" href="/vehicule/nou">
-            ➕ Adaugă alt vehicul
+            {t('➕ Adaugă alt vehicul')}
           </Link>
         </>
       ) : null}

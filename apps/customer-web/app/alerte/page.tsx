@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Deadline, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, ErrorState, EmptyState } from '@/components/states';
 import { DeadlineBadge, daysLeftText } from '@/components/DeadlineBadge';
@@ -28,6 +29,7 @@ const EXTERNAL_CHECK: Partial<Record<Deadline['type'], { href: string; hint: str
 
 export default function AlertsPage() {
   const router = useRouter();
+  const t = useT();
   const [rows, setRows] = useState<AlertRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,23 +63,23 @@ export default function AlertsPage() {
 
   useEffect(load, [load]);
 
-  if (error) return <ErrorState message={error} onRetry={load} />;
+  if (error) return <ErrorState message={t(error)} onRetry={load} />;
   if (rows === null) return <Loading rows={4} />;
 
   return (
     <>
       <Link href="/" className="muted">
-        ← Acasă
+        {t('← Acasă')}
       </Link>
-      <h1>Alerte</h1>
+      <h1>{t('Alerte')}</h1>
       <p className="muted" style={{ fontSize: '0.85rem' }}>
-        ITP · RCA · Taxă de drum · Asistență rutieră — pentru toate vehiculele dumneavoastră.
+        {t('ITP · RCA · Taxă de drum · Asistență rutieră — pentru toate vehiculele dumneavoastră.')}
       </p>
 
       {rows.length === 0 ? (
         <EmptyState
-          title="Nicio alertă"
-          hint="Adăugați scadențele (ITP, RCA, taxă de drum) pe pagina fiecărui vehicul."
+          title={t('Nicio alertă')}
+          hint={t('Adăugați scadențele (ITP, RCA, taxă de drum) pe pagina fiecărui vehicul.')}
         />
       ) : (
         <div className="stack">
@@ -87,15 +89,15 @@ export default function AlertsPage() {
               <div className="list-row">
                 <div>
                   <strong>
-                    {deadline.typeLabel} — {vehicle.plateNumber}
+                    {t(deadline.typeLabel)} — {vehicle.plateNumber}
                   </strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {deadline.expiresAt ?? '—'} · {daysLeftText(deadline.daysLeft)}
-                    {deadline.verified ? ' · validat de service' : ''}
-                    {external?.hint ?? ''}
+                    {deadline.expiresAt ?? '—'} · {daysLeftText(t, deadline.daysLeft)}
+                    {deadline.verified ? t(' · validat de service') : ''}
+                    {external?.hint ? t(external.hint) : ''}
                   </div>
                 </div>
-                <DeadlineBadge state={deadline.state} label={deadline.stateLabel} />
+                <DeadlineBadge state={deadline.state} label={t(deadline.stateLabel)} />
               </div>
             );
             return external ? (
@@ -124,10 +126,10 @@ export default function AlertsPage() {
       )}
 
       <Link className="btn btn-ghost" href="/vehicule">
-        🚗 Gestionează scadențele pe vehicul
+        {t('🚗 Gestionează scadențele pe vehicul')}
       </Link>
       <p className="muted" style={{ fontSize: '0.82rem' }}>
-        Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.
+        {t('Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.')}
       </p>
 
       <BottomNav />

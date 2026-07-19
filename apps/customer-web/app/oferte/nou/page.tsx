@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 
 const inputStyle: React.CSSProperties = {
@@ -18,6 +19,7 @@ const inputStyle: React.CSSProperties = {
 
 export default function NewQuoteRequestPage() {
   const router = useRouter();
+  const t = useT();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [vehicleId, setVehicleId] = useState('');
   const [mileage, setMileage] = useState('');
@@ -67,12 +69,12 @@ export default function NewQuoteRequestPage() {
   return (
     <>
       <Link href="/oferte" className="muted">
-        ← Cereri de ofertă
+        {t('← Cereri de ofertă')}
       </Link>
-      <h1>Cere ofertă de preț</h1>
-      <p className="muted">Descrieți problema — service-ul revine cu o estimare. Fără obligații.</p>
+      <h1>{t('Cere ofertă de preț')}</h1>
+      <p className="muted">{t('Descrieți problema — service-ul revine cu o estimare. Fără obligații.')}</p>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <form
         onSubmit={(e) => {
@@ -83,9 +85,9 @@ export default function NewQuoteRequestPage() {
         style={{ gap: 12 }}
       >
         <div className="field">
-          <label htmlFor="vehicle">Vehicul (opțional)</label>
+          <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
           <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
-            <option value="">— fără vehicul —</option>
+            <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.plateNumber} · {v.vin}
@@ -94,11 +96,11 @@ export default function NewQuoteRequestPage() {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="mileage">Kilometraj (opțional)</label>
+          <label htmlFor="mileage">{t('Kilometraj (opțional)')}</label>
           <input id="mileage" type="number" min={0} inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} style={inputStyle} />
         </div>
         <div className="field">
-          <label htmlFor="symptom">Descrierea simptomului *</label>
+          <label htmlFor="symptom">{t('Descrierea simptomului *')}</label>
           <textarea
             id="symptom"
             value={symptomDescription}
@@ -106,43 +108,43 @@ export default function NewQuoteRequestPage() {
             rows={3}
             minLength={10}
             required
-            placeholder="Ex.: zgomot metalic la frânare, în față…"
+            placeholder={t('Ex.: zgomot metalic la frânare, în față…')}
             style={inputStyle}
           />
         </div>
         <div className="field">
-          <label htmlFor="conditions">Când apare (opțional)</label>
-          <input id="conditions" type="text" value={occurrenceConditions} onChange={(e) => setOccurrenceConditions(e.target.value)} placeholder="Ex.: la frânări puternice" style={inputStyle} />
+          <label htmlFor="conditions">{t('Când apare (opțional)')}</label>
+          <input id="conditions" type="text" value={occurrenceConditions} onChange={(e) => setOccurrenceConditions(e.target.value)} placeholder={t('Ex.: la frânări puternice')} style={inputStyle} />
         </div>
         <div className="field">
-          <label htmlFor="drivable">Mașina e conducibilă?</label>
+          <label htmlFor="drivable">{t('Mașina e conducibilă?')}</label>
           <select id="drivable" value={vehicleDrivable ? 'DA' : 'NU'} onChange={(e) => setVehicleDrivable(e.target.value === 'DA')} style={inputStyle}>
-            <option value="DA">Da</option>
-            <option value="NU">Nu</option>
+            <option value="DA">{t('Da')}</option>
+            <option value="NU">{t('Nu')}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="lights">Martori aprinși în bord (opțional)</label>
-          <input id="lights" type="text" value={warningLights} onChange={(e) => setWarningLights(e.target.value)} placeholder="Ex.: ABS, motor" style={inputStyle} />
+          <label htmlFor="lights">{t('Martori aprinși în bord (opțional)')}</label>
+          <input id="lights" type="text" value={warningLights} onChange={(e) => setWarningLights(e.target.value)} placeholder={t('Ex.: ABS, motor')} style={inputStyle} />
         </div>
         <div className="field">
-          <label htmlFor="contact">Contact preferat</label>
+          <label htmlFor="contact">{t('Contact preferat')}</label>
           <select id="contact" value={preferredContactMethod} onChange={(e) => setPreferredContactMethod(e.target.value)} style={inputStyle}>
-            <option value="PHONE">Telefon</option>
+            <option value="PHONE">{t('Telefon')}</option>
             <option value="WHATSAPP">WhatsApp</option>
-            <option value="APP">Mesaj în aplicație</option>
+            <option value="APP">{t('Mesaj în aplicație')}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="interval">Interval preferat (opțional)</label>
-          <input id="interval" type="text" value={preferredInterval} onChange={(e) => setPreferredInterval(e.target.value)} placeholder="Ex.: luni–vineri după 16:00" style={inputStyle} />
+          <label htmlFor="interval">{t('Interval preferat (opțional)')}</label>
+          <input id="interval" type="text" value={preferredInterval} onChange={(e) => setPreferredInterval(e.target.value)} placeholder={t('Ex.: luni–vineri după 16:00')} style={inputStyle} />
         </div>
 
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se trimite…' : 'Trimite cererea'}
+          {busy ? t('Se trimite…') : t('Trimite cererea')}
         </button>
         <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => void submit(true)}>
-          Salvează ca ciornă
+          {t('Salvează ca ciornă')}
         </button>
       </form>
 

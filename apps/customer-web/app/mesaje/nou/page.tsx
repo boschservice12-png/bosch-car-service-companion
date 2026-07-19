@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -17,6 +18,7 @@ const inputStyle: React.CSSProperties = {
 
 export default function NewConversationPage() {
   const router = useRouter();
+  const t = useT();
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [vehicleId, setVehicleId] = useState('');
@@ -48,23 +50,23 @@ export default function NewConversationPage() {
   return (
     <>
       <Link href="/mesaje" className="muted">
-        ← Mesaje
+        {t('← Mesaje')}
       </Link>
-      <h1>Mesaj nou</h1>
+      <h1>{t('Mesaj nou')}</h1>
       {error ? (
         <div className="alert alert-err" role="alert">
-          {error}
+          {t(error)}
         </div>
       ) : null}
       <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
         <div className="field">
-          <label htmlFor="subject">Subiect</label>
+          <label htmlFor="subject">{t('Subiect')}</label>
           <input id="subject" type="text" maxLength={200} value={subject} onChange={(e) => setSubject(e.target.value)} required />
         </div>
         <div className="field">
-          <label htmlFor="vehicle">Vehicul (opțional)</label>
+          <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
           <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
-            <option value="">— fără vehicul —</option>
+            <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.plateNumber}
@@ -73,11 +75,11 @@ export default function NewConversationPage() {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="body">Mesaj</label>
+          <label htmlFor="body">{t('Mesaj')}</label>
           <textarea id="body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} required style={inputStyle} />
         </div>
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se trimite…' : 'Trimite'}
+          {busy ? t('Se trimite…') : t('Trimite')}
         </button>
       </form>
     </>

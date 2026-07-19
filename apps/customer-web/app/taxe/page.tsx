@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type TaxItem, type PaymentStatus } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
@@ -21,6 +22,7 @@ function money(ron: number): string {
 
 export default function TaxListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<TaxItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,31 +45,31 @@ export default function TaxListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Taxe și impozite</h1>
+        <h1>{t('Taxe și impozite')}</h1>
         <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/taxe/nou">
-          + Taxă
+          {t('+ Taxă')}
         </Link>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
       {!error && items?.length === 0 ? (
-        <EmptyState title="Nicio taxă" hint="Adăugați taxele și impozitele anuale pentru a le urmări plata." />
+        <EmptyState title={t('Nicio taxă')} hint={t('Adăugați taxele și impozitele anuale pentru a le urmări plata.')} />
       ) : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
-          {items.map((t) => (
-            <Link key={t.id} href={`/taxe/${t.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+          {items.map((tax) => (
+            <Link key={tax.id} href={`/taxe/${tax.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
                 <div>
-                  <strong>{t.typeLabel} · {t.year}</strong>
+                  <strong>{t(tax.typeLabel)} · {tax.year}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {money(t.amount)}
-                    {t.dueDate ? ` · scadent ${t.dueDate}` : ''}
+                    {money(tax.amount)}
+                    {tax.dueDate ? t(' · scadent {date}', { date: tax.dueDate }) : ''}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[t.status]}`}>{t.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[tax.status]}`}>{t(tax.statusLabel)}</span>
               </div>
             </Link>
           ))}

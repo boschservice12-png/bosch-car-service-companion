@@ -1,8 +1,12 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { useT } from '@/lib/i18n';
 
 export function Loading({ rows = 3 }: { rows?: number }) {
+  const t = useT();
   return (
-    <div aria-busy="true" aria-label="Se încarcă">
+    <div aria-busy="true" aria-label={t('Se încarcă')}>
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="skeleton" />
       ))}
@@ -21,12 +25,13 @@ export function EmptyState({ title, hint, action }: { title: string; hint?: stri
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const t = useT();
   return (
     <div className="alert alert-err" role="alert">
       <div>{message}</div>
       {onRetry ? (
         <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={onRetry}>
-          Reîncearcă
+          {t('Reîncearcă')}
         </button>
       ) : null}
     </div>
