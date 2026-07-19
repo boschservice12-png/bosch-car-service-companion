@@ -23,6 +23,7 @@ final class UpdateTaxItemRequest
     public ?float $amount = null;
 
     /** Format AAAA-LL-ZZ; șir gol = fără scadență. */
+    #[Assert\Date(message: 'Dată invalidă.')]
     public ?string $dueDate = null;
 
     /** UUID de vehicul; șir gol = fără vehicul. */

@@ -63,6 +63,16 @@ final class ScadenteClientAdminTest extends WebTestCase
         $deadlines = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertTrue($deadlines[0]['verified'], 'Clientul trebuie să vadă scadența validată de service.');
         self::assertSame('SERVICE', $deadlines[0]['source']);
+
+        // CLIENT modifică data → validarea service-ului se pierde (datele
+        // clientului nu pot purta ștampila service-ului).
+        $client->request('PATCH', "/api/deadlines/$deadlineId", server: $this->json(), content: json_encode([
+            'expiresAt' => (new \DateTimeImmutable('+90 days'))->format('Y-m-d'),
+        ]));
+        self::assertResponseIsSuccessful();
+        $edited = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertFalse($edited['verified'], 'Data schimbată de client anulează validarea.');
+        self::assertSame('CLIENT', $edited['source']);
     }
 
     private function createAdmin(string $email, string $password): void

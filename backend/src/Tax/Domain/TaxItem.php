@@ -173,13 +173,19 @@ class TaxItem
 
     /**
      * Editarea datelor de bază de către proprietar (an, tip, sumă, scadență,
-     * vehicul). Dacă există plăți înregistrate, starea se recalculează față de
-     * noua sumă (plata acumulată se plafonează la total).
+     * vehicul). Suma nu poate coborî sub totalul deja plătit — plățile
+     * înregistrate nu se pierd niciodată; starea se recalculează față de noua sumă.
      */
     public function updateDetails(?Vehicle $vehicle, int $year, TaxType $type, int $amountBani, ?\DateTimeImmutable $dueDate): void
     {
         if ($amountBani < 0) {
             throw new \InvalidArgumentException('Suma nu poate fi negativă.');
+        }
+        if ($this->paidAmountBani !== null && $amountBani < $this->paidAmountBani) {
+            throw new \InvalidArgumentException(sprintf(
+                'Suma nu poate fi mai mică decât totalul deja plătit (%s RON).',
+                number_format($this->paidAmountBani / 100, 2, ',', '.'),
+            ));
         }
         $this->vehicle = $vehicle;
         $this->year = $year;
@@ -187,7 +193,6 @@ class TaxItem
         $this->amountBani = $amountBani;
         $this->dueDate = $dueDate;
         if ($this->paidAmountBani !== null) {
-            $this->paidAmountBani = min($this->paidAmountBani, $amountBani);
             $this->status = $this->paidAmountBani >= $amountBani
                 ? PaymentStatus::PAID
                 : PaymentStatus::PARTIALLY_PAID;

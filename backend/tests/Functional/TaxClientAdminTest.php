@@ -37,18 +37,24 @@ final class TaxClientAdminTest extends WebTestCase
         $this->register($client, $otherEmail);
         $this->login($client, $ownerEmail, 'Parola1234');
 
-        // CLIENT: adaugă o taxă anuală.
+        // CLIENT: adaugă o taxă anuală (vehicleId gol = fără vehicul, nu 404).
         $client->request('POST', '/api/taxes', server: $this->json(), content: json_encode([
             'year' => 2026,
             'type' => 'VEHICLE_TAX',
             'amount' => 480.5,
             'dueDate' => '2026-03-31',
+            'vehicleId' => '',
         ]));
         self::assertResponseStatusCodeSame(201);
         $tax = json_decode((string) $client->getResponse()->getContent(), true);
         $taxId = $tax['id'];
         self::assertSame('OVERDUE', $tax['status'], 'Scadență depășită fără plată → OVERDUE (derivat).');
+        self::assertNull($tax['vehicleId'], 'Șir gol la vehicleId = fără vehicul.');
         self::assertArrayNotHasKey('documents', $tax, 'Fluxul de taxe nu are documente — nu se încarcă nimic.');
+
+        // Dată calendaristică inexistentă → 422, nu rostogolire silențioasă.
+        $client->request('PATCH', "/api/taxes/$taxId", server: $this->json(), content: json_encode(['dueDate' => '2026-02-30']));
+        self::assertResponseStatusCodeSame(422, '30 februarie nu devine 2 martie.');
 
         // CLIENT: editează taxa (suma, scadența și tipul).
         $client->request('PATCH', "/api/taxes/$taxId", server: $this->json(), content: json_encode([
@@ -73,13 +79,27 @@ final class TaxClientAdminTest extends WebTestCase
         $client->request('DELETE', "/api/taxes/$taxId");
         self::assertResponseStatusCodeSame(403);
 
-        // CLIENT: plată parțială declarativă (fără niciun fișier), apoi integrală.
+        // CLIENT: sumă nevalidă la plată → 422, NU plată integrală.
         $this->login($client, $ownerEmail, 'Parola1234');
+        $client->request('POST', "/api/taxes/$taxId/pay", server: $this->json(), content: json_encode(['amount' => 'abc']));
+        self::assertResponseStatusCodeSame(422, 'O sumă coruptă nu marchează taxa plătită.');
+        $client->request('GET', "/api/taxes/$taxId");
+        self::assertNotSame('PAID', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+
+        // Plată parțială declarativă (fără niciun fișier), apoi integrală.
         $client->request('POST', "/api/taxes/$taxId/pay", server: $this->json(), content: json_encode(['amount' => 200]));
         self::assertResponseIsSuccessful();
         $partial = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertSame('PARTIALLY_PAID', $partial['status']);
         self::assertEqualsWithDelta(200.0, $partial['paidAmount'], 0.001);
+
+        // Suma nu poate coborî sub totalul deja plătit (200 RON).
+        $client->request('PATCH', "/api/taxes/$taxId", server: $this->json(), content: json_encode(['amount' => 100]));
+        self::assertResponseStatusCodeSame(422, 'Plata înregistrată nu se pierde prin editare.');
+        $client->request('GET', "/api/taxes/$taxId");
+        $still = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertEqualsWithDelta(200.0, $still['paidAmount'], 0.001, 'Plata rămâne 200 RON.');
+        self::assertSame('PARTIALLY_PAID', $still['status']);
 
         $client->request('POST', "/api/taxes/$taxId/pay", server: $this->json(), content: json_encode([]));
         self::assertResponseIsSuccessful();
@@ -87,11 +107,13 @@ final class TaxClientAdminTest extends WebTestCase
         self::assertSame('PAID', $paid['status']);
         self::assertEqualsWithDelta(520.0, $paid['paidAmount'], 0.001);
 
-        // CLIENT: taxa plătită e blocată la editare și ștergere.
-        $client->request('PATCH', "/api/taxes/$taxId", server: $this->json(), content: json_encode(['amount' => 10]));
+        // CLIENT: taxa plătită e blocată la editare, ștergere ȘI re-plată.
+        $client->request('PATCH', "/api/taxes/$taxId", server: $this->json(), content: json_encode(['amount' => 999]));
         self::assertResponseStatusCodeSame(422);
         $client->request('DELETE', "/api/taxes/$taxId");
         self::assertResponseStatusCodeSame(422);
+        $client->request('POST', "/api/taxes/$taxId/pay", server: $this->json(), content: json_encode([]));
+        self::assertResponseStatusCodeSame(422, 'O taxă plătită nu se replătește.');
 
         // ADMIN: corecția — readuce taxa la neplătită, cu notă.
         $this->login($client, $adminEmail, 'Parola1234');

@@ -65,21 +65,31 @@ final class OwnerVehicleImportService
             'errors' => [],
         ];
 
-        foreach (\array_slice($rows, 1) as $i => $row) {
-            $rowNo = $i + 2; // 1-bazat + antet
-            if ($this->isEmptyRow($row)) {
-                continue;
-            }
-            ++$report['totalRows'];
+        // Tot fișierul este atomic: o eroare neașteptată anulează întregul import
+        // (erorile per rând sunt raportate și NU modifică nimic pentru acel rând).
+        $connection = $this->em->getConnection();
+        $connection->beginTransaction();
+        try {
+            foreach (\array_slice($rows, 1) as $i => $row) {
+                $rowNo = $i + 2; // 1-bazat + antet
+                if ($this->isEmptyRow($row)) {
+                    continue;
+                }
+                ++$report['totalRows'];
 
-            try {
-                $this->importRow($row, $map, $report);
-            } catch (\InvalidArgumentException $e) {
-                $report['errors'][] = ['row' => $rowNo, 'message' => $e->getMessage()];
+                try {
+                    $this->importRow($row, $map, $report);
+                } catch (\InvalidArgumentException $e) {
+                    $report['errors'][] = ['row' => $rowNo, 'message' => $e->getMessage()];
+                }
             }
+
+            $this->em->flush();
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+            throw $e;
         }
-
-        $this->em->flush();
 
         $this->audit->record('import.owners_vehicles', 'Import', null, null, [
             'totalRows' => $report['totalRows'],
@@ -116,8 +126,38 @@ final class OwnerVehicleImportService
             throw new \InvalidArgumentException(sprintf('Email invalid: „%s".', $email));
         }
 
-        // --- Vehicul (upsert după VIN) ---
+        // --- Identificarea proprietarului VIZAT, fără a crea sau modifica nimic ---
+        // (verificarea de conflict trebuie să vină ÎNAINTEA oricărei scrieri).
+        $emailUser = null;
+        if ($email !== '') {
+            $emailUser = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
+            if ($emailUser !== null && $emailUser->isServiceAdmin()) {
+                throw new \InvalidArgumentException(sprintf(
+                    'Emailul „%s" aparține unui cont de serviciu (admin) — rândul a fost sărit.',
+                    $email,
+                ));
+            }
+        }
+
         $vehicle = $this->findVehicleByVin($vin->value());
+        $currentOwner = $vehicle !== null ? $this->vehicles->findActiveOwner($vehicle) : null;
+
+        $targetProfile = $emailUser?->customerProfile();
+        if ($targetProfile === null && $emailUser === null
+            && $currentOwner !== null && $this->sameName($currentOwner->fullName(), $ownerName)) {
+            $targetProfile = $currentOwner;
+        }
+
+        // Conflict: vehiculul are deja ALT proprietar activ → nu se schimbă absolut nimic.
+        if ($currentOwner !== null && ($targetProfile === null || !$currentOwner->id()->equals($targetProfile->id()))) {
+            throw new \InvalidArgumentException(sprintf(
+                'Conflict: vehiculul %s are deja alt proprietar activ (%s). Rândul a fost sărit — rezolvați manual.',
+                $vin->value(),
+                $currentOwner->fullName() ?: 'fără nume',
+            ));
+        }
+
+        // --- De aici nu mai există conflict: vehicul (upsert după VIN) ---
         if ($vehicle === null) {
             $vehicle = new Vehicle($vin, $plate);
             $vehicle->updateDetails($make, $model, null);
@@ -129,59 +169,31 @@ final class OwnerVehicleImportService
             ++$report['vehiclesUpdated'];
         }
 
-        // --- Proprietar ---
-        $currentOwner = $this->vehicles->findActiveOwner($vehicle);
-        $profile = $this->resolveOwner($ownerName, $email, $phone, $currentOwner, $report);
+        // --- Proprietar (existent, sau creat abia acum) ---
+        if ($targetProfile === null) {
+            if ($emailUser !== null) {
+                // Utilizator existent fără profil de client → i se creează profilul.
+                $targetProfile = new CustomerProfile($emailUser, ...$this->splitName($ownerName));
+                $this->em->persist($targetProfile);
+            } else {
+                // Cont nou. Fără email → adresă internă de import (fără autentificare).
+                $address = $email !== '' ? $email : sprintf('import-%s@clienti.local', bin2hex(random_bytes(6)));
+                $user = new User($address);
+                [$firstName, $lastName] = $this->splitName($ownerName);
+                $targetProfile = new CustomerProfile($user, $firstName, $lastName);
+                $this->em->persist($user);
+                $this->em->persist($targetProfile);
+                ++$report['ownersCreated'];
+            }
+        }
+        $this->fillContact($targetProfile, $phone);
 
         // --- Legătura de proprietate ---
         if ($currentOwner === null) {
             $this->em->flush();
-            $this->vehicles->assignOwner($vehicle, $profile);
+            $this->vehicles->assignOwner($vehicle, $targetProfile);
             ++$report['ownershipsCreated'];
-        } elseif (!$currentOwner->id()->equals($profile->id())) {
-            throw new \InvalidArgumentException(sprintf(
-                'Conflict: vehiculul %s are deja alt proprietar activ (%s). Rândul a fost sărit — rezolvați manual.',
-                $vin->value(),
-                $currentOwner->fullName() ?: 'fără nume',
-            ));
         }
-    }
-
-    /** @param array<string, mixed> $report */
-    private function resolveOwner(string $ownerName, string $email, ?string $phone, ?CustomerProfile $currentOwner, array &$report): CustomerProfile
-    {
-        // 1. După email, dacă există.
-        if ($email !== '') {
-            $user = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
-            if ($user !== null) {
-                $profile = $user->customerProfile() ?? new CustomerProfile($user, ...$this->splitName($ownerName));
-                if ($user->customerProfile() === null) {
-                    $this->em->persist($profile);
-                }
-                $this->fillContact($profile, $phone);
-
-                return $profile;
-            }
-        }
-
-        // 2. Proprietarul activ existent al vehiculului, dacă numele coincide.
-        if ($currentOwner !== null && $this->sameName($currentOwner->fullName(), $ownerName)) {
-            $this->fillContact($currentOwner, $phone);
-
-            return $currentOwner;
-        }
-
-        // 3. Cont nou. Fără email → adresă internă de import (fără autentificare).
-        $address = $email !== '' ? $email : sprintf('import-%s@clienti.local', bin2hex(random_bytes(6)));
-        $user = new User($address);
-        [$firstName, $lastName] = $this->splitName($ownerName);
-        $profile = new CustomerProfile($user, $firstName, $lastName);
-        $this->fillContact($profile, $phone);
-        $this->em->persist($user);
-        $this->em->persist($profile);
-        ++$report['ownersCreated'];
-
-        return $profile;
     }
 
     private function fillContact(CustomerProfile $profile, ?string $phone): void

@@ -72,7 +72,9 @@ final class ClientImportTest extends WebTestCase
         self::assertSame(0, $second['ownershipsCreated']);
         self::assertSame(1, (int) $conn->fetchOne('SELECT COUNT(*) FROM vehicles WHERE vin = ?', [$vin1]), 'Fără dubluri de vehicul.');
 
-        // Conflict: același VIN, alt proprietar → raportat, proprietarul nu se schimbă.
+        // Conflict: același VIN, alt proprietar → raportat și NIMIC nu se schimbă:
+        // nici numărul de înmatriculare, nici vreun cont nou de proprietar.
+        $usersBefore = (int) $conn->fetchOne('SELECT COUNT(*) FROM users');
         $conflict = [
             ['Proprietar', 'Numar inmatriculare', 'VIN'],
             ['Alt Proprietar', 'MS 99 '.$suffix, $vin1],
@@ -82,6 +84,25 @@ final class ClientImportTest extends WebTestCase
         $third = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertCount(1, $third['errors']);
         self::assertStringContainsString('Conflict', $third['errors'][0]['message']);
+        self::assertSame(0, $third['vehiclesUpdated'], 'Rândul în conflict nu actualizează vehiculul.');
+        self::assertSame(
+            'MS 10 '.$suffix,
+            (string) $conn->fetchOne('SELECT plate_number FROM vehicles WHERE vin = ?', [$vin1]),
+            'Numărul de înmatriculare NU se schimbă la conflict.',
+        );
+        self::assertSame($usersBefore, (int) $conn->fetchOne('SELECT COUNT(*) FROM users'), 'Fără conturi orfane la conflict.');
+
+        // Email de ADMIN în fișier → eroare per rând, vehiculul nu se creează.
+        $adminRow = [
+            ['Proprietar', 'Numar inmatriculare', 'VIN', 'Email'],
+            ['Admin Deghizat', 'MS 77 '.$suffix, 'WVWZZZ1KZAW77'.str_pad((string) random_int(1000, 9999), 4, '0'), $adminEmail],
+        ];
+        $client->request('POST', '/api/admin/import/clients', files: ['file' => $this->upload($this->buildXlsx($adminRow), 'admin.xlsx')]);
+        self::assertResponseIsSuccessful();
+        $fourth = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertCount(1, $fourth['errors'], 'Emailul de admin este respins per rând.');
+        self::assertStringContainsString('admin', $fourth['errors'][0]['message']);
+        self::assertSame(0, $fourth['vehiclesCreated'], 'Rândul cu email de admin nu creează nimic.');
     }
 
     public function testCsvImportAndAccessControl(): void

@@ -38,9 +38,11 @@ final class ServiceHistoryImportTest extends WebTestCase
         $client->request('POST', '/api/admin/import/clients', files: ['file' => $this->upload($clientsCsv, 'clienti.csv')]);
         self::assertResponseIsSuccessful();
 
-        // Pasul 2: istoricul de reparații.
+        // Pasul 2: istoricul de reparații (rândul WO-2025-0442 apare de DOUĂ ori
+        // în același fișier — dublura trebuie sărită, nu importată de două ori).
         $historyCsv = implode("\n", [
             'VIN;Data;Kilometraj;Lucrare;Descriere;Piese;Manopera;Total;Garantie;Numar comanda',
+            "$vin;18.11.2025;78400;Revizie;Schimb ulei si filtre;Ulei 5W30, filtru ulei;350,00;1.250,50;12 luni;WO-2025-0442",
             "$vin;18.11.2025;78400;Revizie;Schimb ulei si filtre;Ulei 5W30, filtru ulei;350,00;1.250,50;12 luni;WO-2025-0442",
             "$vin;03.04.2025;;Franare;;;;860;;WO-2025-0119",
             'WBA0000000000UNKN;01.01.2025;10000;Test;Vehicul inexistent;;;100;;WO-X',
@@ -49,8 +51,9 @@ final class ServiceHistoryImportTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $report = json_decode((string) $client->getResponse()->getContent(), true);
 
-        self::assertSame(3, $report['totalRows']);
-        self::assertSame(1, $report['recordsPublished'], 'Rândul complet devine PUBLISHED.');
+        self::assertSame(4, $report['totalRows']);
+        self::assertSame(1, $report['recordsPublished'], 'Rândul complet devine PUBLISHED (o singură dată).');
+        self::assertSame(1, $report['recordsSkipped'], 'Dublura din ACELAȘI fișier este sărită.');
         self::assertSame(1, $report['recordsDraft'], 'Rândul fără km/descriere rămâne DRAFT.');
         self::assertCount(1, $report['errors'], 'VIN necunoscut → eroare per rând.');
         self::assertStringContainsString('nu există', $report['errors'][0]['message']);
@@ -61,7 +64,7 @@ final class ServiceHistoryImportTest extends WebTestCase
         $second = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertSame(0, $second['recordsPublished']);
         self::assertSame(0, $second['recordsDraft']);
-        self::assertSame(2, $second['recordsSkipped'], 'Reimportul sare intrările existente.');
+        self::assertSame(3, $second['recordsSkipped'], 'Reimportul sare intrările existente (și dublura).');
 
         // Suma și data au fost interpretate corect.
         /** @var EntityManagerInterface $em */

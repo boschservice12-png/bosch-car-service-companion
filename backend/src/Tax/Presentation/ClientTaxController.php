@@ -53,7 +53,7 @@ final class ClientTaxController extends AbstractController
         $this->assertValid($req);
 
         $vehicle = null;
-        if ($req->vehicleId !== null) {
+        if ($req->vehicleId !== null && $req->vehicleId !== '') {
             $vehicle = $this->requireVehicle($req->vehicleId);
             $this->denyAccessUnlessGranted(VehicleVoter::VIEW, $vehicle);
         }
@@ -141,13 +141,22 @@ final class ClientTaxController extends AbstractController
     {
         $item = $this->requireItem($id);
         $this->denyAccessUnlessGranted(TaxItemVoter::VIEW, $item);
+        if ($item->isPaid()) {
+            throw ValidationFailedException::fromArray(['status' => ['Taxa este deja plătită integral.']]);
+        }
 
-        /** @var array{amount?: float|int|string} $payload */
+        /** @var array{amount?: mixed} $payload */
         $payload = json_decode($request->getContent(), true) ?: [];
 
-        $updated = isset($payload['amount']) && is_numeric($payload['amount'])
-            ? $this->service->registerPayment($item, (int) round(((float) $payload['amount']) * 100))
-            : $this->service->markPaid($item);
+        if (\array_key_exists('amount', $payload)) {
+            // O sumă trimisă dar nevalidă NU este plată integrală — este eroare.
+            if (!is_numeric($payload['amount'])) {
+                throw ValidationFailedException::fromArray(['amount' => ['Sumă invalidă.']]);
+            }
+            $updated = $this->service->registerPayment($item, (int) round(((float) $payload['amount']) * 100));
+        } else {
+            $updated = $this->service->markPaid($item);
+        }
 
         return $this->json($this->serializer->serialize($updated, withCustomer: false));
     }
@@ -157,8 +166,9 @@ final class ClientTaxController extends AbstractController
         if ($value === null || $value === '') {
             return null;
         }
+        // Round-trip strict: „2025-02-30" NU se rostogolește silențios în martie.
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
-        if ($date === false) {
+        if ($date === false || $date->format('Y-m-d') !== $value) {
             throw ValidationFailedException::fromArray(['dueDate' => ['Dată invalidă (format: AAAA-LL-ZZ).']]);
         }
 

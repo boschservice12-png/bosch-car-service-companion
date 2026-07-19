@@ -59,21 +59,32 @@ final class ServiceHistoryImportService
             'errors' => [],
         ];
 
-        foreach (\array_slice($rows, 1) as $i => $row) {
-            $rowNo = $i + 2;
-            if ($this->isEmptyRow($row)) {
-                continue;
-            }
-            ++$report['totalRows'];
+        // Tot fișierul este atomic; $seen deduplică rândurile din ACELAȘI fișier
+        // (interogarea DB nu vede entitățile încă neflush-uite).
+        $seen = [];
+        $connection = $this->em->getConnection();
+        $connection->beginTransaction();
+        try {
+            foreach (\array_slice($rows, 1) as $i => $row) {
+                $rowNo = $i + 2;
+                if ($this->isEmptyRow($row)) {
+                    continue;
+                }
+                ++$report['totalRows'];
 
-            try {
-                $this->importRow($row, $map, $importedBy, $report);
-            } catch (\InvalidArgumentException $e) {
-                $report['errors'][] = ['row' => $rowNo, 'message' => $e->getMessage()];
+                try {
+                    $this->importRow($row, $map, $importedBy, $report, $seen);
+                } catch (\InvalidArgumentException $e) {
+                    $report['errors'][] = ['row' => $rowNo, 'message' => $e->getMessage()];
+                }
             }
+
+            $this->em->flush();
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+            throw $e;
         }
-
-        $this->em->flush();
 
         $this->audit->record('import.service_history', 'Import', null, null, [
             'totalRows' => $report['totalRows'],
@@ -90,8 +101,9 @@ final class ServiceHistoryImportService
      * @param list<string>         $row
      * @param array<string, int>   $map
      * @param array<string, mixed> $report
+     * @param array<string, true>  $seen   Chei deja importate din fișierul curent.
      */
-    private function importRow(array $row, array $map, ?User $importedBy, array &$report): void
+    private function importRow(array $row, array $map, ?User $importedBy, array &$report, array &$seen): void
     {
         $cell = static fn (string $key): string => trim($row[$map[$key] ?? -1] ?? '');
 
@@ -123,12 +135,17 @@ final class ServiceHistoryImportService
             throw new \InvalidArgumentException('Rând fără conținut: completați cel puțin data și lucrarea.');
         }
 
-        // Idempotență: nu importa de două ori aceeași intrare.
-        if ($this->alreadyImported($vehicle, $workOrder, $serviceDate, $totalBani, $workType)) {
+        // Idempotență: nu importa de două ori aceeași intrare — nici din fișierul
+        // curent (cheia $seen), nici din importuri anterioare (interogarea DB).
+        $key = $workOrder !== null
+            ? sprintf('wo|%s|%s', (string) $vehicle->id(), $workOrder)
+            : sprintf('dt|%s|%s|%d|%s|%s', (string) $vehicle->id(), $serviceDate?->format('Y-m-d') ?? '-', $totalBani ?? 0, $workType ?? '-', $description ?? '-');
+        if (isset($seen[$key]) || $this->alreadyImported($vehicle, $workOrder, $serviceDate, $totalBani, $workType, $description)) {
             ++$report['recordsSkipped'];
 
             return;
         }
+        $seen[$key] = true;
 
         $record = new ServiceRecord($vehicle, $importedBy);
         $record->applyDetails($serviceDate, $odometer, $workType, $description, $parts, $laborBani ?? 0, $totalBani ?? 0, $warranty);
@@ -147,7 +164,7 @@ final class ServiceHistoryImportService
         $this->em->persist($record);
     }
 
-    private function alreadyImported(Vehicle $vehicle, ?string $workOrder, ?\DateTimeImmutable $serviceDate, ?int $totalBani, ?string $workType): bool
+    private function alreadyImported(Vehicle $vehicle, ?string $workOrder, ?\DateTimeImmutable $serviceDate, ?int $totalBani, ?string $workType, ?string $description): bool
     {
         $qb = $this->em->createQueryBuilder()
             ->select('COUNT(r.id)')
@@ -157,14 +174,23 @@ final class ServiceHistoryImportService
 
         if ($workOrder !== null) {
             $qb->andWhere('r.workOrderNumber = :wo')->setParameter('wo', $workOrder);
-        } else {
-            if ($serviceDate === null) {
-                return false;
-            }
+        } elseif ($serviceDate !== null) {
             $qb->andWhere('r.serviceDate = :d')->setParameter('d', $serviceDate)
                 ->andWhere('r.totalBani = :t')->setParameter('t', $totalBani ?? 0);
             if ($workType !== null) {
                 $qb->andWhere('r.workType = :wt')->setParameter('wt', $workType);
+            }
+        } else {
+            // Fără număr de comandă și fără dată: deduplicare după conținut
+            // (lucrare + descriere + total), altfel fiecare reimport ar crea ciorne noi.
+            $qb->andWhere('r.serviceDate IS NULL')
+                ->andWhere('r.totalBani = :t')->setParameter('t', $totalBani ?? 0);
+            foreach (['workType' => $workType, 'workDescription' => $description] as $field => $value) {
+                if ($value !== null) {
+                    $qb->andWhere(sprintf('r.%s = :%s', $field, $field))->setParameter($field, $value);
+                } else {
+                    $qb->andWhere(sprintf('r.%s IS NULL', $field));
+                }
             }
         }
 

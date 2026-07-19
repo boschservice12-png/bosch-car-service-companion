@@ -61,7 +61,15 @@ final class DeadlineService
             'verified' => $deadline->isVerified(),
         ];
 
+        $datesChanged = $expiresAt?->format('Y-m-d') !== $deadline->expiresAt()?->format('Y-m-d')
+            || $validFrom?->format('Y-m-d') !== $deadline->validFrom()?->format('Y-m-d');
+
         $deadline->update($validFrom, $expiresAt, $req->note ?? $deadline->note());
+
+        // Datele modificate de CLIENT nu pot păstra validarea service-ului.
+        if ($admin === null && $datesChanged && $deadline->isVerified()) {
+            $deadline->resetVerification();
+        }
 
         if ($req->verify === true) {
             if (!$admin instanceof User) {

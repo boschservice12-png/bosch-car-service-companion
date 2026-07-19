@@ -151,6 +151,18 @@ class VehicleDeadline
         $this->touch();
     }
 
+    /**
+     * Modificare de către CLIENT: validarea service-ului nu mai este valabilă —
+     * datele introduse de client nu pot purta ștampila service-ului.
+     */
+    public function resetVerification(): void
+    {
+        $this->verifiedBy = null;
+        $this->verifiedAt = null;
+        $this->source = DeadlineSource::CLIENT;
+        $this->touch();
+    }
+
     private function touch(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
