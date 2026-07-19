@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tax\Presentation;
 
-use App\Document\Domain\Document;
-use App\Document\Domain\DocumentRepository;
-use App\Document\Domain\StorageAdapter;
 use App\Identity\Domain\User;
-use App\Shared\Presentation\ResolvesAttachments;
 use App\Shared\Presentation\ValidationFailedException;
 use App\Tax\Application\TaxService;
 use App\Tax\Domain\TaxItem;
 use App\Tax\Domain\TaxItemRepository;
 use App\Tax\Domain\TaxType;
 use App\Tax\Presentation\Dto\CreateTaxItemRequest;
+use App\Tax\Presentation\Dto\UpdateTaxItemRequest;
 use App\Vehicle\Domain\Vehicle;
 use App\Vehicle\Domain\VehicleRepository;
 use App\Vehicle\Presentation\VehicleVoter;
@@ -29,12 +26,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Taxe și impozite din perspectiva CLIENTULUI. Un client vede și gestionează doar
- * propriile taxe (TaxItemVoter): le adaugă, le marchează plătite și atașează bizonjatul.
+ * propriile taxe (TaxItemVoter): le adaugă, le editează, le marchează plătite
+ * (integral sau parțial) și le poate șterge. Nu se încarcă niciun fișier —
+ * evidența plății este declarativă, fără bon fiscal sau alte documente.
  */
 final class ClientTaxController extends AbstractController
 {
-    use ResolvesAttachments;
-
     public function __construct(
         private readonly TaxItemRepository $items,
         private readonly TaxService $service,
@@ -82,52 +79,77 @@ final class ClientTaxController extends AbstractController
         return $this->json($this->serializer->serialize($item, withCustomer: false));
     }
 
-    /** Marchează taxa ca plătită, opțional cu bizonjatul atașat (`documentIds`). */
-    #[Route('/api/taxes/{id}/pay', name: 'api_tax_pay', methods: ['POST'])]
-    public function pay(string $id, Request $request, DocumentRepository $documents): JsonResponse
+    /**
+     * Editare: doar câmpurile trimise se schimbă. O taxă plătită integral nu se
+     * mai editează — corecțiile trec prin service (adminul o readuce la neplătită).
+     */
+    #[Route('/api/taxes/{id}', name: 'api_tax_update', methods: ['PATCH'])]
+    public function update(string $id, #[MapRequestPayload] UpdateTaxItemRequest $req): JsonResponse
     {
+        $this->assertValid($req);
         $item = $this->requireItem($id);
         $this->denyAccessUnlessGranted(TaxItemVoter::VIEW, $item);
+        if ($item->isPaid()) {
+            throw ValidationFailedException::fromArray(['status' => ['O taxă plătită nu mai poate fi modificată — cereți service-ului o corecție.']]);
+        }
 
-        /** @var array{documentIds?: string[], amount?: float|int|string} $payload */
-        $payload = json_decode($request->getContent(), true) ?: [];
-        $ids = \is_array($payload['documentIds'] ?? null) ? $payload['documentIds'] : [];
-        $receipts = $this->resolveAttachments($ids, $documents);
+        $vehicle = $item->vehicle();
+        if ($req->vehicleId !== null) {
+            if ($req->vehicleId === '') {
+                $vehicle = null;
+            } else {
+                $vehicle = $this->requireVehicle($req->vehicleId);
+                $this->denyAccessUnlessGranted(VehicleVoter::VIEW, $vehicle);
+            }
+        }
 
-        // Fără sumă → plată integrală; cu sumă (RON) → plată parțială/cumulativă.
-        $updated = isset($payload['amount']) && is_numeric($payload['amount'])
-            ? $this->service->registerPayment($item, (int) round(((float) $payload['amount']) * 100), $receipts)
-            : $this->service->markPaid($item, $receipts);
+        $dueDate = $item->dueDate();
+        if ($req->dueDate !== null) {
+            $dueDate = $req->dueDate === '' ? null : $this->parseDate($req->dueDate);
+        }
+
+        $updated = $this->service->update(
+            $item,
+            $vehicle,
+            $req->year ?? $item->year(),
+            $req->type !== null ? TaxType::from($req->type) : $item->type(),
+            $req->amount !== null ? (int) round($req->amount * 100) : $item->amountBani(),
+            $dueDate,
+        );
 
         return $this->json($this->serializer->serialize($updated, withCustomer: false));
     }
 
-    #[Route('/api/taxes/{id}/documents/{docId}', name: 'api_tax_document', methods: ['GET'])]
-    public function document(string $id, string $docId, DocumentRepository $documents, StorageAdapter $storage): Response
+    /** Ștergere de către proprietar. O taxă plătită integral nu se șterge. */
+    #[Route('/api/taxes/{id}', name: 'api_tax_delete', methods: ['DELETE'])]
+    public function delete(string $id): Response
+    {
+        $item = $this->requireItem($id);
+        $this->denyAccessUnlessGranted(TaxItemVoter::VIEW, $item);
+        if ($item->isPaid()) {
+            throw ValidationFailedException::fromArray(['status' => ['O taxă plătită nu poate fi ștearsă — cereți service-ului o corecție.']]);
+        }
+
+        $this->service->delete($item);
+
+        return new Response(null, 204);
+    }
+
+    /** Fără sumă → plată integrală; cu `amount` (RON) → plată parțială/cumulativă. */
+    #[Route('/api/taxes/{id}/pay', name: 'api_tax_pay', methods: ['POST'])]
+    public function pay(string $id, Request $request): JsonResponse
     {
         $item = $this->requireItem($id);
         $this->denyAccessUnlessGranted(TaxItemVoter::VIEW, $item);
 
-        if (!Uuid::isValid($docId)) {
-            throw $this->createNotFoundException('Document inexistent.');
-        }
-        $document = $documents->get(Uuid::fromString($docId));
-        if ($document === null || !$item->hasDocument($document)) {
-            throw $this->createNotFoundException('Documentul nu aparține acestei taxe.');
-        }
-        if (!$document->isServable()) {
-            throw $this->createNotFoundException('Document indisponibil (în curs de scanare sau respins).');
-        }
+        /** @var array{amount?: float|int|string} $payload */
+        $payload = json_decode($request->getContent(), true) ?: [];
 
-        $contents = $storage->read($document->storageKey());
-        $filename = $document->originalName() ?? ('document.'.pathinfo($document->storageKey(), PATHINFO_EXTENSION));
+        $updated = isset($payload['amount']) && is_numeric($payload['amount'])
+            ? $this->service->registerPayment($item, (int) round(((float) $payload['amount']) * 100))
+            : $this->service->markPaid($item);
 
-        return new Response($contents, 200, [
-            'Content-Type' => $document->mimeType(),
-            'Content-Disposition' => sprintf('attachment; filename="%s"', addslashes($filename)),
-            'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-store',
-        ]);
+        return $this->json($this->serializer->serialize($updated, withCustomer: false));
     }
 
     private function parseDate(?string $value): ?\DateTimeImmutable

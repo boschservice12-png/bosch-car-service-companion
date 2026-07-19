@@ -13,7 +13,7 @@ din **două sesiuni separate: CLIENT și ADMIN**.
 | **Asistență rutieră** | deschide o cerere (locație, problemă, mobilitate, siguranță, telefon, foto), anulează | preia (contact telefonic), schimbă starea |
 | **Mobilitate** | cere mașină de înlocuire / taxi / transport, anulează | aprobă / asigură / respinge |
 | **Dosar de daună** | deschide un dosar (eveniment, asigurător, poliță, foto) | preia și urmărește starea |
-| **Taxe & impozite** | urmărește taxele anuale, marchează plata cu bizonjat | ajustează starea de plată |
+| **Taxe & impozite** | urmărește taxele anuale, le editează, marchează plata declarativ (fără fișiere) | ajustează starea de plată |
 
 Toate acțiunile respectă **autorizarea la nivel de obiect** (un client nu vede datele
 altuia) și sunt înregistrate în **auditul** aplicației.
@@ -109,8 +109,8 @@ Din pagina **Acasă** a clientului (secțiunea „Servicii") sau din bara de sus
 - **Mobilitate** (`/mobilitate`): clientul cere o mașină de înlocuire; **admin** o aprobă / marchează asigurată.
 - **Dosar de daună** (`/daune`): clientul deschide un dosar (eveniment, asigurător, poliță, foto);
   **admin** îl preia și îi urmărește starea; documentele se descarcă autorizat.
-- **Taxe & impozite** (`/taxe`): clientul urmărește taxele anuale și marchează plata cu bizonjat;
-  **admin** poate ajusta starea de plată.
+- **Taxe & impozite** (`/taxe`): clientul urmărește taxele anuale, le editează și marchează plata
+  declarativ — nu se încarcă niciun fișier (fără bon fiscal); **admin** poate ajusta starea de plată.
 
 ### 5. Izolare & audit (opțional)
 - Autentificați un al doilea client și încercați să accesați datele primului — răspuns **403**

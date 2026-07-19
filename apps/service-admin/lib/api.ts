@@ -36,11 +36,6 @@ export function damageClaimDocumentHref(claimId: string, documentId: string): st
   return `/api/damage-claims/${claimId}/documents/${documentId}`;
 }
 
-/** URL (same-origin) pentru descărcarea bizonjatului unei taxe. */
-export function taxDocumentHref(taxId: string, documentId: string): string {
-  return `/api/taxes/${taxId}/documents/${documentId}`;
-}
-
 /** Metadatele unui document încărcat. */
 export interface UploadedDocument {
   id: string;

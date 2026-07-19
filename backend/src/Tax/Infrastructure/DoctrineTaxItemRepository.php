@@ -22,6 +22,12 @@ final class DoctrineTaxItemRepository implements TaxItemRepository
         $this->em->flush();
     }
 
+    public function remove(TaxItem $item): void
+    {
+        $this->em->remove($item);
+        $this->em->flush();
+    }
+
     public function get(Uuid $id): ?TaxItem
     {
         return $this->em->find(TaxItem::class, $id);

@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace App\Tax\Domain;
 
-use App\Document\Domain\Document;
 use App\Identity\Domain\User;
 use App\Vehicle\Domain\Vehicle;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
 /**
  * O taxă/impozit anual asociat unui client (și, de regulă, unui vehicul): an, tip,
- * sumă, scadență, stare de plată și bizonjat(e). Aparține clientului (autorizare la
- * nivel de obiect); atât clientul, cât și service-ul pot urmări starea de plată.
+ * sumă, scadență și stare de plată. Aparține clientului (autorizare la nivel de
+ * obiect); atât clientul, cât și service-ul pot urmări starea de plată. Nu se
+ * încarcă niciun fișier (bon fiscal etc.) — evidența este pur declarativă.
  * Suma este stocată în bani (întreg) pentru precizie și portabilitate.
  */
 #[ORM\Entity]
@@ -62,11 +60,6 @@ class TaxItem
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $note = null;
 
-    /** @var Collection<int, Document> Bizonjate / dovezi de plată. */
-    #[ORM\ManyToMany(targetEntity: Document::class)]
-    #[ORM\JoinTable(name: 'tax_item_documents')]
-    private Collection $documents;
-
     #[ORM\Column(type: 'datetimetz_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -88,7 +81,6 @@ class TaxItem
         $this->type = $type;
         $this->amountBani = $amountBani;
         $this->dueDate = $dueDate;
-        $this->documents = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = $this->createdAt;
     }
@@ -143,25 +135,6 @@ class TaxItem
         return $this->note;
     }
 
-    /** @return Document[] */
-    public function documents(): array
-    {
-        return $this->documents->toArray();
-    }
-
-    public function hasDocument(Document $document): bool
-    {
-        return $this->documents->contains($document);
-    }
-
-    public function attach(Document $document): void
-    {
-        if (!$this->documents->contains($document)) {
-            $this->documents->add($document);
-            $this->touch();
-        }
-    }
-
     public function isPaid(): bool
     {
         return $this->status === PaymentStatus::PAID;
@@ -195,6 +168,30 @@ class TaxItem
         $this->status = $this->paidAmountBani >= $this->amountBani
             ? PaymentStatus::PAID
             : PaymentStatus::PARTIALLY_PAID;
+        $this->touch();
+    }
+
+    /**
+     * Editarea datelor de bază de către proprietar (an, tip, sumă, scadență,
+     * vehicul). Dacă există plăți înregistrate, starea se recalculează față de
+     * noua sumă (plata acumulată se plafonează la total).
+     */
+    public function updateDetails(?Vehicle $vehicle, int $year, TaxType $type, int $amountBani, ?\DateTimeImmutable $dueDate): void
+    {
+        if ($amountBani < 0) {
+            throw new \InvalidArgumentException('Suma nu poate fi negativă.');
+        }
+        $this->vehicle = $vehicle;
+        $this->year = $year;
+        $this->type = $type;
+        $this->amountBani = $amountBani;
+        $this->dueDate = $dueDate;
+        if ($this->paidAmountBani !== null) {
+            $this->paidAmountBani = min($this->paidAmountBani, $amountBani);
+            $this->status = $this->paidAmountBani >= $amountBani
+                ? PaymentStatus::PAID
+                : PaymentStatus::PARTIALLY_PAID;
+        }
         $this->touch();
     }
 

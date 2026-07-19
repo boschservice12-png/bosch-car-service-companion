@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tax\Presentation;
 
-use App\Document\Domain\Document;
 use App\Tax\Domain\TaxItem;
 
 final class TaxSerializer
@@ -37,7 +36,6 @@ final class TaxSerializer
             'paidAt' => $t->paidAt()?->format(DATE_ATOM),
             'note' => $t->note(),
             'createdAt' => $t->createdAt()->format(DATE_ATOM),
-            'documents' => array_map($this->serializeDocument(...), $t->documents()),
         ];
 
         if ($withCustomer) {
@@ -46,18 +44,5 @@ final class TaxSerializer
         }
 
         return $data;
-    }
-
-    /** @return array<string, mixed> */
-    private function serializeDocument(Document $document): array
-    {
-        return [
-            'id' => (string) $document->id(),
-            'originalName' => $document->originalName(),
-            'mimeType' => $document->mimeType(),
-            'sizeBytes' => $document->sizeBytes(),
-            'scanStatus' => $document->scanStatus()->value,
-            'servable' => $document->isServable(),
-        ];
     }
 }

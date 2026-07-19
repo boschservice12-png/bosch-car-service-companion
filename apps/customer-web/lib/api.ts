@@ -33,11 +33,6 @@ export function damageClaimDocumentHref(claimId: string, documentId: string): st
   return `/api/damage-claims/${claimId}/documents/${documentId}`;
 }
 
-/** URL (same-origin) pentru descărcarea bizonjatului unei taxe. */
-export function taxDocumentHref(taxId: string, documentId: string): string {
-  return `/api/taxes/${taxId}/documents/${documentId}`;
-}
-
 /** Metadatele unui document încărcat. */
 export interface UploadedDocument {
   id: string;
@@ -224,8 +219,17 @@ export const api = {
   createTax: (data: { year: number; type: string; amount: number; dueDate?: string; vehicleId?: string }) =>
     request<TaxItem>('/taxes', { method: 'POST', body: JSON.stringify(data) }),
 
-  payTax: (id: string, documentIds: string[]) =>
-    request<TaxItem>(`/taxes/${id}/pay`, { method: 'POST', body: JSON.stringify({ documentIds }) }),
+  updateTax: (id: string, data: { year?: number; type?: string; amount?: number; dueDate?: string; vehicleId?: string }) =>
+    request<TaxItem>(`/taxes/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteTax: (id: string) => request<void>(`/taxes/${id}`, { method: 'DELETE' }),
+
+  /** Fără sumă → plată integrală; cu sumă (RON) → plată parțială/cumulativă. Fără fișiere. */
+  payTax: (id: string, amount?: number) =>
+    request<TaxItem>(`/taxes/${id}/pay`, {
+      method: 'POST',
+      body: JSON.stringify(amount !== undefined ? { amount } : {}),
+    }),
 };
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */

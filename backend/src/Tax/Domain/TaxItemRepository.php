@@ -11,6 +11,8 @@ interface TaxItemRepository
 {
     public function save(TaxItem $item): void;
 
+    public function remove(TaxItem $item): void;
+
     public function get(Uuid $id): ?TaxItem;
 
     /** @return TaxItem[] */

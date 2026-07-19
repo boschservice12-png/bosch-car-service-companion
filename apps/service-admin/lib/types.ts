@@ -194,7 +194,6 @@ export interface TaxItem {
   paidAt: string | null;
   note: string | null;
   createdAt: string;
-  documents: DeadlineDocument[];
   customerName?: string;
 }
 

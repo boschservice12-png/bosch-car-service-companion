@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { api, taxDocumentHref } from '@/lib/api';
+import { api } from '@/lib/api';
 import { ApiError, type TaxItem, type PaymentStatus } from '@/lib/types';
 import { Loading, ErrorState } from '@/components/states';
 
@@ -77,25 +77,6 @@ export default function AdminTaxDetailPage() {
         {tax.vehiclePlate ? <div><span className="muted">Vehicul:</span> {tax.vehiclePlate}</div> : null}
         {tax.note ? <div><span className="muted">Notă:</span> {tax.note}</div> : null}
       </div>
-
-      {tax.documents.length > 0 ? (
-        <div className="card stack" style={{ gap: 4 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>Bizonjate:</span>
-          {tax.documents.map((d) => (
-            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span aria-hidden>🧾</span>
-              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? 'bizonjat'}</span>
-              {d.servable ? (
-                <a className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px' }} href={taxDocumentHref(tax.id, d.id)} target="_blank" rel="noopener">
-                  Descarcă
-                </a>
-              ) : (
-                <span className="muted" style={{ fontSize: '0.8rem' }}>în curs de scanare</span>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : null}
 
       <h2>Stare de plată</h2>
       <div className="card stack" style={{ gap: 10 }}>
