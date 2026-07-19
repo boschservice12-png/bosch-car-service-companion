@@ -20,7 +20,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class MobilityClientAdminTest extends WebTestCase
+final class MobilityClientAdminTest extends ApiTestCase
 {
     public function testMobilityRequestFlowWithIsolationAndStatus(): void
     {

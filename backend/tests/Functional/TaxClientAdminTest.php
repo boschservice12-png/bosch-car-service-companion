@@ -23,7 +23,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class TaxClientAdminTest extends WebTestCase
+final class TaxClientAdminTest extends ApiTestCase
 {
     public function testTaxEditPaymentLockIsolationAndDelete(): void
     {

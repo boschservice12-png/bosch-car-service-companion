@@ -21,7 +21,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class ServiceHistoryImportTest extends WebTestCase
+final class ServiceHistoryImportTest extends ApiTestCase
 {
     public function testHistoryImportLinksByVinPublishesAndIsIdempotent(): void
     {

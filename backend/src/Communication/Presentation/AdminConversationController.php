@@ -9,11 +9,13 @@ use App\Communication\Domain\Conversation;
 use App\Communication\Domain\ConversationRepository;
 use App\Communication\Domain\MessageAuthorRole;
 use App\Communication\Presentation\Dto\PostMessageRequest;
+use App\Shared\Security\ApiRateLimiter;
 use App\Document\Domain\DocumentRepository;
 use App\Identity\Domain\User;
 use App\Shared\Presentation\ValidationFailedException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
@@ -33,6 +35,7 @@ final class AdminConversationController extends AbstractController
         private readonly CommunicationService $service,
         private readonly ConversationSerializer $serializer,
         private readonly ValidatorInterface $validator,
+        private readonly ApiRateLimiter $rateLimiter,
     ) {
     }
 
@@ -49,8 +52,10 @@ final class AdminConversationController extends AbstractController
     }
 
     #[Route('/{id}/messages', name: 'api_admin_conversations_reply', methods: ['POST'])]
-    public function reply(string $id, #[MapRequestPayload] PostMessageRequest $req, DocumentRepository $documents): JsonResponse
+    public function reply(string $id, Request $request, #[MapRequestPayload] PostMessageRequest $req, DocumentRepository $documents): JsonResponse
     {
+        $user = $this->getUser();
+        $this->rateLimiter->checkMessages($request, $user instanceof \App\Identity\Domain\User ? $user : null);
         $this->assertValid($req);
         $conversation = $this->requireConversation($id);
 

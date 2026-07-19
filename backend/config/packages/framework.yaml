@@ -30,5 +30,9 @@ framework:
 when@test:
     framework:
         test: true
+        rate_limiter:
+            login: { policy: sliding_window, limit: 5, interval: '1 minute' }
+            messages: { policy: sliding_window, limit: 10, interval: '1 minute' }
+            upload: { policy: sliding_window, limit: 10, interval: '1 minute' }
         session:
             storage_factory_id: session.storage.factory.mock_file

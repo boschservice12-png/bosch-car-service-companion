@@ -21,7 +21,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class RoadsideClientAdminTest extends WebTestCase
+final class RoadsideClientAdminTest extends ApiTestCase
 {
     public function testRoadsideRequestFlowWithIsolationAndStatus(): void
     {

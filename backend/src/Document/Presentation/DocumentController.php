@@ -8,6 +8,7 @@ use App\Document\Application\SignedUrlGenerator;
 use App\Document\Application\UploadDocument;
 use App\Document\Domain\Document;
 use App\Document\Domain\DocumentRepository;
+use App\Shared\Security\ApiRateLimiter;
 use App\Document\Domain\StorageAdapter;
 use App\Settings\Application\SettingsProvider;
 use App\Shared\Presentation\ValidationFailedException;
@@ -25,6 +26,7 @@ final class DocumentController extends AbstractController
         private readonly UploadDocument $uploadDocument,
         private readonly SignedUrlGenerator $signedUrls,
         private readonly SettingsProvider $settings,
+        private readonly ApiRateLimiter $rateLimiter,
     ) {
     }
 
@@ -32,6 +34,9 @@ final class DocumentController extends AbstractController
     #[Route('/api/documents', name: 'api_documents_upload', methods: ['POST'])]
     public function upload(Request $request): JsonResponse
     {
+        $user = $this->getUser();
+        $this->rateLimiter->checkUpload($request, $user instanceof \App\Identity\Domain\User ? $user : null);
+
         $file = $request->files->get('file');
         if ($file === null) {
             throw ValidationFailedException::fromArray(['file' => ['Niciun fișier încărcat.']]);

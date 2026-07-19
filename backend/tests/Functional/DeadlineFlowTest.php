@@ -13,7 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *
  * @group functional
  */
-final class DeadlineFlowTest extends WebTestCase
+final class DeadlineFlowTest extends ApiTestCase
 {
     public function testClientAddsDeadlineAndSeesComputedState(): void
     {

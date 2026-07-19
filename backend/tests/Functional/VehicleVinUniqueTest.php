@@ -23,7 +23,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *
  * @group functional
  */
-final class VehicleVinUniqueTest extends WebTestCase
+final class VehicleVinUniqueTest extends ApiTestCase
 {
     public function testDuplicateActiveVinRejectedWith409(): void
     {

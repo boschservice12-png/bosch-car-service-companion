@@ -14,7 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  *
  * @group functional
  */
-final class ClientIsolationTest extends WebTestCase
+final class ClientIsolationTest extends ApiTestCase
 {
     public function testClientCannotAccessAnotherClientsVehicle(): void
     {

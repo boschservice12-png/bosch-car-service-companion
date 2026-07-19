@@ -53,10 +53,13 @@ final class ApiExceptionListener
             ]);
         }
 
+        // Antetele excepției HTTP (ex. Retry-After la 429) se păstrează.
+        $headers = $throwable instanceof HttpExceptionInterface ? $throwable->getHeaders() : [];
+
         $event->setResponse(new JsonResponse(
             $problem->toArray(),
             $problem->status,
-            ['Content-Type' => 'application/problem+json'],
+            $headers + ['Content-Type' => 'application/problem+json'],
         ));
     }
 

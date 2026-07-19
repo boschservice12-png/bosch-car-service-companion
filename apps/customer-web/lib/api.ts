@@ -40,7 +40,26 @@ export interface UploadedDocument {
  * merg cu `credentials: 'include'`. Rutele `/api/*` sunt proxy-ate către backend
  * (vezi next.config.mjs), deci path-uri relative.
  */
+
+/** P0-05 — CSRF „double submit": citește cookie-ul `bcsc_csrf` și trimite-l ca antet. */
+function readCsrfCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = document.cookie.match(/(?:^|; )bcsc_csrf=([^;]+)/)?.[1];
+  return value ? decodeURIComponent(value) : null;
+}
+
+async function ensureCsrfToken(): Promise<string> {
+  let token = readCsrfCookie();
+  if (!token) {
+    await fetch('/api/csrf', { credentials: 'include' }).catch(() => undefined);
+    token = readCsrfCookie();
+  }
+  return token ?? '';
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = (init?.method ?? 'GET').toUpperCase();
+  const csrf = method === 'GET' ? null : await ensureCsrfToken();
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
@@ -49,6 +68,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
+        ...(csrf ? { 'X-CSRF-Token': csrf } : {}),
         ...(init?.headers ?? {}),
       },
     });
@@ -214,12 +234,13 @@ export const api = {
 
 /** Variantă multipart a `request` (fără header JSON), pentru upload de fișiere. */
 async function uploadRequest<T>(path: string, body: FormData): Promise<T> {
+  const csrf = await ensureCsrfToken();
   let res: Response;
   try {
     res = await fetch(`/api${path}`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      headers: { 'X-Requested-With': 'XMLHttpRequest', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
       body,
     });
   } catch {

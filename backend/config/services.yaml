@@ -90,3 +90,7 @@ when@prod:
     services:
         App\Document\Domain\MalwareScanner:
             alias: App\Document\Infrastructure\ClamAvScanner
+
+    App\Shared\Security\CsrfProtectionSubscriber:
+        arguments:
+            $trustedOrigins: '%env(default::string:CSRF_TRUSTED_ORIGINS)%'

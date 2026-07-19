@@ -17,7 +17,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class ScadenteClientAdminTest extends WebTestCase
+final class ScadenteClientAdminTest extends ApiTestCase
 {
     public function testClientAddsDeadlineAdminValidatesClientSeesVerified(): void
     {

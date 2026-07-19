@@ -15,11 +15,13 @@ use App\Document\Domain\Document;
 use App\Document\Domain\DocumentRepository;
 use App\Document\Domain\StorageAdapter;
 use App\Identity\Domain\User;
+use App\Shared\Security\ApiRateLimiter;
 use App\Vehicle\Domain\Vehicle;
 use App\Vehicle\Domain\VehicleRepository;
 use App\Vehicle\Presentation\VehicleVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
@@ -40,6 +42,7 @@ final class ClientConversationController extends AbstractController
         private readonly ConversationSerializer $serializer,
         private readonly VehicleRepository $vehicles,
         private readonly ValidatorInterface $validator,
+        private readonly ApiRateLimiter $rateLimiter,
     ) {
     }
 
@@ -52,8 +55,9 @@ final class ClientConversationController extends AbstractController
     }
 
     #[Route('/api/conversations', name: 'api_conversations_start', methods: ['POST'])]
-    public function start(#[MapRequestPayload] StartConversationRequest $req, DocumentRepository $documents): JsonResponse
+    public function start(Request $request, #[MapRequestPayload] StartConversationRequest $req, DocumentRepository $documents): JsonResponse
     {
+        $this->rateLimiter->checkMessages($request, $this->currentUser());
         $this->assertValid($req);
 
         $vehicle = null;
@@ -94,8 +98,9 @@ final class ClientConversationController extends AbstractController
     }
 
     #[Route('/api/conversations/{id}/messages', name: 'api_conversations_post_message', methods: ['POST'])]
-    public function postMessage(string $id, #[MapRequestPayload] PostMessageRequest $req, DocumentRepository $documents): JsonResponse
+    public function postMessage(string $id, Request $request, #[MapRequestPayload] PostMessageRequest $req, DocumentRepository $documents): JsonResponse
     {
+        $this->rateLimiter->checkMessages($request, $this->currentUser());
         $this->assertValid($req);
         $conversation = $this->requireConversation($id);
         $this->denyAccessUnlessGranted(ConversationVoter::VIEW, $conversation);

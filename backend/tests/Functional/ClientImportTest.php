@@ -22,7 +22,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class ClientImportTest extends WebTestCase
+final class ClientImportTest extends ApiTestCase
 {
     public function testXlsxImportCreatesOwnersVehiclesAndIsIdempotent(): void
     {

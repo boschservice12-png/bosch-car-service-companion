@@ -23,7 +23,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class DamageClaimClientAdminTest extends WebTestCase
+final class DamageClaimClientAdminTest extends ApiTestCase
 {
     public function testClientApiRemovedAdminTracksClaims(): void
     {

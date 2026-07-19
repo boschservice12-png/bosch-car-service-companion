@@ -18,7 +18,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class QuoteRequestClientAdminTest extends WebTestCase
+final class QuoteRequestClientAdminTest extends ApiTestCase
 {
     public function testFullJourneyDraftToAcceptedWithGuardsAndIsolation(): void
     {

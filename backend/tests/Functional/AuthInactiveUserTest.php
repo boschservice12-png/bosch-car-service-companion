@@ -20,7 +20,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  *
  * @group functional
  */
-final class AuthInactiveUserTest extends WebTestCase
+final class AuthInactiveUserTest extends ApiTestCase
 {
     public function testInactiveClientCannotLoginAndActiveSessionIsRevoked(): void
     {

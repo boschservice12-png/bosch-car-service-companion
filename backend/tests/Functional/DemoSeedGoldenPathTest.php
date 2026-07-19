@@ -16,7 +16,7 @@ use Symfony\Component\Console\Tester\CommandTester;
  *
  * @group functional
  */
-final class DemoSeedGoldenPathTest extends WebTestCase
+final class DemoSeedGoldenPathTest extends ApiTestCase
 {
     private const CLIENT_EMAIL = 'client@bcsc.ro';
     private const ADMIN_EMAIL = 'admin@bcsc.ro';
