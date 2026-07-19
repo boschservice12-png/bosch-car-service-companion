@@ -57,7 +57,7 @@ final class DamageClaimClientAdminTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
         $claim = json_decode((string) $client->getResponse()->getContent(), true);
         $claimId = $claim['id'];
-        self::assertSame('NEW', $claim['status']);
+        self::assertSame('SUBMITTED', $claim['status']);
         self::assertSame('Allianz-Țiriac', $claim['insurer']);
         self::assertSame('POL-123456', $claim['policyNumber']);
         self::assertCount(1, $claim['documents']);
@@ -85,17 +85,17 @@ final class DamageClaimClientAdminTest extends WebTestCase
         self::assertContains($claimId, array_column(json_decode((string) $client->getResponse()->getContent(), true), 'id'));
 
         $client->request('PATCH', "/api/admin/damage-claims/$claimId", server: $this->json(), content: json_encode([
-            'status' => 'IN_PROGRESS', 'note' => 'Am transmis dosarul către asigurător.',
+            'status' => 'IN_REVIEW', 'note' => 'Am transmis dosarul către asigurător.',
         ]));
         self::assertResponseIsSuccessful();
-        self::assertSame('IN_PROGRESS', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+        self::assertSame('IN_REVIEW', json_decode((string) $client->getResponse()->getContent(), true)['status']);
 
         // CLIENT: vede noua stare și nota.
         $this->login($client, $ownerEmail, 'Parola1234');
         $client->request('GET', "/api/damage-claims/$claimId");
         self::assertResponseIsSuccessful();
         $seen = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('IN_PROGRESS', $seen['status']);
+        self::assertSame('IN_REVIEW', $seen['status']);
 
         // CLIENT: nu mai poate anula un dosar în lucru.
         $client->request('POST', "/api/damage-claims/$claimId/cancel");
@@ -109,7 +109,7 @@ final class DamageClaimClientAdminTest extends WebTestCase
         $secondId = json_decode((string) $client->getResponse()->getContent(), true)['id'];
         $client->request('POST', "/api/damage-claims/$secondId/cancel");
         self::assertResponseIsSuccessful();
-        self::assertSame('CANCELLED', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+        self::assertSame('CLOSED', json_decode((string) $client->getResponse()->getContent(), true)['status']);
 
         // AUDIT.
         /** @var EntityManagerInterface $em */

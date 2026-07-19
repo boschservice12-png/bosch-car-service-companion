@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Mobility\Domain;
 
-/** Tipul de mobilitate solicitat pe durata reparației. */
+/** Tipul de mobilitate solicitat pe durata reparației — conform specificației. */
 enum MobilityType: string
 {
     case REPLACEMENT_CAR = 'REPLACEMENT_CAR';
     case TAXI = 'TAXI';
-    case RIDE_HOME = 'RIDE_HOME';
+    case PERSON_TRANSPORT = 'PERSON_TRANSPORT';
+    case ACCOMMODATION = 'ACCOMMODATION';
     case OTHER = 'OTHER';
 
     public function label(): string
@@ -17,7 +18,8 @@ enum MobilityType: string
         return match ($this) {
             self::REPLACEMENT_CAR => 'Mașină de înlocuire',
             self::TAXI => 'Taxi',
-            self::RIDE_HOME => 'Transport acasă',
+            self::PERSON_TRANSPORT => 'Transport persoane',
+            self::ACCOMMODATION => 'Cazare',
             self::OTHER => 'Altă solicitare',
         };
     }

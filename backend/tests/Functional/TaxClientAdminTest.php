@@ -49,7 +49,7 @@ final class TaxClientAdminTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
         $tax = json_decode((string) $client->getResponse()->getContent(), true);
         $taxId = $tax['id'];
-        self::assertSame('UNPAID', $tax['status']);
+        self::assertSame('OVERDUE', $tax['status'], 'Scadență depășită fără plată → OVERDUE (derivat).');
         self::assertSame(2026, $tax['year']);
         self::assertEqualsWithDelta(480.5, $tax['amount'], 0.001);
 
@@ -90,14 +90,14 @@ final class TaxClientAdminTest extends WebTestCase
             'status' => 'UNPAID', 'note' => 'Plata nu s-a confirmat la trezorerie.',
         ]));
         self::assertResponseIsSuccessful();
-        self::assertSame('UNPAID', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+        self::assertSame('OVERDUE', json_decode((string) $client->getResponse()->getContent(), true)['status'], 'Neplătită cu scadență depășită → OVERDUE.');
 
         // CLIENT: vede noua stare și nota service-ului.
         $this->login($client, $ownerEmail, 'Parola1234');
         $client->request('GET', "/api/taxes/$taxId");
         self::assertResponseIsSuccessful();
         $seen = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('UNPAID', $seen['status']);
+        self::assertSame('OVERDUE', $seen['status']);
         self::assertSame('Plata nu s-a confirmat la trezorerie.', $seen['note']);
 
         // AUDIT.

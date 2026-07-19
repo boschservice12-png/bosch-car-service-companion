@@ -8,16 +8,20 @@ import { ApiError, type DamageClaim, type DamageClaimStatus } from '@/lib/types'
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<DamageClaimStatus, string> = {
-  NEW: 'badge-warn',
-  IN_PROGRESS: 'badge-unknown',
+  SUBMITTED: 'badge-warn',
+  DOCUMENTS_MISSING: 'badge-warn',
+  IN_REVIEW: 'badge-unknown',
+  CONTACTED: 'badge-unknown',
+  FILE_OPENED: 'badge-ok',
   CLOSED: 'badge-ok',
-  CANCELLED: 'badge-err',
 };
 
 const ACTIONS: { status: string; label: string }[] = [
-  { status: 'IN_PROGRESS', label: 'Preia dosarul' },
+  { status: 'DOCUMENTS_MISSING', label: 'Cere documente' },
+  { status: 'IN_REVIEW', label: 'Preia în analiză' },
+  { status: 'CONTACTED', label: 'Client contactat' },
+  { status: 'FILE_OPENED', label: 'Dosar deschis' },
   { status: 'CLOSED', label: 'Închide' },
-  { status: 'CANCELLED', label: 'Anulează' },
 ];
 
 export default function AdminDamageClaimDetailPage() {

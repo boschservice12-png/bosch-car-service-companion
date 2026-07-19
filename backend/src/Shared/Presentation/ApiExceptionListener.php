@@ -38,6 +38,8 @@ final class ApiExceptionListener
                 ApiProblem::validation($traceId, ['_' => [$throwable->getMessage()]]),
             $throwable instanceof AccessDeniedException =>
                 ApiProblem::forbidden($traceId),
+            $throwable instanceof \DomainException =>
+                ApiProblem::conflict($traceId),
             $throwable instanceof HttpExceptionInterface =>
                 $this->fromHttp($throwable, $traceId),
             default => new ApiProblem('server_error', 'Eroare internă', 500, $traceId),

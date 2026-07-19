@@ -43,7 +43,7 @@ final class MobilityClientAdminTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
         $req = json_decode((string) $client->getResponse()->getContent(), true);
         $requestId = $req['id'];
-        self::assertSame('NEW', $req['status']);
+        self::assertSame('SUBMITTED', $req['status']);
         self::assertSame('REPLACEMENT_CAR', $req['type']);
 
         // ALT CLIENT: fără acces.
@@ -61,17 +61,17 @@ final class MobilityClientAdminTest extends WebTestCase
         self::assertContains($requestId, array_column(json_decode((string) $client->getResponse()->getContent(), true), 'id'));
 
         $client->request('PATCH', "/api/admin/mobility-requests/$requestId", server: $this->json(), content: json_encode([
-            'status' => 'APPROVED', 'note' => 'Rezervat Logan alb.',
+            'status' => 'IN_REVIEW', 'note' => 'Rezervat Logan alb.',
         ]));
         self::assertResponseIsSuccessful();
-        self::assertSame('APPROVED', json_decode((string) $client->getResponse()->getContent(), true)['status']);
+        self::assertSame('IN_REVIEW', json_decode((string) $client->getResponse()->getContent(), true)['status']);
 
         // CLIENT: vede noua stare și nota service-ului.
         $this->login($client, $ownerEmail, 'Parola1234');
         $client->request('GET', "/api/mobility-requests/$requestId");
         self::assertResponseIsSuccessful();
         $seen = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('APPROVED', $seen['status']);
+        self::assertSame('IN_REVIEW', $seen['status']);
         self::assertSame('Rezervat Logan alb.', $seen['note']);
 
         // CLIENT: nu mai poate anula o solicitare aprobată.

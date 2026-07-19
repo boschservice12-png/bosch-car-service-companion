@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class UpdateRoadsideStatusRequest
 {
     #[Assert\NotBlank(message: 'Starea este obligatorie.')]
-    #[Assert\Choice(choices: ['FORWARDED', 'RESOLVED', 'CANCELLED'], message: 'Stare invalidă.')]
+    #[Assert\Choice(choices: ['VALIDATED', 'FORWARDED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'], message: 'Stare invalidă.')]
     public string $status = '';
 
     #[Assert\Length(max: 5000)]

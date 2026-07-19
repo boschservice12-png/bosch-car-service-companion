@@ -63,6 +63,28 @@ final class TaxService
         return $item;
     }
 
+    /**
+     * Înregistrează o plată parțială sau integrală (opțional cu bizonjat).
+     *
+     * @param Document[] $receipts
+     */
+    public function registerPayment(TaxItem $item, int $amountBani, array $receipts): TaxItem
+    {
+        foreach ($receipts as $document) {
+            $item->attach($document);
+        }
+        $before = ['status' => $item->status()->value, 'paidAmountBani' => $item->paidAmountBani()];
+        $item->registerPayment($amountBani);
+        $this->items->save($item);
+
+        $this->audit->record('tax.payment_registered', 'TaxItem', (string) $item->id(), $before, [
+            'status' => $item->status()->value,
+            'paidAmountBani' => $item->paidAmountBani(),
+        ]);
+
+        return $item;
+    }
+
     public function setStatus(TaxItem $item, PaymentStatus $status, ?string $note): TaxItem
     {
         $before = ['status' => $item->status()->value];

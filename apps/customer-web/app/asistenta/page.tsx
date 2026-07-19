@@ -9,9 +9,11 @@ import { BottomNav } from '@/components/BottomNav';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<RoadsideStatus, string> = {
-  NEW: 'badge-warn',
+  SUBMITTED: 'badge-warn',
+  VALIDATED: 'badge-unknown',
   FORWARDED: 'badge-unknown',
-  RESOLVED: 'badge-ok',
+  IN_PROGRESS: 'badge-unknown',
+  COMPLETED: 'badge-ok',
   CANCELLED: 'badge-err',
 };
 

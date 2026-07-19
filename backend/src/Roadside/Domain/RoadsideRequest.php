@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Roadside\Domain;
 
 use App\Document\Domain\Document;
+use App\Shared\Domain\InvalidStateTransition;
 use App\Identity\Domain\User;
 use App\Vehicle\Domain\Vehicle;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -51,7 +52,7 @@ class RoadsideRequest
     private string $phone;
 
     #[ORM\Column(length: 16, enumType: RoadsideStatus::class)]
-    private RoadsideStatus $status = RoadsideStatus::NEW;
+    private RoadsideStatus $status = RoadsideStatus::SUBMITTED;
 
     /** Notă internă a service-ului (nu se ascunde clientului, dar e completată de admin). */
     #[ORM\Column(type: 'text', nullable: true)]
@@ -161,6 +162,9 @@ class RoadsideRequest
 
     public function changeStatus(RoadsideStatus $status, ?string $note): void
     {
+        if (!$this->status->canTransitionTo($status)) {
+            throw InvalidStateTransition::between($this->status->value, $status->value);
+        }
         $this->status = $status;
         if ($note !== null) {
             $this->note = $note;
@@ -170,7 +174,7 @@ class RoadsideRequest
 
     public function isOpen(): bool
     {
-        return $this->status === RoadsideStatus::NEW;
+        return $this->status === RoadsideStatus::SUBMITTED;
     }
 
     public function createdAt(): \DateTimeImmutable

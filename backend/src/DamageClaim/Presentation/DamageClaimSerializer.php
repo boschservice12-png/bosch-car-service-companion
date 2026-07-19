@@ -34,6 +34,7 @@ final class DamageClaimSerializer
             'status' => $c->status()->value,
             'statusLabel' => $c->status()->label(),
             'note' => $c->note(),
+            'missingDocuments' => $c->missingDocuments(),
             'createdAt' => $c->createdAt()->format(DATE_ATOM),
             'documents' => array_map($this->serializeDocument(...), $c->documents()),
         ];

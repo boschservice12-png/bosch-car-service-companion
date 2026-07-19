@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mobility\Domain;
 
 use App\Identity\Domain\User;
+use App\Shared\Domain\InvalidStateTransition;
 use App\Vehicle\Domain\Vehicle;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
@@ -42,7 +43,7 @@ class MobilityRequest
     private ?\DateTimeImmutable $preferredDate;
 
     #[ORM\Column(length: 16, enumType: MobilityStatus::class)]
-    private MobilityStatus $status = MobilityStatus::NEW;
+    private MobilityStatus $status = MobilityStatus::SUBMITTED;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $note = null;
@@ -112,11 +113,14 @@ class MobilityRequest
 
     public function isOpen(): bool
     {
-        return $this->status === MobilityStatus::NEW;
+        return $this->status === MobilityStatus::SUBMITTED;
     }
 
     public function changeStatus(MobilityStatus $status, ?string $note): void
     {
+        if (!$this->status->canTransitionTo($status)) {
+            throw InvalidStateTransition::between($this->status->value, $status->value);
+        }
         $this->status = $status;
         if ($note !== null) {
             $this->note = $note;

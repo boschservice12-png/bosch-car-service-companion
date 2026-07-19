@@ -8,9 +8,11 @@ import { ApiError, type RoadsideRequest, type RoadsideStatus } from '@/lib/types
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<RoadsideStatus, string> = {
-  NEW: 'badge-warn',
+  SUBMITTED: 'badge-warn',
+  VALIDATED: 'badge-unknown',
   FORWARDED: 'badge-unknown',
-  RESOLVED: 'badge-ok',
+  IN_PROGRESS: 'badge-unknown',
+  COMPLETED: 'badge-ok',
   CANCELLED: 'badge-err',
 };
 
@@ -97,7 +99,7 @@ export default function RoadsideDetailPage() {
         </div>
       ) : null}
 
-      {req.status === 'NEW' ? (
+      {req.status === 'SUBMITTED' ? (
         <button className="btn btn-ghost" disabled={busy} onClick={cancel}>
           {busy ? '…' : 'Anulează cererea'}
         </button>

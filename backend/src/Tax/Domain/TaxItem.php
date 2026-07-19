@@ -55,6 +55,10 @@ class TaxItem
     #[ORM\Column(type: 'datetimetz_immutable', nullable: true)]
     private ?\DateTimeImmutable $paidAt = null;
 
+    /** Suma plătită până acum, în bani (null = nicio plată înregistrată). */
+    #[ORM\Column(nullable: true)]
+    private ?int $paidAmountBani = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $note = null;
 
@@ -163,18 +167,60 @@ class TaxItem
         return $this->status === PaymentStatus::PAID;
     }
 
+    public function paidAmountBani(): ?int
+    {
+        return $this->paidAmountBani;
+    }
+
+    /** Plată integrală. */
     public function markPaid(): void
     {
         $this->status = PaymentStatus::PAID;
+        $this->paidAmountBani = $this->amountBani;
         $this->paidAt = new \DateTimeImmutable();
+        $this->touch();
+    }
+
+    /**
+     * Înregistrează o plată (parțială sau integrală). Suma se acumulează;
+     * la atingerea totalului starea devine PAID, altfel PARTIALLY_PAID.
+     */
+    public function registerPayment(int $amountBani): void
+    {
+        if ($amountBani <= 0) {
+            throw new \InvalidArgumentException('Suma plătită trebuie să fie pozitivă.');
+        }
+        $this->paidAmountBani = min($this->amountBani, ($this->paidAmountBani ?? 0) + $amountBani);
+        $this->paidAt = new \DateTimeImmutable();
+        $this->status = $this->paidAmountBani >= $this->amountBani
+            ? PaymentStatus::PAID
+            : PaymentStatus::PARTIALLY_PAID;
         $this->touch();
     }
 
     public function markUnpaid(): void
     {
         $this->status = PaymentStatus::UNPAID;
+        $this->paidAmountBani = null;
         $this->paidAt = null;
         $this->touch();
+    }
+
+    /**
+     * Starea afișată: OVERDUE când scadența a trecut fără plată integrală
+     * (starea stocată rămâne UNPAID/PARTIALLY_PAID — OVERDUE e derivată).
+     */
+    public function effectiveStatus(?\DateTimeImmutable $now = null): PaymentStatus
+    {
+        if ($this->status === PaymentStatus::PAID) {
+            return PaymentStatus::PAID;
+        }
+        $now ??= new \DateTimeImmutable();
+        if ($this->dueDate !== null && $this->dueDate < $now) {
+            return PaymentStatus::OVERDUE;
+        }
+
+        return $this->status;
     }
 
     public function setNote(?string $note): void

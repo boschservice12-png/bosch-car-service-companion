@@ -64,7 +64,8 @@ export default function NewMobilityPage() {
           <select id="type" value={type} onChange={(e) => setType(e.target.value)} style={inputStyle}>
             <option value="REPLACEMENT_CAR">Mașină de înlocuire</option>
             <option value="TAXI">Taxi</option>
-            <option value="RIDE_HOME">Transport acasă</option>
+            <option value="PERSON_TRANSPORT">Transport persoane</option>
+            <option value="ACCOMMODATION">Cazare</option>
             <option value="OTHER">Altă solicitare</option>
           </select>
         </div>

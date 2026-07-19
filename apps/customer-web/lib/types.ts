@@ -111,7 +111,7 @@ export interface Conversation {
 
 export type MobilityState = 'DRIVABLE' | 'NOT_DRIVABLE';
 export type SafetyState = 'SAFE' | 'AT_RISK';
-export type RoadsideStatus = 'NEW' | 'FORWARDED' | 'RESOLVED' | 'CANCELLED';
+export type RoadsideStatus = 'SUBMITTED' | 'VALIDATED' | 'FORWARDED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface RoadsideRequest {
   id: string;
@@ -132,8 +132,8 @@ export interface RoadsideRequest {
   customerName?: string;
 }
 
-export type MobilityType = 'REPLACEMENT_CAR' | 'TAXI' | 'RIDE_HOME' | 'OTHER';
-export type MobilityStatus = 'NEW' | 'APPROVED' | 'PROVIDED' | 'DECLINED' | 'CANCELLED';
+export type MobilityType = 'REPLACEMENT_CAR' | 'TAXI' | 'PERSON_TRANSPORT' | 'ACCOMMODATION' | 'OTHER';
+export type MobilityStatus = 'SUBMITTED' | 'IN_REVIEW' | 'CONTACTED' | 'CONFIRMED' | 'UNAVAILABLE' | 'COMPLETED' | 'CANCELLED';
 
 export interface MobilityRequest {
   id: string;
@@ -150,7 +150,7 @@ export interface MobilityRequest {
   customerName?: string;
 }
 
-export type DamageClaimStatus = 'NEW' | 'IN_PROGRESS' | 'CLOSED' | 'CANCELLED';
+export type DamageClaimStatus = 'SUBMITTED' | 'DOCUMENTS_MISSING' | 'IN_REVIEW' | 'CONTACTED' | 'FILE_OPENED' | 'CLOSED';
 
 export interface DamageClaim {
   id: string;
@@ -162,6 +162,7 @@ export interface DamageClaim {
   insurer: string | null;
   policyNumber: string | null;
   status: DamageClaimStatus;
+  missingDocuments: string[] | null;
   statusLabel: string;
   note: string | null;
   createdAt: string;
@@ -170,7 +171,7 @@ export interface DamageClaim {
 }
 
 export type TaxType = 'VEHICLE_TAX' | 'ENVIRONMENT' | 'OTHER';
-export type PaymentStatus = 'UNPAID' | 'PAID';
+export type PaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
 
 export interface TaxItem {
   id: string;
@@ -183,6 +184,7 @@ export interface TaxItem {
   dueDate: string | null;
   status: PaymentStatus;
   statusLabel: string;
+  paidAmount: number | null;
   paidAt: string | null;
   note: string | null;
   createdAt: string;

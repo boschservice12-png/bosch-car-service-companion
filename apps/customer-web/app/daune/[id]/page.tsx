@@ -8,10 +8,12 @@ import { ApiError, type DamageClaim, type DamageClaimStatus } from '@/lib/types'
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<DamageClaimStatus, string> = {
-  NEW: 'badge-warn',
-  IN_PROGRESS: 'badge-unknown',
+  SUBMITTED: 'badge-warn',
+  DOCUMENTS_MISSING: 'badge-warn',
+  IN_REVIEW: 'badge-unknown',
+  CONTACTED: 'badge-unknown',
+  FILE_OPENED: 'badge-ok',
   CLOSED: 'badge-ok',
-  CANCELLED: 'badge-err',
 };
 
 export default function DamageClaimDetailPage() {
@@ -96,7 +98,7 @@ export default function DamageClaimDetailPage() {
         </div>
       ) : null}
 
-      {claim.status === 'NEW' ? (
+      {claim.status === 'SUBMITTED' ? (
         <button className="btn btn-ghost" disabled={busy} onClick={cancel}>
           {busy ? '…' : 'Anulează dosarul'}
         </button>

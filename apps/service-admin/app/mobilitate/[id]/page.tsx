@@ -8,17 +8,21 @@ import { ApiError, type MobilityRequest, type MobilityStatus } from '@/lib/types
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<MobilityStatus, string> = {
-  NEW: 'badge-warn',
-  APPROVED: 'badge-ok',
-  PROVIDED: 'badge-ok',
-  DECLINED: 'badge-err',
+  SUBMITTED: 'badge-warn',
+  IN_REVIEW: 'badge-unknown',
+  CONTACTED: 'badge-unknown',
+  CONFIRMED: 'badge-ok',
+  UNAVAILABLE: 'badge-err',
+  COMPLETED: 'badge-ok',
   CANCELLED: 'badge-err',
 };
 
 const ACTIONS: { status: string; label: string }[] = [
-  { status: 'APPROVED', label: 'Aprobă' },
-  { status: 'PROVIDED', label: 'Marchează asigurată' },
-  { status: 'DECLINED', label: 'Respinge' },
+  { status: 'IN_REVIEW', label: 'Preia în analiză' },
+  { status: 'CONTACTED', label: 'Client contactat' },
+  { status: 'CONFIRMED', label: 'Confirmă' },
+  { status: 'UNAVAILABLE', label: 'Indisponibilă' },
+  { status: 'COMPLETED', label: 'Finalizează' },
   { status: 'CANCELLED', label: 'Anulează' },
 ];
 

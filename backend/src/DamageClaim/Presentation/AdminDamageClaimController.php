@@ -49,7 +49,7 @@ final class AdminDamageClaimController extends AbstractController
     {
         $this->assertValid($req);
         $claim = $this->requireClaim($id);
-        $updated = $this->service->updateStatus($claim, DamageClaimStatus::from($req->status), $req->note);
+        $updated = $this->service->updateStatus($claim, DamageClaimStatus::from($req->status), $req->note, $req->missingDocuments);
 
         return $this->json($this->serializer->serialize($updated, withCustomer: true));
     }

@@ -10,7 +10,9 @@ import { AttachmentPicker, type PickedFile } from '@/components/AttachmentPicker
 
 const STATUS_CLASS: Record<PaymentStatus, string> = {
   UNPAID: 'badge-warn',
+  PARTIALLY_PAID: 'badge-warn',
   PAID: 'badge-ok',
+  OVERDUE: 'badge-err',
 };
 
 function money(ron: number): string {
@@ -100,7 +102,7 @@ export default function TaxDetailPage() {
         </div>
       ) : null}
 
-      {tax.status === 'UNPAID' ? (
+      {tax.status !== 'PAID' ? (
         <div className="card stack" style={{ gap: 10 }}>
           <strong>Marchează plata</strong>
           <span className="muted" style={{ fontSize: '0.85rem' }}>Puteți atașa bizonjatul (opțional).</span>

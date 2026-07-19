@@ -6,6 +6,7 @@ namespace App\DamageClaim\Domain;
 
 use App\Document\Domain\Document;
 use App\Identity\Domain\User;
+use App\Shared\Domain\InvalidStateTransition;
 use App\Vehicle\Domain\Vehicle;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -50,8 +51,17 @@ class DamageClaim
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $policyNumber;
 
-    #[ORM\Column(length: 16, enumType: DamageClaimStatus::class)]
-    private DamageClaimStatus $status = DamageClaimStatus::NEW;
+    #[ORM\Column(length: 24, enumType: DamageClaimStatus::class)]
+    private DamageClaimStatus $status = DamageClaimStatus::SUBMITTED;
+
+    /**
+     * Lista documentelor pe care service-ul le-a cerut clientului (completată
+     * când dosarul trece în DOCUMENTS_MISSING).
+     *
+     * @var string[]|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $missingDocuments = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $note = null;
@@ -160,12 +170,27 @@ class DamageClaim
 
     public function isOpen(): bool
     {
-        return $this->status === DamageClaimStatus::NEW;
+        return $this->status === DamageClaimStatus::SUBMITTED;
     }
 
-    public function changeStatus(DamageClaimStatus $status, ?string $note): void
+    /** @return string[]|null */
+    public function missingDocuments(): ?array
     {
+        return $this->missingDocuments;
+    }
+
+    /** @param string[]|null $missingDocuments Obligatoriu nenul la trecerea în DOCUMENTS_MISSING. */
+    public function changeStatus(DamageClaimStatus $status, ?string $note, ?array $missingDocuments = null): void
+    {
+        if (!$this->status->canTransitionTo($status)) {
+            throw InvalidStateTransition::between($this->status->value, $status->value);
+        }
         $this->status = $status;
+        if ($status === DamageClaimStatus::DOCUMENTS_MISSING) {
+            $this->missingDocuments = $missingDocuments ?? $this->missingDocuments ?? [];
+        } elseif ($missingDocuments !== null) {
+            $this->missingDocuments = $missingDocuments;
+        }
         if ($note !== null) {
             $this->note = $note;
         }

@@ -206,6 +206,7 @@ final class SeedDemoCommand extends Command
             SafetyState::AT_RISK,
             '+40711223344',
         );
+        $request->changeStatus(RoadsideStatus::VALIDATED, null);
         $request->changeStatus(RoadsideStatus::FORWARDED, 'Preluat, echipa de tractare a fost anunțată.');
         $this->em->persist($request);
     }
@@ -219,7 +220,8 @@ final class SeedDemoCommand extends Command
             'Am nevoie de o mașină de înlocuire pe durata reparației (2-3 zile).',
             new \DateTimeImmutable('+2 days'),
         );
-        $request->changeStatus(MobilityStatus::APPROVED, 'Rezervat Dacia Logan alb.');
+        $request->changeStatus(MobilityStatus::IN_REVIEW, null);
+        $request->changeStatus(MobilityStatus::CONFIRMED, 'Rezervat Dacia Logan alb.');
         $this->em->persist($request);
     }
 
@@ -234,7 +236,7 @@ final class SeedDemoCommand extends Command
             'Allianz-Țiriac',
             'POL-2026-123456',
         );
-        $claim->changeStatus(DamageClaimStatus::IN_PROGRESS, 'Dosar transmis către asigurător, așteptăm constatarea.');
+        $claim->changeStatus(DamageClaimStatus::IN_REVIEW, 'Dosar transmis către asigurător, așteptăm constatarea.');
         $this->em->persist($claim);
     }
 
@@ -246,7 +248,7 @@ final class SeedDemoCommand extends Command
         $paid->markPaid();
         $this->em->persist($paid);
 
-        $unpaid = new TaxItem($client, $v1, $year, TaxType::ENVIRONMENT, 15000, new \DateTimeImmutable($year.'-06-30'));
+        $unpaid = new TaxItem($client, $v1, $year, TaxType::ENVIRONMENT, 15000, new \DateTimeImmutable('+45 days'));
         $this->em->persist($unpaid);
     }
 

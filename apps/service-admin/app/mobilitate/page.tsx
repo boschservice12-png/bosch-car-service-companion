@@ -8,10 +8,12 @@ import { ApiError, type MobilityRequest, type MobilityStatus } from '@/lib/types
 import { Loading, EmptyState, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<MobilityStatus, string> = {
-  NEW: 'badge-warn',
-  APPROVED: 'badge-ok',
-  PROVIDED: 'badge-ok',
-  DECLINED: 'badge-err',
+  SUBMITTED: 'badge-warn',
+  IN_REVIEW: 'badge-unknown',
+  CONTACTED: 'badge-unknown',
+  CONFIRMED: 'badge-ok',
+  UNAVAILABLE: 'badge-err',
+  COMPLETED: 'badge-ok',
   CANCELLED: 'badge-err',
 };
 

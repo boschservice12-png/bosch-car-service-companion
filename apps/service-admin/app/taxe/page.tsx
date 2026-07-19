@@ -9,7 +9,9 @@ import { Loading, EmptyState, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<PaymentStatus, string> = {
   UNPAID: 'badge-warn',
+  PARTIALLY_PAID: 'badge-warn',
   PAID: 'badge-ok',
+  OVERDUE: 'badge-err',
 };
 
 function money(ron: number): string {

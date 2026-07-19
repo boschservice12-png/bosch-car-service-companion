@@ -47,10 +47,11 @@ final class DamageClaimService
         return $claim;
     }
 
-    public function updateStatus(DamageClaim $claim, DamageClaimStatus $status, ?string $note): DamageClaim
+    /** @param string[]|null $missingDocuments */
+    public function updateStatus(DamageClaim $claim, DamageClaimStatus $status, ?string $note, ?array $missingDocuments = null): DamageClaim
     {
         $before = ['status' => $claim->status()->value];
-        $claim->changeStatus($status, $note);
+        $claim->changeStatus($status, $note, $missingDocuments);
         $this->claims->save($claim);
 
         $this->audit->record('damage_claim.status_changed', 'DamageClaim', (string) $claim->id(), $before, [
@@ -65,7 +66,7 @@ final class DamageClaimService
         if (!$claim->isOpen()) {
             throw ValidationFailedException::fromArray(['status' => ['Dosarul nu mai poate fi anulat.']]);
         }
-        $claim->changeStatus(DamageClaimStatus::CANCELLED, null);
+        $claim->changeStatus(DamageClaimStatus::CLOSED, 'Anulat de client.');
         $this->claims->save($claim);
 
         $this->audit->record('damage_claim.cancelled', 'DamageClaim', (string) $claim->id());

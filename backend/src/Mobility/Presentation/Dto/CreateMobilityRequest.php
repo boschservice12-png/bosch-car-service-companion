@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 final class CreateMobilityRequest
 {
     #[Assert\NotBlank]
-    #[Assert\Choice(choices: ['REPLACEMENT_CAR', 'TAXI', 'RIDE_HOME', 'OTHER'], message: 'Tip de mobilitate invalid.')]
+    #[Assert\Choice(choices: ['REPLACEMENT_CAR', 'TAXI', 'PERSON_TRANSPORT', 'ACCOMMODATION', 'OTHER'], message: 'Tip de mobilitate invalid.')]
     public string $type = '';
 
     #[Assert\NotBlank(message: 'Detaliați solicitarea.')]

@@ -89,12 +89,15 @@ final class ClientTaxController extends AbstractController
         $item = $this->requireItem($id);
         $this->denyAccessUnlessGranted(TaxItemVoter::VIEW, $item);
 
-        /** @var array{documentIds?: string[]} $payload */
+        /** @var array{documentIds?: string[], amount?: float|int|string} $payload */
         $payload = json_decode($request->getContent(), true) ?: [];
         $ids = \is_array($payload['documentIds'] ?? null) ? $payload['documentIds'] : [];
         $receipts = $this->resolveAttachments($ids, $documents);
 
-        $updated = $this->service->markPaid($item, $receipts);
+        // Fără sumă → plată integrală; cu sumă (RON) → plată parțială/cumulativă.
+        $updated = isset($payload['amount']) && is_numeric($payload['amount'])
+            ? $this->service->registerPayment($item, (int) round(((float) $payload['amount']) * 100), $receipts)
+            : $this->service->markPaid($item, $receipts);
 
         return $this->json($this->serializer->serialize($updated, withCustomer: false));
     }

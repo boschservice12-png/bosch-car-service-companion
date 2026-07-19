@@ -57,7 +57,7 @@ final class RoadsideClientAdminTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
         $req = json_decode((string) $client->getResponse()->getContent(), true);
         $requestId = $req['id'];
-        self::assertSame('NEW', $req['status']);
+        self::assertSame('SUBMITTED', $req['status']);
         self::assertSame('NOT_DRIVABLE', $req['mobility']);
         self::assertCount(1, $req['documents']);
         $this->scan($documentId);
@@ -84,6 +84,17 @@ final class RoadsideClientAdminTest extends WebTestCase
         $adminList = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertContains($requestId, array_column($adminList, 'id'));
 
+        // Tranziție nepermisă (SUBMITTED → FORWARDED direct) → 409, fără modificare.
+        $client->request('PATCH', "/api/admin/roadside-requests/$requestId", server: $this->json(), content: json_encode([
+            'status' => 'FORWARDED', 'note' => 'Preluat, sunăm clientul.',
+        ]));
+        self::assertResponseStatusCodeSame(409);
+
+        // Fluxul corect conform specificației: VALIDATED → FORWARDED.
+        $client->request('PATCH', "/api/admin/roadside-requests/$requestId", server: $this->json(), content: json_encode([
+            'status' => 'VALIDATED', 'note' => null,
+        ]));
+        self::assertResponseIsSuccessful();
         $client->request('PATCH', "/api/admin/roadside-requests/$requestId", server: $this->json(), content: json_encode([
             'status' => 'FORWARDED', 'note' => 'Preluat, sunăm clientul.',
         ]));

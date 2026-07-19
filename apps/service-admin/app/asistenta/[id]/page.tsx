@@ -8,15 +8,19 @@ import { ApiError, type RoadsideRequest, type RoadsideStatus } from '@/lib/types
 import { Loading, ErrorState } from '@/components/states';
 
 const STATUS_CLASS: Record<RoadsideStatus, string> = {
-  NEW: 'badge-warn',
+  SUBMITTED: 'badge-warn',
+  VALIDATED: 'badge-unknown',
   FORWARDED: 'badge-unknown',
-  RESOLVED: 'badge-ok',
+  IN_PROGRESS: 'badge-unknown',
+  COMPLETED: 'badge-ok',
   CANCELLED: 'badge-err',
 };
 
 const ACTIONS: { status: string; label: string }[] = [
-  { status: 'FORWARDED', label: 'Preia (contact telefonic)' },
-  { status: 'RESOLVED', label: 'Marchează rezolvată' },
+  { status: 'VALIDATED', label: 'Validează' },
+  { status: 'FORWARDED', label: 'Direcționează (contact telefonic)' },
+  { status: 'IN_PROGRESS', label: 'În curs' },
+  { status: 'COMPLETED', label: 'Finalizează' },
   { status: 'CANCELLED', label: 'Anulează' },
 ];
 
