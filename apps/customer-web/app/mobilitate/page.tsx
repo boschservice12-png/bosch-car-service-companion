@@ -48,6 +48,16 @@ export default function MobilityListPage() {
         </Link>
       </div>
 
+      <div className="card stack" style={{ gap: 8 }}>
+        <strong>Aveți nevoie de mobilitate acum?</strong>
+        <span className="muted" style={{ fontSize: '0.85rem' }}>
+          Trimiteți o cerere, sau sunați direct dispeceratul.
+        </span>
+        <a className="btn" href="tel:0730508343" style={{ textAlign: 'center', textDecoration: 'none' }}>
+          📞 Sună 0730 508 343
+        </a>
+      </div>
+
       {error ? <ErrorState message={error} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
       {!error && items?.length === 0 ? (
