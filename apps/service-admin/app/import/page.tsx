@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { ApiError, type HistoryImportReport, type ImportReport } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 /**
  * Import clienți + vehicule din Excel (.xlsx) sau CSV.
@@ -11,6 +12,7 @@ import { ApiError, type HistoryImportReport, type ImportReport } from '@/lib/typ
  * opțional Telefon și Email (antetul poate fi în orice ordine).
  */
 export default function ImportPage() {
+  const t = useT();
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,21 +63,21 @@ export default function ImportPage() {
   return (
     <>
       <Link href="/" className="muted">
-        ← Panou
+        {t('← Panou')}
       </Link>
-      <h1>Import date din Excel</h1>
-      <h2 style={{ marginTop: 8 }}>Pasul 1 — Clienți și vehicule</h2>
+      <h1>{t('Import date din Excel')}</h1>
+      <h2 style={{ marginTop: 8 }}>{t('Pasul 1 — Clienți și vehicule')}</h2>
       <p className="muted">
-        Încărcați tabelul cu proprietari și vehicule (.xlsx sau .csv). Coloane: <b>Proprietar</b>,{' '}
-        <b>Număr înmatriculare</b>, <b>VIN</b>, <b>Marcă</b>, <b>Model</b>, opțional <b>Telefon</b> și <b>Email</b>.
-        Reimportul aceluiași fișier nu creează dubluri.
+        {t('Încărcați tabelul cu proprietari și vehicule (.xlsx sau .csv). Coloane:')} <b>Proprietar</b>,{' '}
+        <b>Număr înmatriculare</b>, <b>VIN</b>, <b>Marcă</b>, <b>Model</b>, {t('opțional')} <b>Telefon</b> {t('și')}{' '}
+        <b>Email</b>. {t('Reimportul aceluiași fișier nu creează dubluri.')}
       </p>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <form onSubmit={submit} className="card stack" style={{ gap: 12 }}>
         <div className="field">
-          <label htmlFor="file">Fișier (.xlsx sau .csv, max. 5 MB)</label>
+          <label htmlFor="file">{t('Fișier (.xlsx sau .csv, max. 5 MB)')}</label>
           <input
             id="file"
             type="file"
@@ -85,50 +87,50 @@ export default function ImportPage() {
           />
         </div>
         <button className="btn" type="submit" disabled={busy || !file}>
-          {busy ? 'Se importă…' : 'Importă'}
+          {busy ? t('Se importă…') : t('Importă')}
         </button>
       </form>
 
       {report ? (
         <>
-          <h2 style={{ marginTop: 16 }}>Raport import</h2>
+          <h2 style={{ marginTop: 16 }}>{t('Raport import')}</h2>
           <div className="card stack" style={{ gap: 6 }}>
-            <div><span className="muted">Rânduri procesate:</span> <b>{report.totalRows}</b></div>
-            <div><span className="muted">Proprietari noi:</span> <b>{report.ownersCreated}</b></div>
-            <div><span className="muted">Vehicule noi:</span> <b>{report.vehiclesCreated}</b> · <span className="muted">actualizate:</span> <b>{report.vehiclesUpdated}</b></div>
-            <div><span className="muted">Legături proprietate create:</span> <b>{report.ownershipsCreated}</b></div>
+            <div><span className="muted">{t('Rânduri procesate:')}</span> <b>{report.totalRows}</b></div>
+            <div><span className="muted">{t('Proprietari noi:')}</span> <b>{report.ownersCreated}</b></div>
+            <div><span className="muted">{t('Vehicule noi:')}</span> <b>{report.vehiclesCreated}</b> · <span className="muted">{t('actualizate:')}</span> <b>{report.vehiclesUpdated}</b></div>
+            <div><span className="muted">{t('Legături proprietate create:')}</span> <b>{report.ownershipsCreated}</b></div>
           </div>
 
           {report.errors.length > 0 ? (
             <>
-              <h3 style={{ marginTop: 12 }}>Rânduri cu probleme ({report.errors.length})</h3>
+              <h3 style={{ marginTop: 12 }}>{t('Rânduri cu probleme ({n})', { n: report.errors.length })}</h3>
               <div className="stack" style={{ gap: 6 }}>
                 {report.errors.map((e) => (
                   <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: '0.88rem' }}>
-                    Rândul {e.row}: {e.message}
+                    {t('Rândul {n}:', { n: e.row })} {e.message}
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <p className="muted" style={{ marginTop: 8 }}>Toate rândurile au fost importate fără erori. ✔</p>
+            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori. ✔')}</p>
           )}
         </>
       ) : null}
 
-      <h2 style={{ marginTop: 28 }}>Pasul 2 — Istoric reparații</h2>
+      <h2 style={{ marginTop: 28 }}>{t('Pasul 2 — Istoric reparații')}</h2>
       <p className="muted">
-        Tabelul cu istoricul de reparații, legat de vehicule prin <b>VIN</b> (importați întâi clienții).
-        Coloane: <b>VIN</b>, <b>Dată</b>, <b>Kilometraj</b>, <b>Lucrare</b>, <b>Descriere</b>, <b>Piese</b>,{' '}
-        <b>Manoperă</b>, <b>Total</b>, <b>Garanție</b>, <b>Număr comandă</b>. Rândurile complete devin vizibile
-        clientului imediat; cele incomplete rămân ciorne. Reimportul nu creează dubluri.
+        {t('Tabelul cu istoricul de reparații, legat de vehicule prin VIN (importați întâi clienții). Coloane:')}{' '}
+        <b>VIN</b>, <b>Dată</b>, <b>Kilometraj</b>, <b>Lucrare</b>, <b>Descriere</b>, <b>Piese</b>,{' '}
+        <b>Manoperă</b>, <b>Total</b>, <b>Garanție</b>, <b>Număr comandă</b>.{' '}
+        {t('Rândurile complete devin vizibile clientului imediat; cele incomplete rămân ciorne. Reimportul nu creează dubluri.')}
       </p>
 
-      {histError ? <div className="alert alert-err" role="alert">{histError}</div> : null}
+      {histError ? <div className="alert alert-err" role="alert">{t(histError)}</div> : null}
 
       <form onSubmit={submitHistory} className="card stack" style={{ gap: 12 }}>
         <div className="field">
-          <label htmlFor="histFile">Fișier istoric (.xlsx sau .csv, max. 5 MB)</label>
+          <label htmlFor="histFile">{t('Fișier istoric (.xlsx sau .csv, max. 5 MB)')}</label>
           <input
             id="histFile"
             type="file"
@@ -138,29 +140,29 @@ export default function ImportPage() {
           />
         </div>
         <button className="btn" type="submit" disabled={histBusy || !histFile}>
-          {histBusy ? 'Se importă…' : 'Importă istoricul'}
+          {histBusy ? t('Se importă…') : t('Importă istoricul')}
         </button>
       </form>
 
       {histReport ? (
         <>
-          <h3 style={{ marginTop: 16 }}>Raport istoric</h3>
+          <h3 style={{ marginTop: 16 }}>{t('Raport istoric')}</h3>
           <div className="card stack" style={{ gap: 6 }}>
-            <div><span className="muted">Rânduri procesate:</span> <b>{histReport.totalRows}</b></div>
-            <div><span className="muted">Publicate (vizibile clientului):</span> <b>{histReport.recordsPublished}</b></div>
-            <div><span className="muted">Ciorne (de completat):</span> <b>{histReport.recordsDraft}</b></div>
-            <div><span className="muted">Sărite (existau deja):</span> <b>{histReport.recordsSkipped}</b></div>
+            <div><span className="muted">{t('Rânduri procesate:')}</span> <b>{histReport.totalRows}</b></div>
+            <div><span className="muted">{t('Publicate (vizibile clientului):')}</span> <b>{histReport.recordsPublished}</b></div>
+            <div><span className="muted">{t('Ciorne (de completat):')}</span> <b>{histReport.recordsDraft}</b></div>
+            <div><span className="muted">{t('Sărite (existau deja):')}</span> <b>{histReport.recordsSkipped}</b></div>
           </div>
           {histReport.errors.length > 0 ? (
             <div className="stack" style={{ gap: 6, marginTop: 10 }}>
               {histReport.errors.map((e) => (
                 <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: '0.88rem' }}>
-                  Rândul {e.row}: {e.message}
+                  {t('Rândul {n}:', { n: e.row })} {e.message}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="muted" style={{ marginTop: 8 }}>Toate rândurile au fost importate fără erori. ✔</p>
+            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori. ✔')}</p>
           )}
         </>
       ) : null}

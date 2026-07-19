@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type RoadsideRequest, type RoadsideStatus } from '@/lib/types';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
+import { useT } from '@/lib/i18n';
 
 const STATUS_CLASS: Record<RoadsideStatus, string> = {
   SUBMITTED: 'badge-warn',
@@ -18,6 +19,7 @@ const STATUS_CLASS: Record<RoadsideStatus, string> = {
 
 export default function AdminRoadsideListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<RoadsideRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,15 +42,15 @@ export default function AdminRoadsideListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Asistență rutieră</h1>
+        <h1>{t('Asistență rutieră')}</h1>
         <Link href="/" className="muted">
-          Vehicule →
+          {t('Vehicule →')}
         </Link>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
-      {!error && items?.length === 0 ? <EmptyState title="Nicio cerere de asistență" /> : null}
+      {!error && items?.length === 0 ? <EmptyState title={t('Nicio cerere de asistență')} /> : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
@@ -58,10 +60,10 @@ export default function AdminRoadsideListPage() {
                 <div>
                   <strong>{r.location}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {r.customerName ?? '—'} · {r.mobilityLabel} · {r.phone}
+                    {r.customerName ?? '—'} · {t(r.mobilityLabel)} · {r.phone}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[r.status]}`}>{r.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[r.status]}`}>{t(r.statusLabel)}</span>
               </div>
             </Link>
           ))}

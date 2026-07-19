@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -33,20 +35,20 @@ export default function AdminLoginPage() {
 
   return (
     <>
-      <h1>Portal Service</h1>
-      <p className="muted">Autentificare administrator.</p>
+      <h1>{t('Portal Service')}</h1>
+      <p className="muted">{t('Autentificare administrator.')}</p>
       {error ? (
         <div className="alert alert-err" role="alert">
-          {error}
+          {t(error)}
         </div>
       ) : null}
       <form onSubmit={onSubmit} noValidate>
         <div className="field">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t('Email')}</label>
           <input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
         <div className="field">
-          <label htmlFor="password">Parolă</label>
+          <label htmlFor="password">{t('Parolă')}</label>
           <input
             id="password"
             type="password"
@@ -57,7 +59,7 @@ export default function AdminLoginPage() {
           />
         </div>
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se conectează…' : 'Intră în portal'}
+          {busy ? t('Se conectează…') : t('Intră în portal')}
         </button>
       </form>
     </>

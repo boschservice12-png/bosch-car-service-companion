@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { ServiceRecord, ServiceRecordInput } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -26,6 +27,7 @@ export function ServiceRecordForm({
   onSubmit: (data: ServiceRecordInput) => void;
   onCancel?: () => void;
 }) {
+  const t = useT();
   const [serviceDate, setServiceDate] = useState(initial?.serviceDate ?? '');
   const [odometerKm, setOdometerKm] = useState(initial?.odometerKm != null ? String(initial.odometerKm) : '');
   const [workType, setWorkType] = useState(initial?.workType ?? '');
@@ -53,44 +55,44 @@ export function ServiceRecordForm({
   return (
     <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
       <div className="field">
-        <label htmlFor="serviceDate">Data</label>
+        <label htmlFor="serviceDate">{t('Data')}</label>
         <input id="serviceDate" type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} />
       </div>
       <div className="field">
-        <label htmlFor="odometerKm">Kilometraj (km)</label>
+        <label htmlFor="odometerKm">{t('Kilometraj (km)')}</label>
         <input id="odometerKm" type="number" min={0} inputMode="numeric" value={odometerKm} onChange={(e) => setOdometerKm(e.target.value)} />
       </div>
       <div className="field">
-        <label htmlFor="workType">Tipul lucrării</label>
-        <input id="workType" type="text" maxLength={120} value={workType} onChange={(e) => setWorkType(e.target.value)} placeholder="Ex: Revizie periodică" />
+        <label htmlFor="workType">{t('Tipul lucrării')}</label>
+        <input id="workType" type="text" maxLength={120} value={workType} onChange={(e) => setWorkType(e.target.value)} placeholder={t('Ex: Revizie periodică')} />
       </div>
       <div className="field">
-        <label htmlFor="workDescription">Lucrări efectuate</label>
+        <label htmlFor="workDescription">{t('Lucrări efectuate')}</label>
         <textarea id="workDescription" rows={3} value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} style={inputStyle} />
       </div>
       <div className="field">
-        <label htmlFor="partsSummary">Piese (rezumat)</label>
+        <label htmlFor="partsSummary">{t('Piese (rezumat)')}</label>
         <textarea id="partsSummary" rows={2} value={partsSummary} onChange={(e) => setPartsSummary(e.target.value)} style={inputStyle} />
       </div>
       <div className="field">
-        <label htmlFor="laborCost">Manoperă (RON)</label>
+        <label htmlFor="laborCost">{t('Manoperă (RON)')}</label>
         <input id="laborCost" type="number" min={0} step="0.01" inputMode="decimal" value={laborCost} onChange={(e) => setLaborCost(e.target.value)} />
       </div>
       <div className="field">
-        <label htmlFor="totalAmount">Total (RON)</label>
+        <label htmlFor="totalAmount">{t('Total (RON)')}</label>
         <input id="totalAmount" type="number" min={0} step="0.01" inputMode="decimal" value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)} />
       </div>
       <div className="field">
-        <label htmlFor="warranty">Garanție</label>
-        <input id="warranty" type="text" maxLength={255} value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="Ex: 12 luni / 20.000 km" />
+        <label htmlFor="warranty">{t('Garanție')}</label>
+        <input id="warranty" type="text" maxLength={255} value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder={t('Ex: 12 luni / 20.000 km')} />
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se salvează…' : submitLabel}
+          {busy ? t('Se salvează…') : submitLabel}
         </button>
         {onCancel ? (
           <button className="btn btn-ghost" type="button" onClick={onCancel} disabled={busy}>
-            Renunță
+            {t('Renunță')}
           </button>
         ) : null}
       </div>

@@ -8,9 +8,11 @@ import { ApiError, type ServiceRecord, type ServiceRecordInput } from '@/lib/typ
 import { Loading, ErrorState } from '@/components/states';
 import { ServiceRecordForm } from '@/components/ServiceRecordForm';
 import { ServiceRecordAdminCard } from '@/components/ServiceRecordAdminCard';
+import { useT } from '@/lib/i18n';
 
 export default function AdminServiceHistoryPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [records, setRecords] = useState<ServiceRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,33 +48,33 @@ export default function AdminServiceHistoryPage() {
       .finally(() => setBusy(false));
   }
 
-  if (error && records === null) return <ErrorState message={error} onRetry={load} />;
+  if (error && records === null) return <ErrorState message={t(error)} onRetry={load} />;
   if (records === null) return <Loading rows={3} />;
 
   return (
     <>
       <Link href={`/vehicule/${params.id}`} className="muted">
-        ← Vehicul
+        {t('← Vehicul')}
       </Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Istoric service</h1>
+        <h1>{t('Istoric service')}</h1>
         {!creating ? (
           <button className="btn" style={{ width: 'auto', padding: '8px 12px' }} onClick={() => setCreating(true)}>
-            + Adaugă
+            {t('+ Adaugă')}
           </button>
         ) : null}
       </div>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       {creating ? (
         <div className="stack" style={{ gap: 6 }}>
-          <strong>Înregistrare nouă (ciornă)</strong>
-          <ServiceRecordForm submitLabel="Salvează ciorna" busy={busy} onSubmit={create} onCancel={() => setCreating(false)} />
+          <strong>{t('Înregistrare nouă (ciornă)')}</strong>
+          <ServiceRecordForm submitLabel={t('Salvează ciorna')} busy={busy} onSubmit={create} onCancel={() => setCreating(false)} />
         </div>
       ) : null}
 
-      {records.length === 0 && !creating ? <p className="muted">Nicio înregistrare de service.</p> : null}
+      {records.length === 0 && !creating ? <p className="muted">{t('Nicio înregistrare de service.')}</p> : null}
 
       <div className="stack" style={{ gap: 12 }}>
         {records.map((r) => (
@@ -81,7 +83,7 @@ export default function AdminServiceHistoryPage() {
       </div>
 
       <p className="muted" style={{ fontSize: '0.82rem' }}>
-        {'O înregistrare publicată nu poate fi rescrisă. Pentru modificări folosiți „Creează corecție" — atât originalul, cât și corecția rămân vizibile.'}
+        {t('O înregistrare publicată nu poate fi rescrisă. Pentru modificări folosiți „Creează corecție" — atât originalul, cât și corecția rămân vizibile.')}
       </p>
     </>
   );

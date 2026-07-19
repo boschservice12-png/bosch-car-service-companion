@@ -7,10 +7,12 @@ import { api, conversationDocumentHref } from '@/lib/api';
 import { ApiError, type Conversation } from '@/lib/types';
 import { Loading, ErrorState } from '@/components/states';
 import { AttachmentPicker, type PickedFile } from '@/components/AttachmentPicker';
+import { useT } from '@/lib/i18n';
 
 
 export default function AdminConversationThreadPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [conv, setConv] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export default function AdminConversationThreadPage() {
     }
   }
 
-  if (error && conv === null) return <ErrorState message={error} onRetry={load} />;
+  if (error && conv === null) return <ErrorState message={t(error)} onRetry={load} />;
   if (conv === null) return <Loading rows={4} />;
 
   const textareaStyle: React.CSSProperties = {
@@ -76,15 +78,15 @@ export default function AdminConversationThreadPage() {
   return (
     <>
       <Link href="/mesaje" className="muted">
-        ← Mesaje
+        {t('← Mesaje')}
       </Link>
       <h1 style={{ marginBottom: 4 }}>{conv.subject}</h1>
       <div className="muted" style={{ fontSize: '0.85rem', marginBottom: 12 }}>
-        {conv.customerName ?? '—'} · {conv.statusLabel}
+        {conv.customerName ?? '—'} · {t(conv.statusLabel)}
         {conv.vehiclePlate ? ` · ${conv.vehiclePlate}` : ''}
       </div>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <div className="stack" style={{ gap: 10 }}>
         {(conv.messages ?? []).map((m) => (
@@ -94,7 +96,7 @@ export default function AdminConversationThreadPage() {
             style={{ borderLeft: `3px solid ${m.authorRole === 'ADMIN' ? 'var(--accent, #0a2540)' : 'var(--border)'}` }}
           >
             <div className="muted" style={{ fontSize: '0.78rem', marginBottom: 4 }}>
-              {m.authorLabel} · {new Date(m.createdAt).toLocaleString('ro-RO')}
+              {t(m.authorLabel)} · {new Date(m.createdAt).toLocaleString('ro-RO')}
             </div>
             <div style={{ whiteSpace: 'pre-wrap' }}>{m.body}</div>
             {m.attachments.length > 0 ? (
@@ -102,7 +104,7 @@ export default function AdminConversationThreadPage() {
                 {m.attachments.map((d) => (
                   <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span aria-hidden>📎</span>
-                    <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? 'document'}</span>
+                    <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
                     {d.servable ? (
                       <a
                         className="btn btn-ghost"
@@ -111,10 +113,10 @@ export default function AdminConversationThreadPage() {
                         target="_blank"
                         rel="noopener"
                       >
-                        Descarcă
+                        {t('Descarcă')}
                       </a>
                     ) : (
-                      <span className="muted" style={{ fontSize: '0.8rem' }}>în curs de scanare</span>
+                      <span className="muted" style={{ fontSize: '0.8rem' }}>{t('în curs de scanare')}</span>
                     )}
                   </div>
                 ))}
@@ -127,23 +129,23 @@ export default function AdminConversationThreadPage() {
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         {conv.status === 'CLOSED' ? (
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => setClosed(false)}>
-            Redeschide conversația
+            {t('Redeschide conversația')}
           </button>
         ) : (
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => setClosed(true)}>
-            Închide conversația
+            {t('Închide conversația')}
           </button>
         )}
       </div>
 
       {conv.status !== 'CLOSED' ? (
       <>
-      <h2 style={{ marginTop: 16 }}>Răspunde</h2>
+      <h2 style={{ marginTop: 16 }}>{t('Răspunde')}</h2>
       <form onSubmit={send} className="card stack" style={{ gap: 10 }}>
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} required placeholder="Scrieți un mesaj…" style={textareaStyle} />
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} required placeholder={t('Scrieți un mesaj…')} style={textareaStyle} />
         <AttachmentPicker files={attachments} onChange={setAttachments} />
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? 'Se trimite…' : 'Trimite'}
+          {busy ? t('Se trimite…') : t('Trimite')}
         </button>
       </form>
       </>

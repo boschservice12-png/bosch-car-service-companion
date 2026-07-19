@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { api, serviceRecordDocumentHref } from '@/lib/api';
 import { ApiError, type ServiceRecord, type ServiceRecordInput } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { ServiceRecordForm } from './ServiceRecordForm';
 import { ServiceRecordDocAttach } from './ServiceRecordDocAttach';
 
@@ -12,6 +13,7 @@ function formatMoney(ron: number): string {
 
 /** Card de administrare pentru o înregistrare de service (ciornă sau publicată). */
 export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceRecord; onChanged: () => void }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
       after?.();
       onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : 'Operațiune eșuată.');
+      setError(err instanceof ApiError ? err.problem.title : t('Operațiune eșuată.'));
     } finally {
       setBusy(false);
     }
@@ -38,8 +40,8 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
   if (editing) {
     return (
       <div className="stack" style={{ gap: 6 }}>
-        <strong>Editează ciorna</strong>
-        <ServiceRecordForm initial={record} submitLabel="Salvează" busy={busy} onSubmit={save} onCancel={() => setEditing(false)} />
+        <strong>{t('Editează ciorna')}</strong>
+        <ServiceRecordForm initial={record} submitLabel={t('Salvează')} busy={busy} onSubmit={save} onCancel={() => setEditing(false)} />
         {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
       </div>
     );
@@ -51,51 +53,51 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
         <div>
           <strong>{record.serviceDate ?? '—'}</strong>
           <div className="muted" style={{ fontSize: '0.82rem' }}>
-            {record.workType ?? 'Lucrare'} · {record.odometerKm != null ? `${record.odometerKm} km` : '—'}
+            {record.workType ?? t('Lucrare')} · {record.odometerKm != null ? `${record.odometerKm} km` : '—'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <span className={`badge ${isDraft ? 'badge-warn' : record.status === 'CORRECTED' ? 'badge-unknown' : 'badge-ok'}`}>
-            <span aria-hidden>{isDraft ? '✎' : '✓'}</span> {record.statusLabel}
+            <span aria-hidden>{isDraft ? '✎' : '✓'}</span> {t(record.statusLabel)}
           </span>
-          {record.correctionOfId ? <span className="badge badge-unknown">corecție</span> : null}
-          {record.corrected ? <span className="badge badge-unknown">corectat</span> : null}
+          {record.correctionOfId ? <span className="badge badge-unknown">{t('corecție')}</span> : null}
+          {record.corrected ? <span className="badge badge-unknown">{t('corectat')}</span> : null}
         </div>
       </div>
 
       {record.workDescription ? <p style={{ margin: 0 }}>{record.workDescription}</p> : null}
       {record.partsSummary ? (
         <div style={{ fontSize: '0.9rem' }}>
-          <span className="muted">Piese:</span> {record.partsSummary}
+          <span className="muted">{t('Piese:')}</span> {record.partsSummary}
         </div>
       ) : null}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.9rem' }}>
         <span>
-          <span className="muted">Manoperă:</span> {formatMoney(record.laborCost)}
+          <span className="muted">{t('Manoperă:')}</span> {formatMoney(record.laborCost)}
         </span>
         <span>
-          <strong>Total:</strong> {formatMoney(record.totalAmount)}
+          <strong>{t('Total:')}</strong> {formatMoney(record.totalAmount)}
         </span>
         {record.warranty ? (
           <span>
-            <span className="muted">Garanție:</span> {record.warranty}
+            <span className="muted">{t('Garanție:')}</span> {record.warranty}
           </span>
         ) : null}
       </div>
 
       {record.documents.length > 0 ? (
         <div className="stack" style={{ gap: 4 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>Documente:</span>
+          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('Documente:')}</span>
           {record.documents.map((d) => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span aria-hidden>📎</span>
-              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? 'document'}</span>
+              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
               {d.servable ? (
                 <a className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px' }} href={serviceRecordDocumentHref(record.id, d.id)} target="_blank" rel="noopener">
-                  Descarcă
+                  {t('Descarcă')}
                 </a>
               ) : (
-                <span className="muted" style={{ fontSize: '0.8rem' }}>în curs de scanare</span>
+                <span className="muted" style={{ fontSize: '0.8rem' }}>{t('în curs de scanare')}</span>
               )}
             </div>
           ))}
@@ -108,18 +110,18 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
         {isDraft ? (
           <>
             <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 12px' }} disabled={busy} onClick={() => setEditing(true)}>
-              Editează
+              {t('Editează')}
             </button>
             <button className="btn" style={{ width: 'auto', padding: '6px 12px' }} disabled={busy} onClick={() => run(() => api.publishServiceRecord(record.id))}>
-              {busy ? '…' : 'Publică'}
+              {busy ? '…' : t('Publică')}
             </button>
           </>
         ) : (
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 12px' }} disabled={busy} onClick={() => {
-              const reason = window.prompt('Motivul corecției (obligatoriu):');
+              const reason = window.prompt(t('Motivul corecției (obligatoriu):'));
               if (reason && reason.trim() !== '') run(() => api.correctServiceRecord(record.id, reason.trim()));
             }}>
-            {busy ? '…' : 'Creează corecție'}
+            {busy ? '…' : t('Creează corecție')}
           </button>
         )}
       </div>

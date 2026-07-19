@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type QuoteRequest, type QuoteRequestStatus } from '@/lib/types';
 import { Loading, ErrorState } from '@/components/states';
+import { useT } from '@/lib/i18n';
 
 const STATUS_CLASS: Record<QuoteRequestStatus, string> = {
   DRAFT: 'badge-unknown',
@@ -26,6 +27,7 @@ const ACTIONS: { status: string; label: string }[] = [
 
 export default function AdminQuoteRequestDetailPage() {
   const router = useRouter();
+  const t = useT();
   const params = useParams<{ id: string }>();
   const [req, setReq] = useState<QuoteRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,38 +76,38 @@ export default function AdminQuoteRequestDetailPage() {
     }
   }
 
-  if (error && req === null) return <ErrorState message={error} onRetry={load} />;
+  if (error && req === null) return <ErrorState message={t(error)} onRetry={load} />;
   if (req === null) return <Loading rows={4} />;
 
   return (
     <>
       <Link href="/oferte" className="muted">
-        ← Cereri ofertă
+        {t('← Cereri ofertă')}
       </Link>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <h1 style={{ marginBottom: 4 }}>Cerere de ofertă</h1>
-        <span className={`badge ${STATUS_CLASS[req.status]}`}>{req.statusLabel}</span>
+        <h1 style={{ marginBottom: 4 }}>{t('Cerere de ofertă')}</h1>
+        <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
       </div>
       <div className="muted" style={{ fontSize: '0.85rem', marginBottom: 12 }}>
         {req.customerName ?? '—'}
         {req.vehiclePlate ? ` · ${req.vehiclePlate}` : ''} · {new Date(req.createdAt).toLocaleString('ro-RO')}
       </div>
 
-      {error ? <div className="alert alert-err" role="alert">{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <div className="card stack" style={{ gap: 6 }}>
-        {req.mileage != null ? <div><span className="muted">Kilometraj:</span> {req.mileage.toLocaleString('ro-RO')} km</div> : null}
-        <div><span className="muted">Problemă:</span> {req.symptomDescription}</div>
-        {req.occurrenceConditions ? <div><span className="muted">Când apare:</span> {req.occurrenceConditions}</div> : null}
-        <div><span className="muted">Conducibilă:</span> {req.vehicleDrivable ? 'Da' : 'Nu'}</div>
-        {req.warningLights ? <div><span className="muted">Martori:</span> {req.warningLights}</div> : null}
-        {req.preferredContactMethod ? <div><span className="muted">Contact preferat:</span> {req.preferredContactMethod}</div> : null}
-        {req.preferredInterval ? <div><span className="muted">Interval:</span> {req.preferredInterval}</div> : null}
+        {req.mileage != null ? <div><span className="muted">{t('Kilometraj:')}</span> {req.mileage.toLocaleString('ro-RO')} km</div> : null}
+        <div><span className="muted">{t('Problemă:')}</span> {req.symptomDescription}</div>
+        {req.occurrenceConditions ? <div><span className="muted">{t('Când apare:')}</span> {req.occurrenceConditions}</div> : null}
+        <div><span className="muted">{t('Conducibilă:')}</span> {req.vehicleDrivable ? t('Da') : t('Nu')}</div>
+        {req.warningLights ? <div><span className="muted">{t('Martori:')}</span> {req.warningLights}</div> : null}
+        {req.preferredContactMethod ? <div><span className="muted">{t('Contact preferat:')}</span> {req.preferredContactMethod}</div> : null}
+        {req.preferredInterval ? <div><span className="muted">{t('Interval:')}</span> {req.preferredInterval}</div> : null}
       </div>
 
       {req.responses.length > 0 ? (
         <>
-          <h2 style={{ marginTop: 16 }}>Răspunsuri trimise</h2>
+          <h2 style={{ marginTop: 16 }}>{t('Răspunsuri trimise')}</h2>
           <div className="stack" style={{ gap: 10 }}>
             {req.responses.map((r) => (
               <div key={r.id} className="card">
@@ -119,29 +121,29 @@ export default function AdminQuoteRequestDetailPage() {
         </>
       ) : null}
 
-      <h2 style={{ marginTop: 16 }}>Acțiuni</h2>
+      <h2 style={{ marginTop: 16 }}>{t('Acțiuni')}</h2>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {ACTIONS.map((a) => (
           <button key={a.status} className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => void setStatus(a.status)}>
-            {a.label}
+            {t(a.label)}
           </button>
         ))}
       </div>
 
       {req.status === 'IN_REVIEW' ? (
         <>
-          <h2 style={{ marginTop: 16 }}>Trimite oferta</h2>
+          <h2 style={{ marginTop: 16 }}>{t('Trimite oferta')}</h2>
           <form onSubmit={respond} className="card stack" style={{ gap: 10 }}>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={3}
               required
-              placeholder="Estimare, piese, manoperă, termen…"
+              placeholder={t('Estimare, piese, manoperă, termen…')}
               style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: '1rem', background: '#fff' }}
             />
             <button className="btn" type="submit" disabled={busy}>
-              {busy ? 'Se trimite…' : 'Trimite oferta (REPLIED)'}
+              {busy ? t('Se trimite…') : t('Trimite oferta (REPLIED)')}
             </button>
           </form>
         </>

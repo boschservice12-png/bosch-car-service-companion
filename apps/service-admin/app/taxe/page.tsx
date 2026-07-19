@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type TaxItem, type PaymentStatus } from '@/lib/types';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
+import { useT } from '@/lib/i18n';
 
 const STATUS_CLASS: Record<PaymentStatus, string> = {
   UNPAID: 'badge-warn',
@@ -20,6 +21,7 @@ function money(ron: number): string {
 
 export default function AdminTaxListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<TaxItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,28 +44,28 @@ export default function AdminTaxListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Taxe și impozite</h1>
+        <h1>{t('Taxe și impozite')}</h1>
         <Link href="/" className="muted">
-          Vehicule →
+          {t('Vehicule →')}
         </Link>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
-      {!error && items?.length === 0 ? <EmptyState title="Nicio taxă înregistrată" /> : null}
+      {!error && items?.length === 0 ? <EmptyState title={t('Nicio taxă înregistrată')} /> : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
-          {items.map((t) => (
-            <Link key={t.id} href={`/taxe/${t.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+          {items.map((item) => (
+            <Link key={item.id} href={`/taxe/${item.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
                 <div>
-                  <strong>{t.typeLabel} · {t.year}</strong>
+                  <strong>{t(item.typeLabel)} · {item.year}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {t.customerName ?? '—'} · {money(t.amount)}
+                    {item.customerName ?? '—'} · {money(item.amount)}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[t.status]}`}>{t.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[item.status]}`}>{t(item.statusLabel)}</span>
               </div>
             </Link>
           ))}

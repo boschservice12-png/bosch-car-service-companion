@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type MobilityRequest, type MobilityStatus } from '@/lib/types';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
+import { useT } from '@/lib/i18n';
 
 const STATUS_CLASS: Record<MobilityStatus, string> = {
   SUBMITTED: 'badge-warn',
@@ -19,6 +20,7 @@ const STATUS_CLASS: Record<MobilityStatus, string> = {
 
 export default function AdminMobilityListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<MobilityRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,15 +43,15 @@ export default function AdminMobilityListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Mobilitate</h1>
+        <h1>{t('Mobilitate')}</h1>
         <Link href="/" className="muted">
-          Vehicule →
+          {t('Vehicule →')}
         </Link>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
-      {!error && items?.length === 0 ? <EmptyState title="Nicio solicitare de mobilitate" /> : null}
+      {!error && items?.length === 0 ? <EmptyState title={t('Nicio solicitare de mobilitate')} /> : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
@@ -57,13 +59,13 @@ export default function AdminMobilityListPage() {
             <Link key={m.id} href={`/mobilitate/${m.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
                 <div>
-                  <strong>{m.typeLabel}</strong>
+                  <strong>{t(m.typeLabel)}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
                     {m.customerName ?? '—'}
-                    {m.preferredDate ? ` · pentru ${m.preferredDate}` : ''}
+                    {m.preferredDate ? t(' · pentru {date}', { date: m.preferredDate }) : ''}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[m.status]}`}>{m.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[m.status]}`}>{t(m.statusLabel)}</span>
               </div>
             </Link>
           ))}

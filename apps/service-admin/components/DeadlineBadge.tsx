@@ -17,9 +17,12 @@ export function DeadlineBadge({ state, label }: { state: DeadlineState; label: s
   );
 }
 
-export function daysLeftText(daysLeft: number | null): string {
-  if (daysLeft === null) return 'fără dată';
-  if (daysLeft < 0) return `expirat de ${Math.abs(daysLeft)} zile`;
-  if (daysLeft === 0) return 'expiră azi';
-  return `${daysLeft} zile rămase`;
+export function daysLeftText(
+  t: (s: string, vars?: Record<string, string | number>) => string,
+  daysLeft: number | null,
+): string {
+  if (daysLeft === null) return t('fără dată');
+  if (daysLeft < 0) return t('expirat de {n} zile', { n: Math.abs(daysLeft) });
+  if (daysLeft === 0) return t('expiră azi');
+  return t('{n} zile rămase', { n: daysLeft });
 }

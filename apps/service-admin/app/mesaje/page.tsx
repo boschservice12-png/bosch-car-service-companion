@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Conversation, type ConversationStatus } from '@/lib/types';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
+import { useT } from '@/lib/i18n';
 
 const STATUS_CLASS: Record<ConversationStatus, string> = {
   OPEN: 'badge-unknown',
@@ -16,6 +17,7 @@ const STATUS_CLASS: Record<ConversationStatus, string> = {
 
 export default function AdminConversationsPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<Conversation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,15 +40,15 @@ export default function AdminConversationsPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Mesaje &amp; oferte</h1>
+        <h1>{t('Mesaje & oferte')}</h1>
         <Link href="/" className="muted">
-          Vehicule →
+          {t('Vehicule →')}
         </Link>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={3} /> : null}
-      {!error && items?.length === 0 ? <EmptyState title="Nicio conversație" /> : null}
+      {!error && items?.length === 0 ? <EmptyState title={t('Nicio conversație')} /> : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
@@ -61,7 +63,7 @@ export default function AdminConversationsPage() {
                     {c.lastMessagePreview ? ` · ${c.lastMessagePreview}` : ''}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[c.status]}`}>{c.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[c.status]}`}>{t(c.statusLabel)}</span>
               </div>
             </Link>
           ))}

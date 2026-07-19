@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { ApiError, UPLOAD_ACCEPT, UPLOAD_MAX_BYTES, type Deadline } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 
 const ACCEPT_ATTR = Object.values(UPLOAD_ACCEPT).join(',');
 const ALLOWED_MIMES = Object.keys(UPLOAD_ACCEPT);
@@ -13,14 +14,16 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+type Translator = (s: string, vars?: Record<string, string | number>) => string;
+
 /** Validare client-side (tip + dimensiune) înainte de upload — oglindește backend-ul. */
-function validate(file: File): string | null {
-  if (file.size <= 0) return 'Fișier gol.';
+function validate(t: Translator, file: File): string | null {
+  if (file.size <= 0) return t('Fișier gol.');
   if (file.size > UPLOAD_MAX_BYTES) {
-    return `Fișierul depășește limita de ${Math.round(UPLOAD_MAX_BYTES / (1024 * 1024))} MB.`;
+    return t('Fișierul depășește limita de {n} MB.', { n: Math.round(UPLOAD_MAX_BYTES / (1024 * 1024)) });
   }
   if (file.type !== '' && !ALLOWED_MIMES.includes(file.type)) {
-    return 'Tip de fișier nepermis. Acceptăm imagini (JPG, PNG, WEBP) și PDF.';
+    return t('Tip de fișier nepermis. Acceptăm imagini (JPG, PNG, WEBP) și PDF.');
   }
   return null;
 }
@@ -31,6 +34,7 @@ function validate(file: File): string | null {
  * temporar semnat, cu autorizare la nivel de obiect pe server.
  */
 export function DocumentControl({ deadline, onChange }: { deadline: Deadline; onChange: () => void }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +45,7 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
     e.target.value = '';
     if (!file) return;
 
-    const problem = validate(file);
+    const problem = validate(t, file);
     if (problem) {
       setError(problem);
       return;
@@ -54,7 +58,7 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
       await api.attachDocument(deadline.id, uploaded.id);
       onChange();
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : 'Încărcare eșuată.');
+      setError(err instanceof ApiError ? err.problem.title : t('Încărcare eșuată.'));
     } finally {
       setBusy(false);
     }
@@ -68,7 +72,7 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
       const { url } = await api.documentDownloadUrl(doc.id);
       window.open(url, '_blank', 'noopener');
     } catch (err) {
-      setError(err instanceof ApiError ? err.problem.title : 'Descărcare eșuată.');
+      setError(err instanceof ApiError ? err.problem.title : t('Descărcare eșuată.'));
     } finally {
       setBusy(false);
     }
@@ -79,18 +83,18 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
       {doc ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span aria-hidden>📎</span>
-          <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{doc.originalName ?? 'document'}</span>
+          <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{doc.originalName ?? t('document')}</span>
           <span className="muted" style={{ fontSize: '0.78rem' }}>
             {formatSize(doc.sizeBytes)}
           </span>
           {doc.scanStatus === 'PENDING' ? (
             <span className="badge badge-unknown">
-              <span aria-hidden>•</span> în curs de scanare
+              <span aria-hidden>•</span> {t('în curs de scanare')}
             </span>
           ) : null}
           {doc.scanStatus === 'INFECTED' ? (
             <span className="badge badge-err">
-              <span aria-hidden>×</span> respins (malware)
+              <span aria-hidden>×</span> {t('respins (malware)')}
             </span>
           ) : null}
           {doc.servable ? (
@@ -100,13 +104,13 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
               disabled={busy}
               onClick={download}
             >
-              {busy ? '…' : 'Descarcă'}
+              {busy ? '…' : t('Descarcă')}
             </button>
           ) : null}
         </div>
       ) : (
         <span className="muted" style={{ fontSize: '0.85rem' }}>
-          Niciun document ataşat.
+          {t('Niciun document ataşat.')}
         </span>
       )}
 
@@ -125,10 +129,10 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          {busy ? 'Se încarcă…' : doc ? 'Înlocuieşte documentul' : '📎 Ataşează document'}
+          {busy ? t('Se încarcă…') : doc ? t('Înlocuieşte documentul') : t('📎 Ataşează document')}
         </button>
         <span className="muted" style={{ fontSize: '0.75rem', marginLeft: 8 }}>
-          JPG, PNG, WEBP sau PDF · max {Math.round(UPLOAD_MAX_BYTES / (1024 * 1024))} MB
+          {t('JPG, PNG, WEBP sau PDF · max {n} MB', { n: Math.round(UPLOAD_MAX_BYTES / (1024 * 1024)) })}
         </span>
       </div>
 

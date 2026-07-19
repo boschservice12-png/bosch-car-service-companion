@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type QuoteRequest, type QuoteRequestStatus } from '@/lib/types';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
+import { useT } from '@/lib/i18n';
 
 const STATUS_CLASS: Record<QuoteRequestStatus, string> = {
   DRAFT: 'badge-unknown',
@@ -20,6 +21,7 @@ const STATUS_CLASS: Record<QuoteRequestStatus, string> = {
 
 export default function AdminQuoteRequestsPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<QuoteRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,12 +43,12 @@ export default function AdminQuoteRequestsPage() {
 
   return (
     <>
-      <h1>Cereri ofertă</h1>
-      <p className="muted">Cererile de ofertă ale clienților (ciornele nu apar aici).</p>
+      <h1>{t('Cereri ofertă')}</h1>
+      <p className="muted">{t('Cererile de ofertă ale clienților (ciornele nu apar aici).')}</p>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={3} /> : null}
-      {!error && items?.length === 0 ? <EmptyState title="Nicio cerere de ofertă" hint="Cererile trimise de clienți apar aici." /> : null}
+      {!error && items?.length === 0 ? <EmptyState title={t('Nicio cerere de ofertă')} hint={t('Cererile trimise de clienți apar aici.')} /> : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
@@ -62,7 +64,7 @@ export default function AdminQuoteRequestsPage() {
                     {q.vehiclePlate ? ` · ${q.vehiclePlate}` : ''} · {new Date(q.createdAt).toLocaleDateString('ro-RO')}
                   </span>
                 </div>
-                <span className={`badge ${STATUS_CLASS[q.status]}`}>{q.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[q.status]}`}>{t(q.statusLabel)}</span>
               </div>
             </Link>
           ))}

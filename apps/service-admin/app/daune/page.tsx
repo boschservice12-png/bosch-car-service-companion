@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type DamageClaim, type DamageClaimStatus } from '@/lib/types';
 import { Loading, EmptyState, ErrorState } from '@/components/states';
+import { useT } from '@/lib/i18n';
 
 const STATUS_CLASS: Record<DamageClaimStatus, string> = {
   SUBMITTED: 'badge-warn',
@@ -18,6 +19,7 @@ const STATUS_CLASS: Record<DamageClaimStatus, string> = {
 
 export default function AdminDamageClaimListPage() {
   const router = useRouter();
+  const t = useT();
   const [items, setItems] = useState<DamageClaim[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,15 +42,15 @@ export default function AdminDamageClaimListPage() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Dosare de daună</h1>
+        <h1>{t('Dosare de daună')}</h1>
         <Link href="/" className="muted">
-          Vehicule →
+          {t('Vehicule →')}
         </Link>
       </div>
 
-      {error ? <ErrorState message={error} onRetry={load} /> : null}
+      {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
-      {!error && items?.length === 0 ? <EmptyState title="Niciun dosar de daună" /> : null}
+      {!error && items?.length === 0 ? <EmptyState title={t('Niciun dosar de daună')} /> : null}
 
       {items && items.length > 0 ? (
         <div className="stack" style={{ gap: 10 }}>
@@ -56,14 +58,14 @@ export default function AdminDamageClaimListPage() {
             <Link key={c.id} href={`/daune/${c.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div className="list-row">
                 <div>
-                  <strong>{c.insurer ?? 'Dosar de daună'}</strong>
+                  <strong>{c.insurer ?? t('Dosar de daună')}</strong>
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
                     {c.customerName ?? '—'}
                     {c.policyNumber ? ` · ${c.policyNumber}` : ''}
                     {c.incidentDate ? ` · ${c.incidentDate}` : ''}
                   </div>
                 </div>
-                <span className={`badge ${STATUS_CLASS[c.status]}`}>{c.statusLabel}</span>
+                <span className={`badge ${STATUS_CLASS[c.status]}`}>{t(c.statusLabel)}</span>
               </div>
             </Link>
           ))}
