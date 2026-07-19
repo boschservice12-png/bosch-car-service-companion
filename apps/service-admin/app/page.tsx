@@ -16,7 +16,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<AdminVehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
+  const [qName, setQName] = useState('');
+  const [qPlate, setQPlate] = useState('');
+  const [qVin, setQVin] = useState('');
 
   const load = useCallback(() => {
     setError(null);
@@ -78,33 +80,75 @@ export default function DashboardPage() {
 
       {vehicles && vehicles.length > 0
         ? (() => {
-            const needle = norm(query);
-            const filtered = needle
-              ? vehicles.filter((v) =>
-                  norm([v.plateNumber, v.vin, v.ownerName ?? '', v.make ?? '', v.model ?? ''].join(' ')).includes(needle),
+            const nName = norm(qName);
+            const nPlate = norm(qPlate);
+            const nVin = norm(qVin);
+            const searching = nName !== '' || nPlate !== '' || nVin !== '';
+            const filtered = searching
+              ? vehicles.filter(
+                  (v) =>
+                    (nName === '' || norm(v.ownerName ?? '').includes(nName)) &&
+                    (nPlate === '' || norm(v.plateNumber).includes(nPlate)) &&
+                    (nVin === '' || norm(v.vin).includes(nVin)),
                 )
               : vehicles;
             return (
               <>
-                <div className="field" style={{ marginTop: 12 }}>
-                  <label htmlFor="q">Caută vehiculul</label>
-                  <input
-                    id="q"
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Nume proprietar, nr. înmatriculare sau VIN…"
-                  />
-                  {needle ? (
-                    <span className="muted" style={{ fontSize: '0.82rem' }}>
-                      {filtered.length} din {vehicles.length} vehicule
-                    </span>
+                <div className="card" style={{ marginTop: 12 }}>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <div className="field" style={{ flex: '1 1 180px', margin: 0 }}>
+                      <label htmlFor="qName">Nume proprietar</label>
+                      <input
+                        id="qName"
+                        type="search"
+                        value={qName}
+                        onChange={(e) => setQName(e.target.value)}
+                        placeholder="ex. Popescu"
+                      />
+                    </div>
+                    <div className="field" style={{ flex: '1 1 160px', margin: 0 }}>
+                      <label htmlFor="qPlate">Nr. înmatriculare</label>
+                      <input
+                        id="qPlate"
+                        type="search"
+                        value={qPlate}
+                        onChange={(e) => setQPlate(e.target.value)}
+                        placeholder="ex. MS 01 POP"
+                      />
+                    </div>
+                    <div className="field" style={{ flex: '1 1 180px', margin: 0 }}>
+                      <label htmlFor="qVin">VIN</label>
+                      <input
+                        id="qVin"
+                        type="search"
+                        value={qVin}
+                        onChange={(e) => setQVin(e.target.value)}
+                        placeholder="ex. WBA3A5…"
+                      />
+                    </div>
+                  </div>
+                  {searching ? (
+                    <div className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>
+                      {filtered.length} din {vehicles.length} vehicule ·{' '}
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ width: 'auto', padding: '2px 8px', fontSize: '0.82rem' }}
+                        onClick={() => {
+                          setQName('');
+                          setQPlate('');
+                          setQVin('');
+                        }}
+                      >
+                        Șterge filtrele
+                      </button>
+                    </div>
                   ) : null}
                 </div>
                 {filtered.length === 0 ? (
                   <EmptyState
                     title="Niciun vehicul găsit"
-                    hint={`Nimic pentru „${query.trim()}" — căutați după numele proprietarului, numărul de înmatriculare sau VIN.`}
+                    hint="Niciun rezultat pentru filtrele introduse — căutați după numele proprietarului, numărul de înmatriculare sau VIN."
                   />
                 ) : (
                   <div className="card">
@@ -113,9 +157,10 @@ export default function DashboardPage() {
                         <div>
                           <strong>{v.plateNumber}</strong>
                           <div className="muted" style={{ fontSize: '0.85rem' }}>
-                            {[v.make, v.model, v.year].filter(Boolean).join(' ') || v.vin}
+                            {[v.make, v.model, v.year].filter(Boolean).join(' ')}
                             {v.ownerName ? ` · ${v.ownerName}` : ''}
                           </div>
+                          <div className="muted" style={{ fontSize: '0.78rem' }}>VIN: {v.vin}</div>
                         </div>
                         <Link href={`/vehicule/${v.id}`}>Scadențe →</Link>
                       </div>
