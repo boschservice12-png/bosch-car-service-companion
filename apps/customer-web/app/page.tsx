@@ -41,6 +41,9 @@ export default function HomePage() {
 
       <h2>Servicii</h2>
       <div className="stack">
+        <Link className="btn btn-ghost" href="/alerte">
+          🔔 Alerte (ITP · RCA · rovinietă)
+        </Link>
         <Link className="btn btn-ghost" href="/oferte">
           🧰 Cere ofertă
         </Link>
