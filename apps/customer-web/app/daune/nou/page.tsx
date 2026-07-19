@@ -65,6 +65,21 @@ export default function NewDamageClaimPage() {
           {error}
         </div>
       ) : null}
+      <div className="card stack" style={{ gap: 8 }}>
+        <strong>📋 Ați avut un accident fără victime?</strong>
+        <span className="muted" style={{ fontSize: '0.85rem' }}>
+          Constatarea amiabilă se completează pe platforma oficială — aplicația doar vă conectează.
+        </span>
+        <a
+          className="btn btn-ghost"
+          href="https://amiabila.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textAlign: 'center', textDecoration: 'none' }}
+        >
+          Deschide amiabila.com ↗
+        </a>
+      </div>
       <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
         <div className="field">
           <label htmlFor="incidentDate">Data evenimentului</label>
