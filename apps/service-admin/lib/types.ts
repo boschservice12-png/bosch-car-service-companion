@@ -3,6 +3,10 @@ export interface Me {
   email: string;
   role: 'CLIENT' | 'SERVICE_ADMIN';
   name: string | null;
+  /** P0-06: 2FA activ pe cont. */
+  totpEnabled?: boolean;
+  /** P0-06: sesiunea așteaptă al doilea factor (login neterminat). */
+  requiresOtp?: boolean;
 }
 
 export interface AdminVehicle {

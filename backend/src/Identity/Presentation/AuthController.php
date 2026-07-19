@@ -7,6 +7,7 @@ namespace App\Identity\Presentation;
 use App\Identity\Domain\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class AuthController extends AbstractController
@@ -29,12 +30,15 @@ final class AuthController extends AbstractController
     }
 
     #[Route('/api/me', name: 'api_me', methods: ['GET'])]
-    public function me(): JsonResponse
+    public function me(Request $request): JsonResponse
     {
         $user = $this->getUser();
         \assert($user instanceof User);
 
         $profile = $user->customerProfile();
+        $requiresOtp = $user->isServiceAdmin()
+            && $user->totpEnabled()
+            && (!$request->hasSession() || $request->getSession()->get(TwoFactorController::SESSION_VERIFIED) !== true);
 
         return $this->json([
             'id' => (string) $user->id(),
@@ -42,6 +46,7 @@ final class AuthController extends AbstractController
             'role' => $user->isServiceAdmin() ? 'SERVICE_ADMIN' : 'CLIENT',
             'name' => $profile?->fullName() ?: null,
             'totpEnabled' => $user->totpEnabled(),
+            'requiresOtp' => $requiresOtp,
         ]);
     }
 }

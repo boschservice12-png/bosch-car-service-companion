@@ -46,6 +46,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     #[ORM\Column]
     private bool $totpEnabled = false;
 
+    /**
+     * Coduri de rezervă 2FA — DOAR hash-uri (password_hash); fiecare cod e
+     * de unică folosință. Textul în clar se afișează o singură dată, la înrolare.
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $totpRecoveryCodes = null;
+
     #[ORM\Column]
     private bool $isActive = true;
 
@@ -140,6 +149,61 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     public function totpEnabled(): bool
     {
         return $this->totpEnabled;
+    }
+
+    public function totpSecret(): ?string
+    {
+        return $this->totpSecret;
+    }
+
+    /** Secret în așteptare (înrolare începută); 2FA devine activ abia la confirmare. */
+    public function setPendingTotpSecret(string $secret): void
+    {
+        if ($this->totpEnabled) {
+            throw new \DomainException('2FA este deja activ — dezactivați-l înainte de o nouă înrolare.');
+        }
+        $this->totpSecret = $secret;
+    }
+
+    /** @param list<string> $recoveryCodeHashes */
+    public function enableTotp(array $recoveryCodeHashes): void
+    {
+        if ($this->totpSecret === null) {
+            throw new \LogicException('Nu există un secret TOTP în așteptare.');
+        }
+        $this->totpEnabled = true;
+        $this->totpRecoveryCodes = $recoveryCodeHashes;
+    }
+
+    public function disableTotp(): void
+    {
+        $this->totpSecret = null;
+        $this->totpEnabled = false;
+        $this->totpRecoveryCodes = null;
+    }
+
+    /**
+     * Consumă un cod de rezervă (de unică folosință): la potrivire, hash-ul
+     * este eliminat definitiv din listă.
+     */
+    public function consumeRecoveryCode(string $plainCode): bool
+    {
+        foreach ($this->totpRecoveryCodes ?? [] as $index => $hash) {
+            if (password_verify($plainCode, $hash)) {
+                $remaining = $this->totpRecoveryCodes;
+                unset($remaining[$index]);
+                $this->totpRecoveryCodes = array_values($remaining);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function remainingRecoveryCodes(): int
+    {
+        return \count($this->totpRecoveryCodes ?? []);
     }
 
     #[\Deprecated]

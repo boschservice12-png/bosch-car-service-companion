@@ -48,13 +48,11 @@ final class CreateUserCommand extends Command
         $password = (string) $input->getArgument('password');
         $isAdmin = (bool) $input->getOption('admin');
 
-        // 2FA-ul TOTP pentru admin nu este încă activ (vezi ADR-0002). Până la
-        // livrarea gate-ului, crearea de conturi admin în producție este blocată,
-        // pentru a nu exista conturi privilegiate protejate doar prin parolă.
+        // ADR-0002 / P0-06: gate-ul 2FA este livrat. În producție, un admin nou
+        // NU poate folosi /api/admin până nu se înrolează (TwoFactorGuardListener),
+        // deci crearea contului e permisă — dar avertizăm explicit.
         if ($isAdmin && $this->environment === 'prod') {
-            $io->error('Crearea de conturi admin în producție este blocată până la activarea 2FA (ADR-0002).');
-
-            return Command::FAILURE;
+            $io->warning('Contul de admin trebuie să activeze 2FA la primul login — până atunci rutele /api/admin sunt blocate.');
         }
 
         if (strlen($password) < 8) {

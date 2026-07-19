@@ -70,6 +70,9 @@ export default function DashboardPage() {
           <Link href="/taxe" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
             {t('🧾 Taxe')}
           </Link>
+          <Link href="/securitate" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+            {t('🔐 Securitate')}
+          </Link>
           <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} onClick={logout}>
             {t('Ieșire')}
           </button>

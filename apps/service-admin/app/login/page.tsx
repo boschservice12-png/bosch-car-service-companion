@@ -13,6 +13,10 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // P0-06: al doilea pas — cod TOTP sau cod de rezervă.
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,12 +29,80 @@ export default function AdminLoginPage() {
         await api.logout().catch(() => undefined);
         return;
       }
+      if (res.requiresOtp) {
+        setOtpStep(true);
+        return;
+      }
       router.replace('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.problem.title : 'A apărut o eroare.');
     } finally {
       setBusy(false);
     }
+  }
+
+  async function onVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await api.verify2fa(useRecovery ? { recoveryCode: otp } : { code: otp });
+      router.replace('/');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.problem.title : 'A apărut o eroare.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (otpStep) {
+    return (
+      <>
+        <h1>{t('Verificare în doi pași')}</h1>
+        <p className="muted">
+          {useRecovery
+            ? t('Introduceți unul dintre codurile de rezervă primite la activarea 2FA.')
+            : t('Introduceți codul din aplicația de autentificare (Google/Microsoft Authenticator).')}
+        </p>
+        {error ? (
+          <div className="alert alert-err" role="alert">
+            {t(error)}
+          </div>
+        ) : null}
+        <form onSubmit={onVerifyOtp} noValidate>
+          <div className="field">
+            <label htmlFor="otp">{useRecovery ? t('Cod de rezervă') : t('Cod din aplicație (6 cifre)')}</label>
+            <input
+              id="otp"
+              inputMode={useRecovery ? 'text' : 'numeric'}
+              autoComplete="one-time-code"
+              placeholder={useRecovery ? 'XXXX-XXXX' : '000000'}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              autoFocus
+              required
+            />
+          </div>
+          <button className="btn" type="submit" disabled={busy || otp.trim() === ''}>
+            {busy ? t('Se verifică…') : t('Verifică')}
+          </button>
+        </form>
+        <p style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ width: 'auto', padding: '6px 10px' }}
+            onClick={() => {
+              setUseRecovery((v) => !v);
+              setOtp('');
+              setError(null);
+            }}
+          >
+            {useRecovery ? t('Folosesc codul din aplicație') : t('Nu am telefonul — folosesc un cod de rezervă')}
+          </button>
+        </p>
+      </>
+    );
   }
 
   return (

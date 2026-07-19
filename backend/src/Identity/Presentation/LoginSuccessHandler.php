@@ -19,10 +19,17 @@ final class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
         $user = $token->getUser();
         \assert($user instanceof User);
 
+        // P0-06: fiecare login pornește NEVERIFICAT — altfel un flag rămas în
+        // sesiune (ex. re-login fără logout) ar sări peste pasul al doilea.
+        if ($request->hasSession()) {
+            $request->getSession()->remove(TwoFactorController::SESSION_VERIFIED);
+        }
+
         return new JsonResponse([
             'id' => (string) $user->id(),
             'email' => $user->getEmail(),
             'role' => $user->isServiceAdmin() ? 'SERVICE_ADMIN' : 'CLIENT',
+            'requiresOtp' => $user->isServiceAdmin() && $user->totpEnabled(),
         ]);
     }
 }

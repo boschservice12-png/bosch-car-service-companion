@@ -2,6 +2,11 @@ parameters:
     app.timezone: '%env(APP_TIMEZONE)%'
     app.cors_allow_origin: '%env(CORS_ALLOW_ORIGIN)%'
     app.storage_dir: '%kernel.project_dir%/var/storage'
+    # P0-06: în producție conturile admin fără 2FA nu pot folosi /api/admin
+    # (vezi when@prod mai jos + TwoFactorGuardListener).
+    admin_2fa_enforce_enrollment: false
+    # P0-05: valoare implicită dacă variabila de mediu lipsește.
+    env(CSRF_TRUSTED_ORIGINS): ''
 
 services:
     _defaults:
@@ -85,12 +90,16 @@ services:
         tags:
             - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
 
-# În producție, scanarea antimalware folosește ClamAV (fail-closed).
+    # P0-05: allowlist opțional de origini pentru cererile modificatoare.
+    App\Shared\Security\CsrfProtectionSubscriber:
+        arguments:
+            $trustedOrigins: '%env(CSRF_TRUSTED_ORIGINS)%'
+
+# În producție: ClamAV (fail-closed) + înrolare 2FA obligatorie pentru admini.
 when@prod:
+    parameters:
+        admin_2fa_enforce_enrollment: true
+
     services:
         App\Document\Domain\MalwareScanner:
             alias: App\Document\Infrastructure\ClamAvScanner
-
-    App\Shared\Security\CsrfProtectionSubscriber:
-        arguments:
-            $trustedOrigins: '%env(default::string:CSRF_TRUSTED_ORIGINS)%'

@@ -92,8 +92,33 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   me: () => request<Me>('/me'),
   login: (email: string, password: string) =>
-    request<{ id: string; role: string }>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+    request<{ id: string; role: string; requiresOtp?: boolean }>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
+
+  // ---- P0-06: autentificare în doi factori (TOTP) ----
+  setup2fa: (password: string) =>
+    request<{ secret: string; otpauthUri: string }>('/auth/2fa/setup', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
+
+  enable2fa: (code: string) =>
+    request<{ twoFactorEnabled: boolean; recoveryCodes: string[] }>('/auth/2fa/enable', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  verify2fa: (payload: { code?: string; recoveryCode?: string }) =>
+    request<{ verified: boolean; recoveryCodesLeft?: number }>('/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  disable2fa: (code: string) =>
+    request<{ twoFactorEnabled: boolean }>('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ code }) }),
 
   adminVehicles: () => request<AdminVehicle[]>('/admin/vehicles'),
 
