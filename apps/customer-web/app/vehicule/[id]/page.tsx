@@ -89,7 +89,7 @@ export default function VehicleDetailPage() {
                       rel="noopener noreferrer"
                       style={{ fontSize: '0.82rem' }}
                     >
-                      Programare ITP (RAR) ↗
+                      Verificare ITP (RAR) ↗
                     </a>
                   ) : null}
                 </div>

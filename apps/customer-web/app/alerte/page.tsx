@@ -84,13 +84,13 @@ export default function AlertsPage() {
                   <div className="muted" style={{ fontSize: '0.82rem' }}>
                     {deadline.expiresAt ?? '—'} · {daysLeftText(deadline.daysLeft)}
                     {deadline.verified ? ' · validat de service' : ''}
-                    {deadline.type === 'ITP' ? ' · programare RAR ↗' : ''}
+                    {deadline.type === 'ITP' ? ' · verificare ITP (RAR) ↗' : ''}
                   </div>
                 </div>
                 <DeadlineBadge state={deadline.state} label={deadline.stateLabel} />
               </div>
             );
-            // Alerta ITP deschide direct programarea RAR (prog.rarom.ro).
+            // Alerta ITP deschide direct verificarea ITP la RAR (prog.rarom.ro).
             return deadline.type === 'ITP' ? (
               <a
                 key={deadline.id}
