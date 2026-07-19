@@ -12,7 +12,13 @@ echo "→ Rulez migrațiile Doctrine..."
 php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
 
 echo "→ Populez datele demo (idempotent)..."
-php bin/console app:demo:seed || true
+# Fail-fast (P0-08): eșecul seed-ului OPREȘTE containerul — nu pornim
+# „verde" cu date lipsă. Doar DEMO_SEED_REQUIRED=false îl face opțional.
+if [ "${DEMO_SEED_REQUIRED:-true}" = "true" ]; then
+    php bin/console app:demo:seed
+else
+    php bin/console app:demo:seed || echo "⚠ Seed eșuat (ignorat: DEMO_SEED_REQUIRED=false)"
+fi
 
 echo "→ Pornesc backend-ul pe :8080"
 exec php -S 0.0.0.0:8080 -t public public/index.php

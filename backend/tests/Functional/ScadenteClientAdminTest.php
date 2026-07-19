@@ -29,7 +29,7 @@ final class ScadenteClientAdminTest extends WebTestCase
         // CLIENT: cont, vehicul, scadență ITP.
         $this->register($client, $clientEmail);
         $this->login($client, $clientEmail, 'Parola1234');
-        $client->request('POST', '/api/vehicles', server: $this->json(), content: json_encode(['vin' => 'WBA3A5C50EF123456', 'plateNumber' => 'MS20AAA']));
+        $client->request('POST', '/api/vehicles', server: $this->json(), content: json_encode(['vin' => 'WBA3A5C50EF'.str_pad((string) random_int(100000, 999999), 6, '0'), 'plateNumber' => 'MS20AAA']));
         self::assertResponseStatusCodeSame(201);
         $vehicleId = json_decode((string) $client->getResponse()->getContent(), true)['id'];
 

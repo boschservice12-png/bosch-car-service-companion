@@ -10,6 +10,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'vehicles')]
 #[ORM\Index(name: 'ix_vehicles_vin', columns: ['vin'])]
+#[ORM\UniqueConstraint(name: 'ux_vehicles_vin_active', columns: ['vin'], options: ['where' => '(deleted_at IS NULL)'])]
 class Vehicle
 {
     #[ORM\Id]

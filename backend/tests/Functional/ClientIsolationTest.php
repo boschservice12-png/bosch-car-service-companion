@@ -29,7 +29,7 @@ final class ClientIsolationTest extends WebTestCase
         // Client A: login + creează vehicul.
         $this->login($client, $emailA);
         $client->request('POST', '/api/vehicles', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
-            'vin' => 'WBA3A5C50EF123456',
+            'vin' => 'WBA3A5C50EF'.str_pad((string) random_int(100000, 999999), 6, '0'),
             'plateNumber' => 'MS01AAA',
             'make' => 'BMW',
         ]));

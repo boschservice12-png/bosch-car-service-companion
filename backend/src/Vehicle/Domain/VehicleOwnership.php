@@ -15,6 +15,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'vehicle_ownerships')]
 #[ORM\Index(name: 'ix_ownership_customer', columns: ['customer_profile_id'])]
+#[ORM\UniqueConstraint(name: 'ux_vehicle_active_owner', columns: ['vehicle_id'], options: ['where' => '(active = true)'])]
 class VehicleOwnership
 {
     #[ORM\Id]

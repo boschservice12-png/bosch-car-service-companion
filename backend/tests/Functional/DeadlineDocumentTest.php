@@ -40,7 +40,7 @@ final class DeadlineDocumentTest extends WebTestCase
         $this->login($client, $ownerEmail, 'Parola1234');
 
         $client->request('POST', '/api/vehicles', server: $this->json(), content: json_encode([
-            'vin' => 'WBA3A5C50EF123456', 'plateNumber' => 'MS30DOC',
+            'vin' => 'WBA3A5C50EF'.str_pad((string) random_int(100000, 999999), 6, '0'), 'plateNumber' => 'MS30DOC',
         ]));
         self::assertResponseStatusCodeSame(201);
         $vehicleId = json_decode((string) $client->getResponse()->getContent(), true)['id'];

@@ -31,7 +31,7 @@ final class VehicleAuthorizationTest extends KernelTestCase
         $otherUser = new User('other-'.uniqid().'@example.test');
         $other = new CustomerProfile($otherUser, 'Bogdan', 'Other');
 
-        $vehicle = new Vehicle(new Vin('WBA3A5C50EF123456'), 'MS01ABC');
+        $vehicle = new Vehicle(new Vin('WBA3A5C50EF'.str_pad((string) random_int(100000, 999999), 6, '0')), 'MS01ABC');
 
         $em->persist($ownerUser);
         $em->persist($owner);

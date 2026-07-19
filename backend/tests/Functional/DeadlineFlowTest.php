@@ -25,7 +25,7 @@ final class DeadlineFlowTest extends WebTestCase
 
         // Client A: vehicul + scadență ITP care expiră peste 10 zile.
         $this->login($client, $emailA);
-        $vehicleId = $this->createVehicle($client, 'WBA3A5C50EF123456', 'MS10AAA');
+        $vehicleId = $this->createVehicle($client, 'WBA3A5C50EF'.str_pad((string) random_int(100000, 999999), 6, '0'), 'MS10AAA');
 
         $soon = (new \DateTimeImmutable('+10 days'))->format('Y-m-d');
         $client->request('POST', "/api/vehicles/$vehicleId/deadlines", server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
@@ -65,7 +65,7 @@ final class DeadlineFlowTest extends WebTestCase
         $email = 'dv-'.uniqid().'@example.test';
         $this->register($client, $email);
         $this->login($client, $email);
-        $vehicleId = $this->createVehicle($client, 'WVWZZZ1KZAW123459', 'MS11BBB');
+        $vehicleId = $this->createVehicle($client, 'WVWZZZ1KZAW'.str_pad((string) random_int(100000, 999999), 6, '0'), 'MS11BBB');
 
         $client->request('POST', "/api/vehicles/$vehicleId/deadlines", server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
             'type' => 'ROAD_TAX',

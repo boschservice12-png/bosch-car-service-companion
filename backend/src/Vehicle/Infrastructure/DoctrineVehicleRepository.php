@@ -75,6 +75,16 @@ final class DoctrineVehicleRepository implements VehicleRepository
             ->getResult();
     }
 
+    public function findActiveByVin(string $vin): ?Vehicle
+    {
+        return $this->em->createQueryBuilder()
+            ->select('v')->from(Vehicle::class, 'v')
+            ->where('v.vin = :vin')->andWhere('v.deletedAt IS NULL')
+            ->setParameter('vin', $vin)
+            ->setMaxResults(1)
+            ->getQuery()->getOneOrNullResult();
+    }
+
     public function findActiveOwner(Vehicle $vehicle): ?CustomerProfile
     {
         $ownership = $this->em->createQueryBuilder()

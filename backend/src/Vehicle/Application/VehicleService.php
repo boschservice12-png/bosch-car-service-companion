@@ -27,7 +27,14 @@ final class VehicleService
      */
     public function create(CreateVehicleRequest $req, CustomerProfile $owner): Vehicle
     {
-        $vehicle = new Vehicle(new Vin($req->vin), $req->plateNumber);
+        $vin = new Vin($req->vin);
+        // Duplicat de business: același VIN activ nu poate exista de două ori
+        // (backstop la nivel de bază: ux_vehicles_vin_active). → 409 Conflict.
+        if ($this->vehicles->findActiveByVin($vin->value()) !== null) {
+            throw new \DomainException('Există deja un vehicul înregistrat cu acest VIN. Dacă vehiculul vă aparține, contactați service-ul.');
+        }
+
+        $vehicle = new Vehicle($vin, $req->plateNumber);
         $vehicle->updateDetails($req->make, $req->model, $req->year);
 
         $this->vehicles->save($vehicle);

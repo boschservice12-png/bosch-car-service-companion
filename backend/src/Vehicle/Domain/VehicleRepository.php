@@ -13,6 +13,9 @@ interface VehicleRepository
 
     public function get(Uuid $id): ?Vehicle;
 
+    /** Vehiculul activ (nešters) cu acest VIN, dacă există. */
+    public function findActiveByVin(string $vin): ?Vehicle;
+
     /** @return Vehicle[] */
     public function findActiveForCustomer(CustomerProfile $customer): array;
 
