@@ -363,6 +363,8 @@ const HU: Dict = {
   'Afișează încă {n} (din {m} rămase)': 'Még {n} megjelenítése ({m} van hátra)',
 
   // Import ASM (.xls)
+  'Sărite — VIN nevalid (rămân doar în ASM):': 'Kihagyva — érvénytelen VIN (csak az ASM-ben maradnak):',
+  'Parteneri fără vehicul:': 'Jármű nélküli partnerek:',
   'Încărcați „lista parteneri" din ASM (.xls, .xlsx sau .csv). Coloane recunoscute:': 'Töltse fel az ASM „lista parteneri" exportját (.xls, .xlsx vagy .csv). Felismert oszlopok:',
   'sau': 'vagy',
   'Fișier (.xls, .xlsx sau .csv, max. 10 MB)': 'Fájl (.xls, .xlsx vagy .csv, max. 10 MB)',
@@ -740,6 +742,8 @@ const EN: Dict = {
   'Afișează încă {n} (din {m} rămase)': 'Show {n} more ({m} remaining)',
 
   // ASM (.xls) import
+  'Sărite — VIN nevalid (rămân doar în ASM):': 'Skipped — invalid VIN (they stay in ASM only):',
+  'Parteneri fără vehicul:': 'Partners without a vehicle:',
   'Încărcați „lista parteneri" din ASM (.xls, .xlsx sau .csv). Coloane recunoscute:': 'Upload the ASM “lista parteneri” export (.xls, .xlsx or .csv). Recognised columns:',
   'sau': 'or',
   'Fișier (.xls, .xlsx sau .csv, max. 10 MB)': 'File (.xls, .xlsx or .csv, max. 10 MB)',

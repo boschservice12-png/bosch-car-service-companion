@@ -52,8 +52,9 @@ final class ClientImportTest extends ApiTestCase
         self::assertSame(2, $report['ownersCreated']);
         self::assertSame(2, $report['vehiclesCreated']);
         self::assertSame(2, $report['ownershipsCreated']);
-        self::assertCount(1, $report['errors'], 'VIN-ul invalid este raportat per rând.');
-        self::assertSame(4, $report['errors'][0]['row']);
+        // Decizie: VIN-ul nevalid NU e eroare — rândul rămâne doar în ASM.
+        self::assertSame(1, $report['vinInvalidSkipped'], 'VIN-ul invalid se numără separat.');
+        self::assertCount(0, $report['errors']);
 
         // Vehiculul și proprietarul există și sunt legați.
         /** @var EntityManagerInterface $em */

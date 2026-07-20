@@ -83,6 +83,7 @@ final class OwnerVehicleImportService
             'vehiclesUpdated' => 0,
             'ownershipsCreated' => 0,
             'rowsWithoutVehicle' => 0,
+            'vinInvalidSkipped' => 0,
             'errorCount' => 0,
             'errors' => [],
         ];
@@ -149,7 +150,16 @@ final class OwnerVehicleImportService
         if ($ownerName === '' || $plate === '' || $vinRaw === '') {
             throw new \InvalidArgumentException('Proprietarul, numărul de înmatriculare și VIN-ul sunt obligatorii.');
         }
-        $vin = new Vin($vinRaw); // validare + uppercase (aruncă la VIN invalid)
+        // Decizie de produs: datele rămân în ASM așa cum sunt — aplicația
+        // înregistrează DOAR vehiculele cu VIN valid; restul se numără separat
+        // (nu sunt erori de rezolvat, ci starea cunoscută a evidenței vechi).
+        try {
+            $vin = new Vin($vinRaw); // validare + uppercase
+        } catch (\InvalidArgumentException) {
+            ++$report['vinInvalidSkipped'];
+
+            return;
+        }
 
         $make = isset($map['make']) ? ($cell('make') ?: null) : null;
         $model = isset($map['model']) ? ($cell('model') ?: null) : null;

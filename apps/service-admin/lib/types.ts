@@ -254,6 +254,8 @@ export interface QuoteRequest {
 export interface ImportReport {
   totalRows: number;
   errorCount?: number;
+  rowsWithoutVehicle?: number;
+  vinInvalidSkipped?: number;
   ownersCreated: number;
   vehiclesCreated: number;
   vehiclesUpdated: number;

@@ -122,6 +122,12 @@ export default function ImportPage() {
             <div><span className="muted">{t('Proprietari noi:')}</span> <b>{report.ownersCreated}</b></div>
             <div><span className="muted">{t('Vehicule noi:')}</span> <b>{report.vehiclesCreated}</b> · <span className="muted">{t('actualizate:')}</span> <b>{report.vehiclesUpdated}</b></div>
             <div><span className="muted">{t('Legături proprietate create:')}</span> <b>{report.ownershipsCreated}</b></div>
+            {report.vinInvalidSkipped ? (
+              <div><span className="muted">{t('Sărite — VIN nevalid (rămân doar în ASM):')}</span> <b>{report.vinInvalidSkipped}</b></div>
+            ) : null}
+            {report.rowsWithoutVehicle ? (
+              <div><span className="muted">{t('Parteneri fără vehicul:')}</span> <b>{report.rowsWithoutVehicle}</b></div>
+            ) : null}
           </div>
 
           {report.errors.length > 0 ? (
