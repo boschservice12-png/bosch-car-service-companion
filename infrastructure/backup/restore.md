@@ -10,9 +10,10 @@
    ```bash
    gunzip -c <backup>/db.sql.gz | psql "$DATABASE_URL_RESTORE"
    ```
-3. Restaurare object storage:
+3. Restaurare documente (storage local):
    ```bash
-   # mc mirror <backup>/storage <alias>/<bucket>
+   mkdir -p /app/var/storage
+   tar -xzf <backup>/storage.tar.gz -C /app/var/storage
    ```
 4. Verificări post-restaurare:
    - migrări la zi (`doctrine:migrations:status`);
@@ -22,6 +23,8 @@
 5. Consemnați: data, durata (RTO), pierderea maximă (RPO), probleme.
 
 ## Alerte obligatorii
-- backup eșuat;
-- storage indisponibil;
-- cozi (Messenger) blocate.
+- backup eșuat (exit code nenul din `backup.sh`);
+- niciun backup în ultimele 26h (`healthcheck.sh` cu `BACKUP_DIR`);
+- storage indisponibil / disc peste prag (`healthcheck.sh`).
+
+Detalii de monitorizare și cron: [`../monitoring/monitoring.md`](../monitoring/monitoring.md).
