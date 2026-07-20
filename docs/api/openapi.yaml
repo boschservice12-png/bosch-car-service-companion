@@ -1,31 +1,39 @@
 openapi: 3.1.0
 info:
   title: Bosch Car Service Companion API
-  version: 0.1.0
+  version: 1.0.0
   description: >
     API REST pentru aplicația client (PWA) și portalul service (single-tenant).
-    Toate mesajele orientate spre utilizator sunt în limba română.
-    Erorile folosesc un format standardizat (application/problem+json).
+    Toate mesajele orientate spre utilizator sunt în limba română (aplicațiile
+    le traduc client-side în maghiară/engleză). Erorile folosesc formatul
+    application/problem+json. Autentificarea este pe sesiune (cookie httpOnly).
+    Toate cererile modificatoare (POST/PATCH/DELETE) necesită perechea CSRF
+    „double submit": cookie-ul `bcsc_csrf` (emis de GET /csrf) + antetul
+    `X-CSRF-Token` cu aceeași valoare. Documentul este ținut în sincron cu
+    routerul real de testul OpenApiSyncTest (ambele direcții).
 servers:
   - url: https://localhost/api
     description: Local (Nginx + HTTPS)
 tags:
+  - { name: System }
   - { name: Auth }
+  - { name: Auth2FA, description: "P0-06 — al doilea factor (TOTP), doar conturi de service" }
   - { name: Me }
   - { name: Vehicles }
-  - { name: Deadlines }
-  - { name: ServiceHistory }
-  - { name: QuoteRequests }
+  - { name: Deadlines, description: "Scadențe ITP / RCA / taxă de drum / asistență rutieră" }
+  - { name: ServiceRecords, description: "Istoric service (carnet digital)" }
+  - { name: Import, description: "Import Excel/CSV din evidența service-ului (ASM)" }
+  - { name: Conversations, description: "Mesaje și cereri client–service" }
+  - { name: QuoteRequests, description: "Cereri de ofertă (specificație pct. 7)" }
   - { name: RoadsideRequests }
   - { name: MobilityRequests }
-  - { name: DamageClaimRequests }
-  - { name: Conversations }
-  - { name: Taxes }
+  - { name: DamageClaims, description: "Doar administrare — clientul deschide dosarul EXCLUSIV pe amiabila.com" }
+  - { name: Taxes, description: "Taxe și impozite auto — evidență declarativă, FĂRĂ încărcare de documente" }
   - { name: Documents }
   - { name: Settings }
-  - { name: System }
 
 paths:
+  # ---------------------------------------------------------------- System
   /health:
     get:
       tags: [System]
@@ -36,12 +44,24 @@ paths:
   /health/ready:
     get:
       tags: [System]
-      summary: Readiness (DB, Redis, storage)
+      summary: Readiness (bază de date, storage)
       security: []
       responses:
         '200': { description: Ready }
         '503': { $ref: '#/components/responses/Error' }
+  /csrf:
+    get:
+      tags: [System]
+      summary: Emite cookie-ul CSRF `bcsc_csrf` (P0-05, double submit)
+      description: >
+        Frontendul îl apelează la pornire și după logout. Valoarea cookie-ului
+        se trimite înapoi în antetul X-CSRF-Token pe fiecare cerere
+        modificatoare; nepotrivirea → 403.
+      security: []
+      responses:
+        '200': { description: Cookie emis (Set-Cookie bcsc_csrf) }
 
+  # ------------------------------------------------------------------ Auth
   /auth/login:
     post:
       tags: [Auth]
@@ -53,44 +73,133 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        '200': { description: Autentificat }
-        '422': { $ref: '#/components/responses/ValidationError' }
-        '429': { $ref: '#/components/responses/Error' }
+        '200':
+          description: >
+            Autentificat. Pentru un admin cu 2FA activ, `requiresOtp=true` —
+            sesiunea rămâne blocată până la POST /auth/2fa/verify.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { description: Token CSRF lipsă/nepotrivit }
+        '429': { description: Prea multe încercări (login throttling) }
   /auth/register:
     post:
       tags: [Auth]
       security: []
       summary: Înregistrare client (email + parolă + consimțământ)
+      description: >
+        Decizia de produs P1-02: dacă emailul aparține unui cont creat de
+        importul Excel (fără parolă), înregistrarea REVENDICĂ acel cont —
+        obligatoriu cu `plateNumber` care corespunde unui vehicul din evidență
+        — iar clientul își vede imediat vehiculele și istoricul. Un cont deja
+        activat nu poate fi suprascris (422).
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/RegisterRequest' }
       responses:
-        '201': { description: Cont creat }
-        '422': { $ref: '#/components/responses/ValidationError' }
-  /auth/request-code:
-    post:
-      tags: [Auth]
-      security: []
-      summary: Solicită cod OTP (dacă furnizorul e activ)
-      responses:
-        '202': { description: Cod trimis (dacă e configurat) }
-        '429': { $ref: '#/components/responses/Error' }
-  /auth/verify-code:
-    post:
-      tags: [Auth]
-      security: []
-      summary: Verifică codul OTP
-      responses:
-        '200': { description: Autentificat }
+        '201': { description: Cont creat sau cont importat revendicat }
+        '403': { description: Token CSRF lipsă/nepotrivit }
         '422': { $ref: '#/components/responses/ValidationError' }
   /auth/logout:
     post:
       tags: [Auth]
-      summary: Deconectare
+      summary: Deconectare (șterge sesiunea și cookie-ul CSRF)
       responses:
         '204': { description: Deconectat }
+
+  # ------------------------------------------------------------- Auth 2FA
+  /auth/2fa/setup:
+    post:
+      tags: [Auth2FA]
+      summary: Pornește înrolarea 2FA (cere RE-introducerea parolei)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '200':
+          description: Secret emis (în așteptare — activ abia după /enable)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secret: { type: string, description: "Base32, 160 biți" }
+                  otpauthUri: { type: string, description: "Pentru codul QR" }
+        '403': { description: Nu e cont de service }
+        '409': { description: 2FA deja activ }
+        '422': { description: Parolă incorectă }
+  /auth/2fa/enable:
+    post:
+      tags: [Auth2FA]
+      summary: Confirmă înrolarea cu un cod TOTP valid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, description: "6 cifre" }
+      responses:
+        '200':
+          description: >
+            2FA activ. Codurile de rezervă apar O SINGURĂ DATĂ în răspuns
+            (în bază rămân doar hash-uri).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  twoFactorEnabled: { type: boolean }
+                  recoveryCodes:
+                    type: array
+                    items: { type: string, example: "A2C4-EF68" }
+        '409': { description: Nu există înrolare în așteptare }
+        '422': { description: Cod invalid }
+  /auth/2fa/verify:
+    post:
+      tags: [Auth2FA]
+      summary: Deblochează sesiunea după login (cod TOTP sau cod de rezervă)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string, description: "Cod TOTP (6 cifre)" }
+                recoveryCode: { type: string, description: "Cod de rezervă de unică folosință" }
+      responses:
+        '200': { description: Sesiune verificată }
+        '422': { description: Cod invalid }
+  /auth/2fa/disable:
+    post:
+      tags: [Auth2FA]
+      summary: Dezactivează 2FA (necesită cod TOTP valid)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        '200': { description: 2FA dezactivat }
+        '422': { description: Cod invalid }
+
+  # -------------------------------------------------------------------- Me
   /me:
     get:
       tags: [Me]
@@ -103,207 +212,636 @@ paths:
               schema: { $ref: '#/components/schemas/Me' }
         '401': { $ref: '#/components/responses/Error' }
 
+  # -------------------------------------------------------------- Vehicles
   /vehicles:
     get:
       tags: [Vehicles]
-      summary: Vehiculele proprii
+      summary: Vehiculele proprii (doar ale clientului autentificat)
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Vehicle' }
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Vehicle' } } } } }
     post:
       tags: [Vehicles]
-      summary: Adaugă vehicul
+      summary: Adaugă un vehicul propriu
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/VehicleInput' }
       responses:
-        '201':
-          description: Creat
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Vehicle' }
+        '201': { description: Creat }
+        '409': { description: VIN activ duplicat (P0-02) }
         '422': { $ref: '#/components/responses/ValidationError' }
   /vehicles/{id}:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
     get:
       tags: [Vehicles]
-      summary: Detalii vehicul
+      summary: Detaliile unui vehicul propriu
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Vehicle' }
-        '403': { $ref: '#/components/responses/Error' }
+        '200': { description: OK }
+        '403': { description: Vehiculul altui client }
         '404': { $ref: '#/components/responses/Error' }
     patch:
       tags: [Vehicles]
-      summary: Actualizează vehicul
+      summary: Actualizează vehiculul (număr, marcă, model, an)
       responses:
-        '200': { description: Actualizat }
-        '403': { $ref: '#/components/responses/Error' }
-
+        '200': { description: OK }
+        '403': { description: Vehiculul altui client }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /vehicles/{id}/deadlines:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
     get:
       tags: [Deadlines]
-      summary: Scadențele vehiculului (cu stare calculată)
+      summary: Scadențele vehiculului
       responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Deadline' }
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Deadline' } } } } }
     post:
       tags: [Deadlines]
-      summary: Adaugă scadență
+      summary: Adaugă o scadență (client sau admin)
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/DeadlineInput' }
       responses:
-        '201': { description: Creat }
+        '201': { description: Creată }
         '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ------------------------------------------------------------- Deadlines
   /deadlines/{id}:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
     patch:
       tags: [Deadlines]
-      summary: Actualizează / validează scadență
+      summary: Actualizează / verifică o scadență
+      description: >
+        Adminul poate trimite `verify: true` (bifă „verificat de service").
+        Editarea datelor de către CLIENT resetează verificarea (sursa redevine
+        CLIENT) — badge-ul de încredere nu supraviețuiește modificărilor.
       responses:
         '200': { description: OK }
+        '403': { description: Fără drept pe vehicul }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /deadlines/{id}/documents:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
     post:
       tags: [Deadlines]
-      summary: Atașează document la scadență
-      responses:
-        '201': { description: Atașat }
-
-  /vehicles/{id}/service-history:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-    get:
-      tags: [ServiceHistory]
-      summary: Istoric publicat al vehiculului
-      responses:
-        '200': { description: OK }
-  /service-history/{id}:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-    get:
-      tags: [ServiceHistory]
-      summary: Detalii intrare istoric (doar PUBLISHED pentru client)
-      responses:
-        '200': { description: OK }
-        '403': { $ref: '#/components/responses/Error' }
-  /admin/service-history:
-    post:
-      tags: [ServiceHistory]
-      summary: (admin) Creează intrare istoric
-      responses:
-        '201': { description: Creat }
-  /admin/service-history/{id}/corrections:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-    post:
-      tags: [ServiceHistory]
-      summary: (admin) Creează corecție auditabilă
-      responses:
-        '201': { description: Creat }
-
-  /quote-requests:
-    get: { tags: [QuoteRequests], summary: Listă cereri ofertă proprii, responses: { '200': { description: OK } } }
-    post:
-      tags: [QuoteRequests]
-      summary: Creează cerere ofertă
-      responses: { '201': { description: Creat }, '422': { $ref: '#/components/responses/ValidationError' } }
-  /quote-requests/{id}:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    get: { tags: [QuoteRequests], summary: Detalii cerere, responses: { '200': { description: OK }, '403': { $ref: '#/components/responses/Error' } } }
-  /admin/quote-requests/{id}/response:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    post: { tags: [QuoteRequests], summary: (admin) Răspuns la cerere, responses: { '201': { description: Creat } } }
-  /admin/quote-requests/{id}/status:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    patch: { tags: [QuoteRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK }, '409': { $ref: '#/components/responses/Error' } } }
-
-  /roadside-requests:
-    get: { tags: [RoadsideRequests], summary: Listă, responses: { '200': { description: OK } } }
-    post: { tags: [RoadsideRequests], summary: Creează solicitare roadside, responses: { '201': { description: Creat } } }
-  /admin/roadside-requests/{id}/status:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    patch: { tags: [RoadsideRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK } } }
-
-  /mobility-requests:
-    get: { tags: [MobilityRequests], summary: Listă, responses: { '200': { description: OK } } }
-    post: { tags: [MobilityRequests], summary: Creează solicitare mobilitate, responses: { '201': { description: Creat } } }
-  /admin/mobility-requests/{id}/status:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    patch: { tags: [MobilityRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK } } }
-
-  /damage-claim-requests:
-    get: { tags: [DamageClaimRequests], summary: Listă, responses: { '200': { description: OK } } }
-    post: { tags: [DamageClaimRequests], summary: Creează dosar de daună, responses: { '201': { description: Creat } } }
-  /admin/damage-claim-requests/{id}/status:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    patch: { tags: [DamageClaimRequests], summary: (admin) Schimbă starea, responses: { '200': { description: OK } } }
-
-  /conversations:
-    get: { tags: [Conversations], summary: Listă conversații, responses: { '200': { description: OK } } }
-    post: { tags: [Conversations], summary: Inițiază conversație, responses: { '201': { description: Creat } } }
-  /conversations/{id}/messages:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    get: { tags: [Conversations], summary: Mesajele conversației, responses: { '200': { description: OK } } }
-    post: { tags: [Conversations], summary: Trimite mesaj, responses: { '201': { description: Creat }, '429': { $ref: '#/components/responses/Error' } } }
-
-  /vehicles/{id}/taxes:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    get: { tags: [Taxes], summary: Taxe vehicul, responses: { '200': { description: OK } } }
-    post: { tags: [Taxes], summary: Adaugă taxă, responses: { '201': { description: Creat } } }
-  /taxes/{id}:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
-    patch: { tags: [Taxes], summary: Actualizează / marchează plătită, responses: { '200': { description: OK } } }
-    delete: { tags: [Taxes], summary: Șterge taxă, responses: { '204': { description: Șters } } }
-
-  /documents:
-    post:
-      tags: [Documents]
-      summary: Încarcă document (multipart; validare MIME+extensie+dimensiune, scanare async)
+      summary: Atașează un document încărcat la scadență
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
-              required: [file]
+              required: [documentId]
               properties:
-                file: { type: string, format: binary }
+                documentId: { type: string, format: uuid }
+      responses:
+        '200': { description: Atașat }
+        '404': { description: Document inexistent sau nescanat }
+  /deadlines/{id}/documents/{docId}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/DocId' }
+    get:
+      tags: [Deadlines]
+      summary: Descarcă documentul scadenței (P0-04 — autorizat pe vehicul)
+      responses:
+        '200': { description: 'Conținutul fișierului (private, no-store)' }
+        '403': { description: Vehiculul altui client }
+        '404': { description: Documentul nu aparține scadenței / nu e servibil }
+
+  # ------------------------------------------------- Istoric service (client)
+  /vehicles/{vehicleId}/service-records:
+    parameters: [ { $ref: '#/components/parameters/VehicleId' } ]
+    get:
+      tags: [ServiceRecords]
+      summary: Istoricul PUBLICAT al vehiculului propriu
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ServiceRecord' } } } } }
+        '403': { description: Vehiculul altui client }
+  /vehicles/{vehicleId}/service-records/pdf:
+    parameters: [ { $ref: '#/components/parameters/VehicleId' } ]
+    get:
+      tags: [ServiceRecords]
+      summary: Carnetul de service al vehiculului, ca PDF
+      responses:
+        '200': { description: PDF }
+        '403': { description: Vehiculul altui client }
+  /service-records/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [ServiceRecords]
+      summary: O intrare de istoric (publicată)
+      responses:
+        '200': { description: OK }
+        '403': { description: Vehiculul altui client }
+        '404': { $ref: '#/components/responses/Error' }
+  /service-records/{id}/pdf:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [ServiceRecords]
+      summary: Fișa unei intrări de istoric, ca PDF
+      responses:
+        '200': { description: PDF }
+        '403': { description: Vehiculul altui client }
+  /service-records/{recordId}/documents/{docId}:
+    parameters:
+      - { name: recordId, in: path, required: true, schema: { type: string, format: uuid } }
+      - { $ref: '#/components/parameters/DocId' }
+    get:
+      tags: [ServiceRecords]
+      summary: Descarcă un document atașat intrării de istoric
+      responses:
+        '200': { description: Conținutul fișierului }
+        '403': { description: Vehiculul altui client }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # -------------------------------------------------- Istoric service (admin)
+  /admin/vehicles:
+    get:
+      tags: [ServiceRecords]
+      summary: (admin) Toate vehiculele, cu proprietar — panoul principal
+      responses:
+        '200': { description: OK }
+        '403': { description: Doar service }
+  /admin/vehicles/{vehicleId}/service-records:
+    parameters: [ { $ref: '#/components/parameters/VehicleId' } ]
+    get:
+      tags: [ServiceRecords]
+      summary: (admin) Istoricul complet (inclusiv ciorne) al unui vehicul
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [ServiceRecords]
+      summary: (admin) Creează o intrare de istoric (ciornă)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServiceRecordInput' }
+      responses:
+        '201': { description: Creată }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/service-records/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [ServiceRecords]
+      summary: (admin) O intrare de istoric
+      responses:
+        '200': { description: OK }
+    patch:
+      tags: [ServiceRecords]
+      summary: (admin) Editează o intrare (doar în ciornă)
+      responses:
+        '200': { description: OK }
+        '422': { description: Intrarea publicată nu se editează direct }
+  /admin/service-records/{id}/publish:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [ServiceRecords]
+      summary: (admin) Publică intrarea — devine vizibilă clientului
+      responses:
+        '200': { description: Publicată }
+        '422': { description: Deja publicată }
+  /admin/service-records/{id}/corrections:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [ServiceRecords]
+      summary: (admin) Corectează o intrare publicată (cu motiv, stare CORRECTED)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Corecție deschisă }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/service-records/{id}/documents:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [ServiceRecords]
+      summary: (admin) Atașează un document (deviz, factură) la intrare
+      responses:
+        '200': { description: Atașat }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # ---------------------------------------------------------------- Import
+  /admin/import/clients:
+    post:
+      tags: [Import]
+      summary: (admin) Import clienți + vehicule din Excel/CSV
+      description: >
+        Multipart, câmpul `file` (.xlsx sau .csv). Coloane: proprietar, număr
+        înmatriculare, VIN (opțional marcă, model, telefon, email). Tranzacție
+        unică; conflictele (VIN la alt proprietar, email de admin) sunt
+        raportate per rând fără a modifica nimic. Conturile create nu au
+        parolă — clientul le revendică la înregistrare (email + rendszám).
+      responses:
+        '200': { description: 'Raport de import (rânduri, creați, erori per rând)' }
+        '403': { description: Doar service }
+        '422': { description: Fișier lipsă / antet incomplet }
+  /admin/import/service-history:
+    post:
+      tags: [Import]
+      summary: (admin) Import istoric reparații (legat de vehicule prin VIN)
+      description: >
+        Multipart, câmpul `file`. Deduplicare pe număr de lucrare sau pe
+        conținut (dată+total+tip+descriere), inclusiv în interiorul aceluiași
+        fișier; reimportul e idempotent. Intrările se publică direct.
+      responses:
+        '200': { description: Raport de import }
+        '403': { description: Doar service }
+        '422': { description: Fișier lipsă / antet incomplet }
+
+  # --------------------------------------------------------- Conversations
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: Conversațiile proprii
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Conversations]
+      summary: Pornește o conversație (subiect + mesaj, opțional vehicul/documente)
+      responses:
+        '201': { description: Creată }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { description: 'Limită de mesaje (P1-04, Retry-After)' }
+  /conversations/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Conversations]
+      summary: O conversație proprie, cu mesaje
+      responses:
+        '200': { description: OK }
+        '403': { description: Conversația altui client }
+  /conversations/{id}/messages:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Conversations]
+      summary: Mesajele conversației
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Conversations]
+      summary: Trimite un mesaj în conversație
+      responses:
+        '201': { description: Trimis }
+        '422': { description: Conversație închisă / mesaj gol }
+        '429': { description: 'Limită de mesaje (P1-04, Retry-After)' }
+  /conversations/{id}/documents/{docId}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/DocId' }
+    get:
+      tags: [Conversations]
+      summary: Descarcă un atașament din conversație
+      responses:
+        '200': { description: Conținutul fișierului }
+        '403': { description: Conversația altui client }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/conversations:
+    get:
+      tags: [Conversations]
+      summary: (admin) Toate conversațiile
+      responses:
+        '200': { description: OK }
+  /admin/conversations/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Conversations]
+      summary: (admin) O conversație
+      responses:
+        '200': { description: OK }
+  /admin/conversations/{id}/messages:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Conversations]
+      summary: (admin) Răspunde în conversație
+      responses:
+        '201': { description: Trimis }
+        '429': { description: 'Limită de mesaje (P1-04, Retry-After)' }
+  /admin/conversations/{id}/close:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Conversations]
+      summary: (admin) Închide conversația
+      responses:
+        '200': { description: Închisă }
+  /admin/conversations/{id}/reopen:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Conversations]
+      summary: (admin) Redeschide conversația
+      responses:
+        '200': { description: Redeschisă }
+
+  # --------------------------------------------------------- QuoteRequests
+  /quote-requests:
+    get:
+      tags: [QuoteRequests]
+      summary: Cererile de ofertă proprii
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [QuoteRequests]
+      summary: Creează o cerere de ofertă (ciornă sau trimisă direct)
+      responses:
+        '201': { description: Creată }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /quote-requests/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [QuoteRequests]
+      summary: O cerere de ofertă proprie
+      responses:
+        '200': { description: OK }
+        '403': { description: Cererea altui client }
+  /quote-requests/{id}/submit:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [QuoteRequests]
+      summary: Trimite ciorna către service
+      responses:
+        '200': { description: Trimisă }
+        '409': { description: Tranziție de stare nepermisă }
+  /quote-requests/{id}/resubmit:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [QuoteRequests]
+      summary: Retrimite după completarea informațiilor cerute
+      responses:
+        '200': { description: Retrimisă }
+        '409': { description: Tranziție de stare nepermisă }
+  /quote-requests/{id}/accept:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [QuoteRequests]
+      summary: Acceptă oferta primită
+      responses:
+        '200': { description: Acceptată }
+        '409': { description: Tranziție de stare nepermisă }
+  /quote-requests/{id}/decline:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [QuoteRequests]
+      summary: Refuză oferta primită
+      responses:
+        '200': { description: Refuzată }
+        '409': { description: Tranziție de stare nepermisă }
+  /admin/quote-requests:
+    get:
+      tags: [QuoteRequests]
+      summary: (admin) Toate cererile de ofertă
+      responses:
+        '200': { description: OK }
+  /admin/quote-requests/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [QuoteRequests]
+      summary: (admin) O cerere de ofertă
+      responses:
+        '200': { description: OK }
+  /admin/quote-requests/{id}/response:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [QuoteRequests]
+      summary: (admin) Trimite oferta (mesaj + document opțional)
+      responses:
+        '200': { description: Ofertă trimisă }
+        '409': { description: Tranziție de stare nepermisă }
+  /admin/quote-requests/{id}/status:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    patch:
+      tags: [QuoteRequests]
+      summary: (admin) Schimbă starea (preluat, în analiză, info cerute…)
+      responses:
+        '200': { description: OK }
+        '409': { description: Tranziție de stare nepermisă }
+
+  # ------------------------------------------------------ RoadsideRequests
+  /roadside-requests:
+    get:
+      tags: [RoadsideRequests]
+      summary: Cererile proprii de asistență rutieră
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [RoadsideRequests]
+      summary: Cerere scrisă de asistență (locație, problemă, telefon — FĂRĂ fișiere)
+      responses:
+        '201': { description: Creată }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /roadside-requests/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [RoadsideRequests]
+      summary: O cerere proprie
+      responses:
+        '200': { description: OK }
+        '403': { description: Cererea altui client }
+  /roadside-requests/{id}/cancel:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [RoadsideRequests]
+      summary: Anulează cererea (cât timp nu e finalizată)
+      responses:
+        '200': { description: Anulată }
+        '409': { description: Stare finală }
+  /roadside-requests/{id}/documents/{docId}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/DocId' }
+    get:
+      tags: [RoadsideRequests]
+      summary: Descarcă un document atașat de service cererii
+      responses:
+        '200': { description: Conținutul fișierului }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/roadside-requests:
+    get:
+      tags: [RoadsideRequests]
+      summary: (admin) Toate cererile de asistență
+      responses:
+        '200': { description: OK }
+  /admin/roadside-requests/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [RoadsideRequests]
+      summary: (admin) O cerere de asistență
+      responses:
+        '200': { description: OK }
+    patch:
+      tags: [RoadsideRequests]
+      summary: (admin) Schimbă starea (preluată, în lucru, finalizată…), cu notă
+      responses:
+        '200': { description: OK }
+        '409': { description: Tranziție de stare nepermisă }
+
+  # ------------------------------------------------------ MobilityRequests
+  /mobility-requests:
+    get:
+      tags: [MobilityRequests]
+      summary: Cererile proprii de mobilitate (mașină la schimb / transport)
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [MobilityRequests]
+      summary: Creează o cerere de mobilitate
+      responses:
+        '201': { description: Creată }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /mobility-requests/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [MobilityRequests]
+      summary: O cerere proprie
+      responses:
+        '200': { description: OK }
+        '403': { description: Cererea altui client }
+  /mobility-requests/{id}/cancel:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [MobilityRequests]
+      summary: Anulează cererea
+      responses:
+        '200': { description: Anulată }
+        '409': { description: Stare finală }
+  /admin/mobility-requests:
+    get:
+      tags: [MobilityRequests]
+      summary: (admin) Toate cererile de mobilitate
+      responses:
+        '200': { description: OK }
+  /admin/mobility-requests/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [MobilityRequests]
+      summary: (admin) O cerere de mobilitate
+      responses:
+        '200': { description: OK }
+    patch:
+      tags: [MobilityRequests]
+      summary: (admin) Schimbă starea, cu notă
+      responses:
+        '200': { description: OK }
+        '409': { description: Tranziție de stare nepermisă }
+
+  # ---------------------------------------------------------- DamageClaims
+  /admin/damage-claims:
+    get:
+      tags: [DamageClaims]
+      summary: (admin) Toate dosarele de daună (istoric)
+      description: >
+        Clientul NU are API de daune — dosarul se deschide exclusiv pe
+        https://amiabila.com/ (linkul „În caz de accident" din aplicație).
+      responses:
+        '200': { description: OK }
+  /admin/damage-claims/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [DamageClaims]
+      summary: (admin) Un dosar de daună
+      responses:
+        '200': { description: OK }
+    patch:
+      tags: [DamageClaims]
+      summary: (admin) Schimbă starea dosarului, cu notă
+      responses:
+        '200': { description: OK }
+        '409': { description: Tranziție de stare nepermisă }
+
+  # ----------------------------------------------------------------- Taxes
+  /taxes:
+    get:
+      tags: [Taxes]
+      summary: Taxele proprii
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TaxItem' } } } } }
+    post:
+      tags: [Taxes]
+      summary: Adaugă o taxă (an, tip, sumă, scadență, vehicul opțional)
+      responses:
+        '201': { description: Creată }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /taxes/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Taxes]
+      summary: O taxă proprie
+      responses:
+        '200': { description: OK }
+        '403': { description: Taxa altui client }
+    patch:
+      tags: [Taxes]
+      summary: Editează taxa (blocată după plata integrală; suma nu scade sub totalul plătit)
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Taxes]
+      summary: Șterge taxa (doar neplătită integral)
+      responses:
+        '204': { description: Ștearsă }
+        '422': { description: Taxa plătită nu se șterge }
+  /taxes/{id}/pay:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Taxes]
+      summary: Marchează plata — declarativ, FĂRĂ documente
+      description: >
+        Fără corp sau `{}` → plată integrală; `{"amount": 200}` → plată
+        parțială/cumulativă în RON. Sumele nevalide → 422 (nu plată
+        integrală). O taxă deja plătită nu se replătește (422).
+      responses:
+        '200': { description: Plată înregistrată }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /admin/taxes:
+    get:
+      tags: [Taxes]
+      summary: (admin) Toate taxele clienților
+      responses:
+        '200': { description: OK }
+  /admin/taxes/{id}:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    get:
+      tags: [Taxes]
+      summary: (admin) O taxă
+      responses:
+        '200': { description: OK }
+    patch:
+      tags: [Taxes]
+      summary: (admin) Corecție de stare (ex. readuce la neplătită), cu notă
+      responses:
+        '200': { description: OK }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ------------------------------------------------------------- Documents
+  /documents:
+    post:
+      tags: [Documents]
+      summary: Încarcă un fișier (multipart, câmpul `file`)
+      description: >
+        Se scanează antimalware înainte de a deveni servibil. Limitat P1-04
+        (429 + Retry-After la abuz). Folosit pentru documentele scadențelor
+        și atașamentele din mesaje/oferte — fluxurile de taxe, asistență și
+        daune NU au încărcare de fișiere.
       responses:
         '201':
-          description: Creat (scanStatus inițial PENDING)
+          description: Metadate document
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DocumentMeta' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '422': { description: Fișier lipsă / tip nepermis / prea mare }
+        '429': { description: Limită de încărcări (Retry-After) }
   /documents/{id}/download-url:
-    parameters: [ { name: id, in: path, required: true, schema: { type: string, format: uuid } } ]
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
     get:
       tags: [Documents]
-      summary: URL temporar semnat de descărcare (doar documente CLEAN, autorizat)
+      summary: URL temporar semnat pentru descărcare
       responses:
         '200':
           description: OK
@@ -314,26 +852,23 @@ paths:
                 properties:
                   url: { type: string }
                   expiresAt: { type: string, format: date-time }
-        '403': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/Error' }
   /documents/{id}/raw:
-    parameters:
-      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-      - { name: expires, in: query, required: true, schema: { type: integer } }
-      - { name: sig, in: query, required: true, schema: { type: string } }
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
     get:
       tags: [Documents]
-      summary: Servire conținut (semnătură + expirare + autorizare la nivel de obiect)
+      summary: Conținutul fișierului (cu semnătura din download-url)
       responses:
-        '200': { description: Conținut binar }
-        '403': { $ref: '#/components/responses/Error' }
+        '200': { description: Conținutul fișierului }
+        '403': { description: Semnătură invalidă/expirată }
         '404': { $ref: '#/components/responses/Error' }
 
+  # -------------------------------------------------------------- Settings
   /settings:
     get:
       tags: [Settings]
+      summary: Setări publice (texte legale, versiune informare GDPR)
       security: []
-      summary: Setări publice (număr WhatsApp, versiune informare confidențialitate)
       responses:
         '200': { description: OK }
   /admin/settings/{key}:
@@ -351,9 +886,31 @@ components:
     sessionCookie:
       type: apiKey
       in: cookie
-      name: BCSC_SESSION
-  security:
-    - sessionCookie: []
+      name: PHPSESSID
+      description: Sesiune httpOnly, SameSite=Lax. Adminii cu 2FA au nevoie și de /auth/2fa/verify.
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: >
+        P0-05 — obligatoriu pe POST/PATCH/DELETE (inclusiv login/register):
+        valoarea cookie-ului `bcsc_csrf` emis de GET /csrf. Nepotrivire → 403.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    VehicleId:
+      name: vehicleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DocId:
+      name: docId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
   responses:
     Error:
       description: Eroare
@@ -375,7 +932,7 @@ components:
   schemas:
     Problem:
       type: object
-      required: [type, title, status, traceId]
+      required: [type, title, status]
       properties:
         type: { type: string, example: validation_error }
         title: { type: string, example: Date invalide }
@@ -392,26 +949,51 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 8 }
+    LoginResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        role: { type: string, enum: [CLIENT, SERVICE_ADMIN] }
+        requiresOtp: { type: boolean, description: "true = sesiune blocată până la /auth/2fa/verify" }
+    RegisterRequest:
+      type: object
+      required: [email, password, consent]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        firstName: { type: string }
+        lastName: { type: string }
+        plateNumber:
+          type: string
+          description: >
+            Obligatoriu DOAR la revendicarea unui cont importat: numărul de
+            înmatriculare al unui vehicul din evidența service-ului
+            (comparat fără spații, insensibil la majuscule).
+        consent: { type: boolean, description: "Consimțământ GDPR — obligatoriu true" }
     Me:
       type: object
       properties:
         id: { type: string, format: uuid }
         email: { type: string }
         role: { type: string, enum: [CLIENT, SERVICE_ADMIN] }
+        name: { type: string, nullable: true }
+        totpEnabled: { type: boolean }
+        requiresOtp: { type: boolean, description: "Sesiunea așteaptă al doilea factor" }
     Vehicle:
       type: object
       properties:
         id: { type: string, format: uuid }
         vin: { type: string }
         plateNumber: { type: string }
-        make: { type: string }
-        model: { type: string }
-        year: { type: integer }
+        make: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        year: { type: integer, nullable: true }
     VehicleInput:
       type: object
       required: [vin, plateNumber]
       properties:
-        vin: { type: string, description: "17 caractere, normalizat uppercase" }
+        vin: { type: string, description: "17 caractere, normalizat uppercase; VIN activ unic (409 la duplicat)" }
         plateNumber: { type: string }
         make: { type: string }
         model: { type: string }
@@ -421,16 +1003,18 @@ components:
       properties:
         id: { type: string, format: uuid }
         type: { type: string, enum: [ITP, RCA, ROAD_TAX, ROADSIDE_ASSISTANCE] }
-        typeLabel: { type: string }
+        typeLabel: { type: string, description: "Etichetă românească (tradusă client-side)" }
         validFrom: { type: string, format: date, nullable: true }
         expiresAt: { type: string, format: date, nullable: true }
         state: { type: string, enum: [UNKNOWN, VALID, DUE_SOON, EXPIRED] }
         stateLabel: { type: string }
         daysLeft: { type: integer, nullable: true, description: "Negativ dacă a expirat; null dacă data lipsește" }
         source: { type: string, enum: [CLIENT, SERVICE, IMPORT] }
-        verified: { type: boolean }
+        verified: { type: boolean, description: "Se resetează când clientul modifică datele" }
         note: { type: string, nullable: true }
-        documentId: { type: string, format: uuid, nullable: true }
+        documents:
+          type: array
+          items: { $ref: '#/components/schemas/DocumentMeta' }
     DeadlineInput:
       type: object
       required: [type, expiresAt]
@@ -439,15 +1023,46 @@ components:
         validFrom: { type: string, format: date }
         expiresAt: { type: string, format: date }
         note: { type: string }
-    RegisterRequest:
+    ServiceRecord:
       type: object
-      required: [email, password, consent]
       properties:
-        email: { type: string, format: email }
-        password: { type: string, minLength: 8 }
-        firstName: { type: string }
-        lastName: { type: string }
-        consent: { type: boolean, description: "Consimțământ GDPR — obligatoriu true" }
+        id: { type: string, format: uuid }
+        vehicleId: { type: string, format: uuid }
+        date: { type: string, format: date, nullable: true }
+        workType: { type: string }
+        description: { type: string, nullable: true }
+        mileage: { type: integer, nullable: true }
+        total: { type: number, nullable: true }
+        status: { type: string, enum: [DRAFT, PUBLISHED, CORRECTED] }
+        correctionReason: { type: string, nullable: true }
+        workOrderNumber: { type: string, nullable: true }
+        documents:
+          type: array
+          items: { $ref: '#/components/schemas/DocumentMeta' }
+    ServiceRecordInput:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        workType: { type: string }
+        description: { type: string }
+        mileage: { type: integer }
+        total: { type: number }
+        workOrderNumber: { type: string }
+    TaxItem:
+      type: object
+      description: Evidență declarativă — fără documente atașate (fără bon fiscal).
+      properties:
+        id: { type: string, format: uuid }
+        year: { type: integer }
+        type: { type: string, enum: [VEHICLE_TAX, ROAD_TAX, OTHER] }
+        typeLabel: { type: string }
+        amount: { type: number, description: "RON" }
+        paidAmount: { type: number }
+        dueDate: { type: string, format: date, nullable: true }
+        status: { type: string, enum: [UNPAID, PARTIALLY_PAID, PAID, OVERDUE] }
+        statusLabel: { type: string }
+        vehicleId: { type: string, format: uuid, nullable: true }
+        note: { type: string, nullable: true }
     DocumentMeta:
       type: object
       properties:
@@ -458,3 +1073,4 @@ components:
 
 security:
   - sessionCookie: []
+  - csrfToken: []
