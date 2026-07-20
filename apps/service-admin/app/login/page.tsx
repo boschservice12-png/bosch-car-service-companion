@@ -17,6 +17,8 @@ export default function AdminLoginPage() {
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
   const [useRecovery, setUseRecovery] = useState(false);
+  // După un cod de rezervă folosit: câte au mai rămas (avertisment înainte de portal).
+  const [recoveryLeft, setRecoveryLeft] = useState<number | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,13 +48,36 @@ export default function AdminLoginPage() {
     setError(null);
     setBusy(true);
     try {
-      await api.verify2fa(useRecovery ? { recoveryCode: otp } : { code: otp });
+      const res = await api.verify2fa(useRecovery ? { recoveryCode: otp } : { code: otp });
+      if (typeof res.recoveryCodesLeft === 'number') {
+        // Codul de rezervă e de unică folosință — adminul trebuie să știe câte
+        // i-au mai rămas (și să regenereze la nevoie) înainte de a merge mai departe.
+        setRecoveryLeft(res.recoveryCodesLeft);
+        return;
+      }
       router.replace('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.problem.title : 'A apărut o eroare.');
     } finally {
       setBusy(false);
     }
+  }
+
+  if (recoveryLeft !== null) {
+    return (
+      <>
+        <h1>{t('Verificare în doi pași')}</h1>
+        <div className={`alert ${recoveryLeft <= 2 ? 'alert-err' : 'alert-warn'}`} role="alert">
+          {t('Ați folosit un cod de rezervă. Coduri rămase: {n}.', { n: recoveryLeft })}
+          {recoveryLeft <= 2
+            ? ' ' + t('Reactivați 2FA din pagina Securitate pentru coduri noi.')
+            : null}
+        </div>
+        <button className="btn" onClick={() => router.replace('/')}>
+          {t('Continuă în portal')}
+        </button>
+      </>
+    );
   }
 
   if (otpStep) {

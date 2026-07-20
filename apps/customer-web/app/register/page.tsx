@@ -54,7 +54,7 @@ export default function RegisterPage() {
       <h1>{t('Creare cont')}</h1>
       {general ? (
         <div className="alert alert-err" role="alert">
-          {general}
+          {t(general)}
         </div>
       ) : null}
       <form onSubmit={onSubmit} noValidate>
@@ -69,7 +69,7 @@ export default function RegisterPage() {
         <div className="field">
           <label htmlFor="email">{t('Email')}</label>
           <input id="email" type="email" autoComplete="email" value={form.email} onChange={(e) => set('email', e.target.value)} required />
-          {fieldErr('email') ? <div className="err">{fieldErr('email')}</div> : null}
+          {fieldErr('email') ? <div className="err">{t(fieldErr('email') as string)}</div> : null}
         </div>
         <div className="field">
           <label htmlFor="password">{t('Parolă')}</label>
@@ -82,7 +82,7 @@ export default function RegisterPage() {
             required
           />
           <div className="hint">{t('Minim 8 caractere.')}</div>
-          {fieldErr('password') ? <div className="err">{fieldErr('password')}</div> : null}
+          {fieldErr('password') ? <div className="err">{t(fieldErr('password') as string)}</div> : null}
         </div>
         <div className="field">
           <label htmlFor="plateNumber">{t('Număr de înmatriculare (opțional)')}</label>
@@ -102,7 +102,7 @@ export default function RegisterPage() {
             <input type="checkbox" checked={form.consent} onChange={(e) => set('consent', e.target.checked)} />
             <span>{t('Sunt de acord cu prelucrarea datelor mele personale conform informării de confidențialitate.')}</span>
           </label>
-          {fieldErr('consent') ? <div className="err">{fieldErr('consent')}</div> : null}
+          {fieldErr('consent') ? <div className="err">{t(fieldErr('consent') as string)}</div> : null}
         </div>
         <button className="btn" type="submit" disabled={busy}>
           {busy ? t('Se creează…') : t('Creează cont')}

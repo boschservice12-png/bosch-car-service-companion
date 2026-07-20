@@ -65,10 +65,18 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
     }
   }
 
-  function download() {
+  async function download() {
     if (!doc) return;
     // P0-04: descărcarea se autorizează prin scadență (proprietarul
     // vehiculului sau adminul), nu prin cine a încărcat documentul.
+    // Fereastra nouă e o navigare directă — dacă sesiunea a expirat, ar arăta
+    // JSON-ul de eroare; verificăm întâi sesiunea și trimitem la login la nevoie.
+    try {
+      await api.me();
+    } catch {
+      window.location.assign('/login');
+      return;
+    }
     window.open(`/api/deadlines/${deadline.id}/documents/${doc.id}`, '_blank', 'noopener');
   }
 

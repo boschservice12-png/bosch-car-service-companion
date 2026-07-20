@@ -25,6 +25,14 @@ function waNumber(raw: string): string {
   return d;
 }
 
+/**
+ * Evidența veche conține și „telefoane" de forma „N/A" sau „-" — un link
+ * wa.me fără număr real nu are sens, deci butonul rămâne dezactivat.
+ */
+function hasUsablePhone(raw: string | null | undefined): boolean {
+  return !!raw && waNumber(raw).length >= 8;
+}
+
 function reminderText(item: UpcomingDeadline): string {
   const name = item.owner?.name ? `, ${item.owner.name}` : '';
   const when =
@@ -69,8 +77,14 @@ export default function NotificationsPage() {
       setItems((list) =>
         list ? list.map((i) => (i.id === item.id ? { ...i, lastNotifiedAt: res.notifiedAt } : i)) : list,
       );
-    } catch {
-      // Consemnarea a eșuat — mesajul tot a fost deschis; lista se poate reîncărca manual.
+    } catch (err) {
+      // Mesajul s-a deschis, dar consemnarea a eșuat — operatorul trebuie să
+      // afle (sesiune expirată → login; altfel eroarea rămâne vizibilă).
+      if (err instanceof ApiError && (err.httpStatus === 401 || err.httpStatus === 403)) {
+        router.replace('/login');
+        return;
+      }
+      setError(err instanceof ApiError ? err.problem.title : 'Consemnarea notificării a eșuat.');
     }
   }
 
@@ -141,13 +155,13 @@ export default function NotificationsPage() {
                     type="button"
                     className="btn"
                     style={{ width: 'auto', padding: '8px 12px' }}
-                    disabled={!item.owner?.phone}
+                    disabled={!hasUsablePhone(item.owner?.phone)}
                     onClick={() =>
-                      item.owner?.phone &&
+                      hasUsablePhone(item.owner?.phone) &&
                       markAndOpen(
                         item,
                         'whatsapp',
-                        `https://wa.me/${waNumber(item.owner.phone)}?text=${encodeURIComponent(reminderText(item))}`,
+                        `https://wa.me/${waNumber(item.owner!.phone!)}?text=${encodeURIComponent(reminderText(item))}`,
                       )
                     }
                   >

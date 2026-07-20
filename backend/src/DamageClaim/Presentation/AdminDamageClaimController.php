@@ -9,9 +9,12 @@ use App\DamageClaim\Domain\DamageClaim;
 use App\DamageClaim\Domain\DamageClaimRepository;
 use App\DamageClaim\Domain\DamageClaimStatus;
 use App\DamageClaim\Presentation\Dto\UpdateDamageClaimStatusRequest;
+use App\Document\Domain\DocumentRepository;
+use App\Document\Domain\StorageAdapter;
 use App\Shared\Presentation\ValidationFailedException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
@@ -52,6 +55,34 @@ final class AdminDamageClaimController extends AbstractController
         $updated = $this->service->updateStatus($claim, DamageClaimStatus::from($req->status), $req->note, $req->missingDocuments);
 
         return $this->json($this->serializer->serialize($updated, withCustomer: true));
+    }
+
+    /** Fotografiile/documentele dosarului — ruta era referită de portal, dar lipsea. */
+    #[Route('/{id}/documents/{docId}', name: 'api_admin_damage_document', methods: ['GET'])]
+    public function document(string $id, string $docId, DocumentRepository $documents, StorageAdapter $storage): Response
+    {
+        $claim = $this->requireClaim($id);
+
+        if (!Uuid::isValid($docId)) {
+            throw $this->createNotFoundException('Document inexistent.');
+        }
+        $document = $documents->get(Uuid::fromString($docId));
+        if ($document === null || !$claim->hasDocument($document)) {
+            throw $this->createNotFoundException('Documentul nu aparține acestui dosar.');
+        }
+        if (!$document->isServable()) {
+            throw $this->createNotFoundException('Document indisponibil (în curs de scanare sau respins).');
+        }
+
+        $contents = $storage->read($document->storageKey());
+        $filename = $document->originalName() ?? ('document.'.pathinfo($document->storageKey(), PATHINFO_EXTENSION));
+
+        return new Response($contents, 200, [
+            'Content-Type' => $document->mimeType(),
+            'Content-Disposition' => sprintf('attachment; filename="%s"', addslashes($filename)),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     private function requireClaim(string $id): DamageClaim

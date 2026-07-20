@@ -49,9 +49,18 @@ final class DeadlineImportService
         $map = $this->headerMap($rows[$headerRow]);
 
         // Vehiculele existente, indexate după numărul normalizat (fără spații).
+        // Numărul NU e identitatea vehiculului (VIN-ul este) — dacă două
+        // vehicule active poartă același număr, alerta e ambiguă și devine
+        // eroare de rând, nu o alegere tăcută a „ultimului câștigător".
         $byPlate = [];
+        $ambiguousPlates = [];
         foreach ($this->vehicles->findAllActive() as $vehicle) {
-            $byPlate[$this->normPlate($vehicle->plateNumber())] = $vehicle;
+            $key = $this->normPlate($vehicle->plateNumber());
+            if (isset($byPlate[$key])) {
+                $ambiguousPlates[$key] = true;
+                continue;
+            }
+            $byPlate[$key] = $vehicle;
         }
 
         $report = [
@@ -66,6 +75,10 @@ final class DeadlineImportService
 
         $connection = $this->em->getConnection();
         $connection->beginTransaction();
+        // Scadențele văzute în ACEST fișier (vehicul+tip) — interogarea DB nu
+        // vede entitățile încă neflush-uite, deci fără harta asta un raport cu
+        // aceeași alertă pe două rânduri ar crea duplicate.
+        $seenInFile = [];
         try {
             foreach (\array_slice($rows, $headerRow + 1) as $i => $row) {
                 $rowNo = $headerRow + $i + 2;
@@ -88,7 +101,7 @@ final class DeadlineImportService
                 }
 
                 try {
-                    $this->importRow($type, $plate, $date, $byPlate, $report);
+                    $this->importRow($type, $plate, $date, $byPlate, $ambiguousPlates, $seenInFile, $report);
                 } catch (\InvalidArgumentException $e) {
                     ++$report['errorCount'];
                     if (\count($report['errors']) < self::MAX_REPORTED_ERRORS) {
@@ -114,15 +127,34 @@ final class DeadlineImportService
         return $report;
     }
 
-    /** @param array<string, \App\Vehicle\Domain\Vehicle> $byPlate @param array<string, mixed> $report */
-    private function importRow(DeadlineType $type, string $plate, string $date, array $byPlate, array &$report): void
-    {
+    /**
+     * @param array<string, \App\Vehicle\Domain\Vehicle> $byPlate
+     * @param array<string, true> $ambiguousPlates
+     * @param array<string, VehicleDeadline> $seenInFile
+     * @param array<string, mixed> $report
+     */
+    private function importRow(
+        DeadlineType $type,
+        string $plate,
+        string $date,
+        array $byPlate,
+        array $ambiguousPlates,
+        array &$seenInFile,
+        array &$report,
+    ): void {
         $expiresAt = $this->parseDate($date);
         if ($expiresAt === null) {
             throw new \InvalidArgumentException(sprintf('Data alertei lipsește sau e nevalidă: „%s".', $date));
         }
 
-        $vehicle = $byPlate[$this->normPlate($plate)] ?? null;
+        $plateKey = $this->normPlate($plate);
+        if (isset($ambiguousPlates[$plateKey])) {
+            throw new \InvalidArgumentException(sprintf(
+                'Numărul „%s" aparține mai multor vehicule active — clarificați evidența înainte de import.',
+                $plate,
+            ));
+        }
+        $vehicle = $byPlate[$plateKey] ?? null;
         if ($vehicle === null) {
             throw new \InvalidArgumentException(sprintf(
                 'Vehiculul „%s" nu există în evidență — importați întâi lista de parteneri.',
@@ -130,21 +162,27 @@ final class DeadlineImportService
             ));
         }
 
-        $existing = null;
-        foreach ($this->deadlines->findForVehicle($vehicle) as $deadline) {
-            if ($deadline->type() === $type) {
-                $existing = $deadline;
-                break;
+        $fileKey = $vehicle->id().'|'.$type->value;
+        $existing = $seenInFile[$fileKey] ?? null;
+        if ($existing === null) {
+            foreach ($this->deadlines->findForVehicle($vehicle) as $deadline) {
+                if ($deadline->type() === $type) {
+                    $existing = $deadline;
+                    break;
+                }
             }
         }
 
         if ($existing === null) {
-            $this->em->persist(new VehicleDeadline($vehicle, $type, $expiresAt, DeadlineSource::IMPORT));
+            $created = new VehicleDeadline($vehicle, $type, $expiresAt, DeadlineSource::IMPORT);
+            $this->em->persist($created);
+            $seenInFile[$fileKey] = $created;
             ++$report['deadlinesCreated'];
 
             return;
         }
 
+        $seenInFile[$fileKey] = $existing;
         if ($existing->expiresAt()?->format('Y-m-d') === $expiresAt->format('Y-m-d')) {
             ++$report['rowsSkipped'];
 

@@ -29,9 +29,16 @@ final class SimpleXlsReader
             throw new \InvalidArgumentException('Fișierul nu este un XLS valid (container corupt).');
         }
 
-        $stream = $this->workbookStream($raw);
-
-        return $this->parseWorkbook($stream);
+        // Formatul vine din exporturi terțe — un fișier trunchiat sau corupt
+        // trebuie să devină o eroare de validare (422), nu o eroare de server:
+        // orice acces în afara datelor (unpack/substr pe lipsă) e prins aici.
+        try {
+            return $this->parseWorkbook($this->workbookStream($raw));
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new \InvalidArgumentException('Fișierul XLS este corupt sau trunchiat — nu a putut fi citit.', 0, $e);
+        }
     }
 
     // ------------------------------------------------------------- OLE2/CFB
@@ -278,6 +285,11 @@ final class SimpleXlsReader
         $need = function (int $n) use (&$chunkIdx, &$pos, $chunks): string {
             $out = '';
             while ($n > 0) {
+                // SST-ul pretinde mai multe date decât conțin chunk-urile →
+                // fișier trunchiat/corupt; oprim curat, nu căutăm la nesfârșit.
+                if ($chunkIdx >= \count($chunks)) {
+                    throw new \InvalidArgumentException('Fișierul XLS este trunchiat (tabelul de șiruri incomplet).');
+                }
                 $avail = \strlen($chunks[$chunkIdx]) - $pos;
                 if ($avail <= 0) {
                     ++$chunkIdx;

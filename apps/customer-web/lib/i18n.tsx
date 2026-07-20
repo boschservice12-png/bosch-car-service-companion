@@ -384,6 +384,13 @@ const HU: Dict = {
     'A rendszám nem egyezik a szerviz nyilvántartásával.',
   'Acest email este deja în evidența service-ului, dar fără un vehicul activ. Contactați service-ul pentru activarea contului.':
     'Ez az e-mail már szerepel a szerviz nyilvántartásában, de nincs hozzá aktív jármű. A fiók aktiválásához forduljon a szervizhez.',
+  'Emailul este obligatoriu.': 'Az e-mail cím megadása kötelező.',
+  'Email invalid.': 'Érvénytelen e-mail cím.',
+  'Parola trebuie să aibă minim 8 caractere.': 'A jelszónak legalább 8 karakterből kell állnia.',
+  'Trebuie să acceptați prelucrarea datelor.': 'El kell fogadnia az adatkezelést.',
+  'Există deja un cont cu acest email.': 'Ezzel az e-mail címmel már létezik fiók.',
+  'Prea multe încercări pentru acest email — încercați din nou mai târziu.':
+    'Túl sok próbálkozás ezzel az e-mail címmel — próbálja újra később.',
 
   // PWA telepítés (P2-01)
   'Instalează Companion pe telefon': 'Telepítse a Companiont a telefonra',
@@ -770,6 +777,13 @@ const EN: Dict = {
     'The licence plate number does not match the service’s records.',
   'Acest email este deja în evidența service-ului, dar fără un vehicul activ. Contactați service-ul pentru activarea contului.':
     'This email is already in the service’s records but has no active vehicle. Please contact the service to activate the account.',
+  'Emailul este obligatoriu.': 'Email is required.',
+  'Email invalid.': 'Invalid email address.',
+  'Parola trebuie să aibă minim 8 caractere.': 'The password must be at least 8 characters long.',
+  'Trebuie să acceptați prelucrarea datelor.': 'You must accept the data processing.',
+  'Există deja un cont cu acest email.': 'An account with this email already exists.',
+  'Prea multe încercări pentru acest email — încercați din nou mai târziu.':
+    'Too many attempts for this email — please try again later.',
 
   // PWA install (P2-01)
   'Instalează Companion pe telefon': 'Install Companion on your phone',

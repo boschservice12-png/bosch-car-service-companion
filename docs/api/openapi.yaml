@@ -830,6 +830,16 @@ paths:
       responses:
         '200': { description: OK }
         '409': { description: Tranziție de stare nepermisă }
+  /admin/damage-claims/{id}/documents/{docId}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { $ref: '#/components/parameters/DocId' }
+    get:
+      tags: [DamageClaims]
+      summary: (admin) Descarcă un document/fotografie din dosar
+      responses:
+        '200': { description: Conținutul fișierului }
+        '404': { $ref: '#/components/responses/Error' }
 
   # ----------------------------------------------------------------- Taxes
   /taxes:

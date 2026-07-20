@@ -32,6 +32,17 @@ export default function ProfilePage() {
     router.replace('/login');
   }
 
+  // Descărcarea e o navigare directă (nu XHR) — dacă sesiunea a expirat,
+  // browserul ar salva răspunsul de eroare ca fișier. Verificăm întâi sesiunea.
+  async function downloadExport() {
+    try {
+      await api.me();
+      window.location.assign('/api/me/export');
+    } catch {
+      router.replace('/login');
+    }
+  }
+
   if (loading) return <Loading rows={2} />;
   if (!me) return null;
 
@@ -59,9 +70,9 @@ export default function ProfilePage() {
       {me.role === 'CLIENT' ? (
         <section className="card stack" style={{ marginTop: 16 }}>
           <h2 style={{ margin: 0 }}>{t('Datele mele (GDPR)')}</h2>
-          <a className="btn btn-ghost" href="/api/me/export" download>
+          <button className="btn btn-ghost" onClick={downloadExport}>
             {t('⬇️ Descarcă datele mele (JSON)')}
-          </a>
+          </button>
 
           {!showDelete ? (
             <button className="btn btn-ghost" style={{ color: '#c62828' }} onClick={() => setShowDelete(true)}>

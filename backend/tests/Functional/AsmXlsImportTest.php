@@ -107,6 +107,64 @@ final class AsmXlsImportTest extends ApiTestCase
         self::assertCount(2, json_decode((string) $client->getResponse()->getContent(), true));
     }
 
+    /**
+     * Protecțiile importului de scadențe:
+     *  - aceeași alertă pe două rânduri NU creează duplicate (harta din fișier
+     *    acoperă entitățile încă neflush-uite);
+     *  - un număr de înmatriculare purtat de DOUĂ vehicule active e ambiguu →
+     *    eroare de rând, nu o alegere tăcută;
+     *  - un .xls trunchiat/corupt → 422 (eroare de validare), nu 500.
+     */
+    public function testDeadlineImportDuplicateRowsAmbiguousPlateAndCorruptXls(): void
+    {
+        $client = static::createClient();
+        $adminEmail = 'ad-'.uniqid().'@bcsc.ro';
+        $this->createAdmin($adminEmail, 'Parola1234');
+        $this->login($client, $adminEmail);
+
+        $suffix = strtoupper(substr(uniqid(), -4));
+        $csv = "Proprietar;Numar inmatriculare;VIN\n"
+            ."Dup Unu;MS 88 $suffix;WVWZZZ1KZAW".random_int(100000, 999999)."\n"
+            ."Dup Doi;MS 88 $suffix;WVWZZZ1KZAW".random_int(100000, 999999)."\n"
+            ."Uni Om;MS 89 $suffix;WVWZZZ1KZAW".random_int(100000, 999999)."\n";
+        $client->request('POST', '/api/admin/import/clients', files: ['file' => $this->inlineUpload($csv, 'clienti.csv')]);
+        self::assertResponseIsSuccessful();
+
+        $deadlineCsv = "Denumire alertă;Data alertei;Nr. înmatriculare\n"
+            ."ITP;01.10.2026;MS 89 $suffix\n"
+            ."ITP;15.11.2026;MS 89 $suffix\n"
+            ."ITP;01.10.2026;MS 88 $suffix\n";
+        $client->request('POST', '/api/admin/import/deadlines', files: ['file' => $this->inlineUpload($deadlineCsv, 'alerte.csv')]);
+        self::assertResponseIsSuccessful();
+        $report = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame(1, $report['deadlinesCreated'], 'Primul rând creează scadența.');
+        self::assertSame(1, $report['deadlinesUpdated'], 'Al doilea rând ACTUALIZEAZĂ aceeași scadență (nu duplică).');
+        self::assertSame(1, $report['errorCount'], 'Numărul purtat de două vehicule active e ambiguu.');
+        self::assertStringContainsString('mai multor vehicule active', $report['errors'][0]['message']);
+
+        /** @var EntityManagerInterface $em */
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $count = (int) $em->getConnection()->fetchOne(
+            "SELECT COUNT(*) FROM vehicle_deadlines d JOIN vehicles v ON v.id = d.vehicle_id
+             WHERE v.plate_number = ? AND d.type = 'ITP'",
+            ["MS 89 $suffix"],
+        );
+        self::assertSame(1, $count, 'O singură scadență ITP, cu data ultimului rând.');
+
+        // Fișier .xls trunchiat (antetul CFB e valid, restul lipsește) → 422.
+        $truncated = substr((string) file_get_contents(\dirname(__DIR__).'/Fixtures/asm_report_itp_rca.xls'), 0, 600);
+        $client->request('POST', '/api/admin/import/deadlines', files: ['file' => $this->inlineUpload($truncated, 'corupt.xls')]);
+        self::assertResponseStatusCodeSame(422, 'Fișierul corupt e o eroare de validare, nu una de server.');
+    }
+
+    private function inlineUpload(string $content, string $name): UploadedFile
+    {
+        $tmp = sys_get_temp_dir().'/bcsc_in_'.uniqid().'_'.$name;
+        file_put_contents($tmp, $content);
+
+        return new UploadedFile($tmp, $name, null, null, true);
+    }
+
     private function fixture(string $name): UploadedFile
     {
         $src = \dirname(__DIR__).'/Fixtures/'.$name;

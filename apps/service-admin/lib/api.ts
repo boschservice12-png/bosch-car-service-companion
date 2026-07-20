@@ -34,7 +34,7 @@ export function roadsideDocumentHref(requestId: string, documentId: string): str
 
 /** URL (same-origin) pentru descărcarea unui document dintr-un dosar de daună. */
 export function damageClaimDocumentHref(claimId: string, documentId: string): string {
-  return `/api/damage-claims/${claimId}/documents/${documentId}`;
+  return `/api/admin/damage-claims/${claimId}/documents/${documentId}`;
 }
 
 /** Metadatele unui document încărcat. */

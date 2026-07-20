@@ -78,6 +78,36 @@ final class DamageClaimClientAdminTest extends ApiTestCase
         self::assertSame('IN_REVIEW', $updated['status']);
         self::assertSame('Allianz-Țiriac', $updated['insurer']);
 
+        // ADMIN: fotografiile dosarului se descarcă prin ruta de admin
+        // (portalul o folosea, dar ruta lipsea — regresie remediată).
+        /** @var \App\Document\Domain\StorageAdapter $storage */
+        $storage = static::getContainer()->get(\App\Document\Domain\StorageAdapter::class);
+        $storageKey = 'dc/test-'.uniqid().'.txt';
+        $tmp = tempnam(sys_get_temp_dir(), 'dcdoc');
+        file_put_contents((string) $tmp, 'fotografie dauna');
+        $storage->store((string) $tmp, $storageKey, 'text/plain');
+        // Cererile HTTP dintre timp au lăsat instanțele vechi detașate —
+        // lucrăm pe entități reîncărcate din EntityManagerul curent.
+        $em->clear();
+        $freshOwner = $em->getRepository(User::class)->findOneBy(['email' => $ownerEmail]);
+        $freshClaim = $em->find(DamageClaim::class, $claim->id());
+        self::assertInstanceOf(DamageClaim::class, $freshClaim);
+        $document = new \App\Document\Domain\Document($storageKey, 'text/plain', 16, $freshOwner, 'dauna-admin.jpg');
+        $document->markClean();
+        $freshClaim->attach($document);
+        $em->persist($document);
+        $em->flush();
+        $docId = (string) $document->id();
+
+        $client->request('GET', "/api/admin/damage-claims/$claimId/documents/$docId");
+        self::assertResponseIsSuccessful();
+        self::assertSame('fotografie dauna', (string) $client->getResponse()->getContent());
+        self::assertStringContainsString('attachment', (string) $client->getResponse()->headers->get('Content-Disposition'));
+
+        // Un document care NU aparține dosarului → 404.
+        $client->request('GET', "/api/admin/damage-claims/$claimId/documents/".\Symfony\Component\Uid\Uuid::v7());
+        self::assertResponseStatusCodeSame(404);
+
         // Starea s-a schimbat efectiv și acțiunea e în audit.
         $em->clear();
         $fresh = $em->find(DamageClaim::class, $claim->id());
