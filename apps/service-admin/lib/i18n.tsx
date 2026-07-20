@@ -358,6 +358,9 @@ const HU: Dict = {
   'Contul de service trebuie să activeze 2FA înainte de a folosi portalul.': 'A szerviz fióknak be kell kapcsolnia a 2FA-t a portál használata előtt.',
   '2FA este deja activ pe acest cont.': 'A 2FA már aktív ezen a fiókon.',
   '2FA nu este activat pe acest cont.': 'A 2FA nincs bekapcsolva ezen a fiókon.',
+
+  // Liste mari (P2-03)
+  'Afișează încă {n} (din {m} rămase)': 'Még {n} megjelenítése ({m} van hátra)',
 };
 
 const EN: Dict = {
@@ -700,6 +703,9 @@ const EN: Dict = {
   'Contul de service trebuie să activeze 2FA înainte de a folosi portalul.': 'The service account must enable 2FA before using the portal.',
   '2FA este deja activ pe acest cont.': '2FA is already active on this account.',
   '2FA nu este activat pe acest cont.': '2FA is not enabled on this account.',
+
+  // Liste mari (P2-03)
+  'Afișează încă {n} (din {m} rămase)': 'Show {n} more ({m} remaining)',
 };
 
 const DICTS: Record<Locale, Dict | null> = { ro: null, hu: HU, en: EN };

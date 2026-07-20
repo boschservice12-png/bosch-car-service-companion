@@ -13,6 +13,9 @@ function norm(s: string): string {
   return s.toLowerCase().replace(/\s+/g, '');
 }
 
+/** P2-03: lista se randează incremental — flote mari nu blochează pagina. */
+const PAGE_SIZE = 50;
+
 export default function DashboardPage() {
   const router = useRouter();
   const t = useT();
@@ -21,6 +24,12 @@ export default function DashboardPage() {
   const [qName, setQName] = useState('');
   const [qPlate, setQPlate] = useState('');
   const [qVin, setQVin] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // La schimbarea filtrelor, fereastra de afișare revine la început.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [qName, qPlate, qVin]);
 
   const load = useCallback(() => {
     setError(null);
@@ -157,7 +166,7 @@ export default function DashboardPage() {
                   />
                 ) : (
                   <div className="card">
-                    {filtered.map((v) => (
+                    {filtered.slice(0, visibleCount).map((v) => (
                       <div key={v.id} className="list-row">
                         <div>
                           <strong>{v.plateNumber}</strong>
@@ -170,6 +179,19 @@ export default function DashboardPage() {
                         <Link href={`/vehicule/${v.id}`}>{t('Scadențe →')}</Link>
                       </div>
                     ))}
+                    {filtered.length > visibleCount ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ width: '100%', marginTop: 8 }}
+                        onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                      >
+                        {t('Afișează încă {n} (din {m} rămase)', {
+                          n: Math.min(PAGE_SIZE, filtered.length - visibleCount),
+                          m: filtered.length - visibleCount,
+                        })}
+                      </button>
+                    ) : null}
                   </div>
                 )}
               </>

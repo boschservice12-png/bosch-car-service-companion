@@ -6,6 +6,15 @@ export const metadata: Metadata = {
   title: 'Bosch Car Service Companion',
   description: 'Aplicația clienților SC Szkaliczki Service SRL',
   manifest: '/manifest.webmanifest',
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    title: 'BCS Companion',
+    statusBarStyle: 'default',
+  },
 };
 
 export const viewport: Viewport = {
