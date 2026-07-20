@@ -36,8 +36,11 @@ final class Version20260721120000 extends AbstractMigration
         )');
         $this->addSql('CREATE UNIQUE INDEX ux_vat_token_hash ON vehicle_activation_tokens (token_hash)');
         $this->addSql('CREATE INDEX ix_vat_vehicle ON vehicle_activation_tokens (vehicle_id)');
-        $this->addSql('CREATE INDEX IDX_vat_created_by ON vehicle_activation_tokens (created_by_id)');
-        $this->addSql('CREATE INDEX IDX_vat_used_by ON vehicle_activation_tokens (used_by_id)');
+        // Numele indexurilor de FK trebuie să corespundă celor generate de Doctrine
+        // din mapping (IDX_<crc32(tabel)><crc32(coloană)>), altfel schema:validate
+        // le raportează ca nesincronizate pe PostgreSQL.
+        $this->addSql('CREATE INDEX IDX_D16740D1B03A8386 ON vehicle_activation_tokens (created_by_id)');
+        $this->addSql('CREATE INDEX IDX_D16740D14C2B72A8 ON vehicle_activation_tokens (used_by_id)');
         $this->addSql('ALTER TABLE vehicle_activation_tokens ADD CONSTRAINT FK_vat_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('ALTER TABLE vehicle_activation_tokens ADD CONSTRAINT FK_vat_created_by FOREIGN KEY (created_by_id) REFERENCES users (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE');
         $this->addSql('ALTER TABLE vehicle_activation_tokens ADD CONSTRAINT FK_vat_used_by FOREIGN KEY (used_by_id) REFERENCES users (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE');

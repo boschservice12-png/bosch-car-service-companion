@@ -35,13 +35,15 @@ final class Version20260721110000 extends AbstractMigration
 
         $this->addSql('CREATE INDEX ix_notif_dedup ON notifications (dedup_key)');
         $this->addSql('ALTER TABLE notifications ADD CONSTRAINT FK_notif_sent_by FOREIGN KEY (sent_by_id) REFERENCES users (id) ON DELETE SET NULL NOT DEFERRABLE INITIALLY IMMEDIATE');
-        $this->addSql('CREATE INDEX IDX_notif_sent_by ON notifications (sent_by_id)');
+        // Numele indexului de FK trebuie să corespundă celui generat de Doctrine din
+        // mapping (IDX_<crc32(tabel)><crc32(coloană)>) pentru ca schema:validate să treacă.
+        $this->addSql('CREATE INDEX IDX_6000B0D3A45BB98C ON notifications (sent_by_id)');
     }
 
     public function down(Schema $schema): void
     {
         $this->addSql('ALTER TABLE notifications DROP CONSTRAINT FK_notif_sent_by');
-        $this->addSql('DROP INDEX IDX_notif_sent_by');
+        $this->addSql('DROP INDEX IDX_6000B0D3A45BB98C');
         $this->addSql('DROP INDEX ix_notif_dedup');
         $this->addSql('ALTER TABLE notifications DROP status');
         $this->addSql('ALTER TABLE notifications DROP dedup_key');
