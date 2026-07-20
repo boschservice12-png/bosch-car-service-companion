@@ -44,10 +44,16 @@ paths:
   /health/ready:
     get:
       tags: [System]
-      summary: Readiness (bază de date, storage)
+      summary: Readiness profund (bază de date, migrații, storage, secrete, messenger)
+      description: >
+        Separat de liveness. Verifică dependențele critice (bază de date, stare
+        migrații, storage scriere/citire, secrete aplicație) plus messenger
+        (necritic). O dependență critică picată → 503; nu se arată „ready" verde
+        cu un secret implicit sau migrații neaplicate. Răspunsul conține
+        {status, ready, checks{...}}, fără secrete sau connection string-uri.
       security: []
       responses:
-        '200': { description: Ready }
+        '200': { description: 'Ready (toate dependențele critice ok)' }
         '503': { $ref: '#/components/responses/Error' }
   /csrf:
     get:

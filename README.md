@@ -19,9 +19,11 @@ Interfață în 3 limbi: **română (implicită) · maghiară · engleză**.
   cereri de ofertă, asistență rutieră (două linii telefonice), mobilitate,
   taxe și impozite (evidență declarativă, **fără** încărcare de documente),
   „În caz de accident" → amiabila.com.
-- **Onboarding**: înregistrare liberă cu email + parolă; un cont creat de
-  importul Excel al service-ului se revendică la înregistrare cu **numărul de
-  înmatriculare** drept dovadă — clientul își vede imediat vehiculele și istoricul.
+- **Onboarding**: înregistrare liberă cu email + parolă. Un vehicul creat de
+  importul Excel al service-ului se leagă de cont cu un **cod de activare**
+  emis de service (unic, hash-uit, cu expirare, o singură utilizare, cu limită
+  de încercări) — numărul de înmatriculare / VIN **nu** mai acordă singur acces.
+  Detalii: `docs/PILOT_READINESS.md` (Blocul 3).
 - **Service/admin**: panou cu căutare pe 3 câmpuri (nume / număr / VIN),
   import Excel/CSV (clienți + istoric reparații, tranzacțional și idempotent),
   publicare/corecție istoric, inbox-uri (mesaje, oferte, asistență, mobilitate,
@@ -79,6 +81,7 @@ cd e2e && npm install && npx playwright test
 
 | Subiect | Unde |
 |---|---|
+| Operare pilot (readiness, storage, activare, notificări, TOTP, backup) | `docs/PILOT_READINESS.md` |
 | Contract API (sincron cu routerul, impus de `OpenApiSyncTest`) | `docs/api/openapi.yaml` |
 | Rulare demo + date demo | `docs/DEMO.md` |
 | Backup + restaurare (drill lunar) | `infrastructure/backup/` |
