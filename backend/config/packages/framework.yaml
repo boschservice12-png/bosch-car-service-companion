@@ -42,6 +42,11 @@ framework:
             policy: sliding_window
             limit: 5
             interval: '15 minutes'
+        # Activarea vehiculului cu cod — anti forță-brută pe cod (per utilizator + IP).
+        activation:
+            policy: sliding_window
+            limit: 10
+            interval: '15 minutes'
 
 when@test:
     framework:
@@ -52,5 +57,6 @@ when@test:
             upload: { policy: sliding_window, limit: 10, interval: '1 minute' }
             register: { policy: sliding_window, limit: 5, interval: '1 minute' }
             twofa: { policy: sliding_window, limit: 5, interval: '1 minute' }
+            activation: { policy: sliding_window, limit: 5, interval: '1 minute' }
         session:
             storage_factory_id: session.storage.factory.mock_file

@@ -72,4 +72,17 @@ class VehicleOwnership
         $this->active = false;
         $this->validTo = new \DateTimeImmutable('today');
     }
+
+    /**
+     * Schimbă proprietarul activ pe această legătură (activare cu cod). Fostul
+     * proprietar pierde accesul, noul proprietar îl primește. Schimbarea e
+     * consemnată în jurnalul de audit de către serviciul de activare.
+     */
+    public function transferTo(CustomerProfile $newOwner): void
+    {
+        $this->customerProfile = $newOwner;
+        $this->active = true;
+        $this->validFrom = new \DateTimeImmutable('today');
+        $this->validTo = null;
+    }
 }

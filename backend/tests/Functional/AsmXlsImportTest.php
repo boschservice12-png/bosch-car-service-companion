@@ -93,17 +93,33 @@ final class AsmXlsImportTest extends ApiTestCase
         self::assertSame(0, $again['deadlinesCreated']);
         self::assertSame(2, $again['rowsSkipped'], 'Datele identice se sar.');
 
-        // Clientul revendicat vede scadențele importate (lanț complet).
+        // Blocul 3: clientul primește accesul cu un COD DE ACTIVARE emis de
+        // service (nu cu numărul de înmatriculare). Lanț complet: import →
+        // admin emite cod pentru vehiculul importat → client activează → vede
+        // vehiculul și scadențele importate.
+        $vehicleId = (string) $em->getConnection()->fetchOne(
+            "SELECT id FROM vehicles WHERE plate_number = 'MS 77 ASM'",
+        );
+        self::assertNotSame('', $vehicleId, 'Vehiculul importat există.');
+
+        $client->request('POST', "/api/admin/vehicles/$vehicleId/activation-token", server: $this->json(), content: '{}');
+        self::assertResponseStatusCodeSame(201);
+        $token = json_decode((string) $client->getResponse()->getContent(), true)['token'];
+
+        $ownerEmail = 'popescu-'.uniqid().'@example.test';
         $client->request('POST', '/api/auth/register', server: $this->json(), content: json_encode([
-            'email' => 'popescu.asm@example.test', 'password' => 'Parola1234', 'consent' => true,
-            'plateNumber' => 'ms77asm',
+            'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true,
         ]));
-        self::assertResponseStatusCodeSame(201, 'Contul importat se revendică cu numărul de înmatriculare.');
-        $this->login($client, 'popescu.asm@example.test');
+        self::assertResponseStatusCodeSame(201);
+        $this->login($client, $ownerEmail);
+        $client->request('POST', '/api/me/vehicles/activate', server: $this->json(), content: json_encode(['token' => $token]));
+        self::assertResponseIsSuccessful('Activarea cu cod dă accesul la vehiculul importat.');
+
         $client->request('GET', '/api/vehicles');
         $vehicles = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertCount(1, $vehicles);
-        $client->request('GET', "/api/vehicles/{$vehicles[0]['id']}/deadlines");
+        self::assertSame($vehicleId, $vehicles[0]['id']);
+        $client->request('GET', "/api/vehicles/$vehicleId/deadlines");
         self::assertCount(2, json_decode((string) $client->getResponse()->getContent(), true));
     }
 

@@ -25,6 +25,9 @@ services:
     App\Vehicle\Domain\VehicleRepository:
         alias: App\Vehicle\Infrastructure\DoctrineVehicleRepository
 
+    App\Vehicle\Domain\VehicleActivationTokenRepository:
+        alias: App\Vehicle\Infrastructure\DoctrineVehicleActivationTokenRepository
+
     App\Document\Domain\DocumentRepository:
         alias: App\Document\Infrastructure\DoctrineDocumentRepository
 

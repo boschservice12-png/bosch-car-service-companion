@@ -14,6 +14,10 @@ export default function VehiclesPage() {
   const t = useT();
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Blocul 3: activarea unui vehicul cu un cod primit de la service.
+  const [code, setCode] = useState('');
+  const [actMsg, setActMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [actBusy, setActBusy] = useState(false);
 
   const load = useCallback(() => {
     setError(null);
@@ -31,6 +35,26 @@ export default function VehiclesPage() {
   }, [router]);
 
   useEffect(load, [load]);
+
+  async function activate(e: React.FormEvent) {
+    e.preventDefault();
+    setActMsg(null);
+    setActBusy(true);
+    try {
+      const v = await api.activateVehicle(code.trim());
+      setActMsg({ ok: true, text: t('Vehicul activat: {plate}', { plate: v.plateNumber }) });
+      setCode('');
+      load();
+    } catch (err) {
+      if (err instanceof ApiError && err.httpStatus === 401) {
+        router.replace('/login');
+        return;
+      }
+      setActMsg({ ok: false, text: err instanceof ApiError ? err.problem.title : t('Cod de activare invalid sau expirat.') });
+    } finally {
+      setActBusy(false);
+    }
+  }
 
   return (
     <>
@@ -74,6 +98,30 @@ export default function VehiclesPage() {
           </Link>
         </>
       ) : null}
+
+      <section className="card stack" style={{ marginTop: 16 }}>
+        <h2 style={{ margin: 0, fontSize: '1rem' }}>{t('Ai un cod de la service?')}</h2>
+        <p className="muted" style={{ fontSize: '0.85rem', margin: 0 }}>
+          {t('Introduceți codul de activare primit de la service pentru a adăuga vehiculul în contul dumneavoastră.')}
+        </p>
+        {actMsg ? (
+          <div className={`alert ${actMsg.ok ? 'alert-ok' : 'alert-err'}`} role="alert">
+            {actMsg.text}
+          </div>
+        ) : null}
+        <form onSubmit={activate} className="stack" style={{ gap: 8 }}>
+          <input
+            aria-label={t('Cod de activare')}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="XXXX-XXXX-XXXX-XXXX"
+            autoCapitalize="characters"
+          />
+          <button className="btn" type="submit" disabled={actBusy || code.trim() === ''}>
+            {actBusy ? t('Se activează…') : t('Activează vehiculul')}
+          </button>
+        </form>
+      </section>
 
       <BottomNav />
     </>

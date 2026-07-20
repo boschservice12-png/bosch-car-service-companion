@@ -456,6 +456,47 @@ paths:
       responses:
         '200': { description: OK }
         '403': { description: Doar service }
+  /admin/vehicles/{id}/activation-token:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Vehicles]
+      summary: (admin) Emite un cod de activare pentru vehicul
+      description: >
+        Codul se întoarce în CLAR o SINGURĂ dată (în baza de date rămâne doar
+        hash-ul SHA-256). Numărul de înmatriculare / VIN NU dau acces — doar
+        acest cod. Emiterea revocă codurile încă valabile ale vehiculului.
+      responses:
+        '201': { description: 'Cod emis (returnat o singură dată)' }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/vehicles/{id}/activation-token/revoke:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Vehicles]
+      summary: (admin) Revocă codurile de activare valabile ale vehiculului
+      responses:
+        '200': { description: 'Numărul de coduri revocate' }
+        '404': { $ref: '#/components/responses/Error' }
+  /me/vehicles/activate:
+    post:
+      tags: [Vehicles]
+      summary: Activează un vehicul cu un cod primit de la service
+      description: >
+        Clientul devine proprietar activ (înlocuind eventualul proprietar
+        anterior). Cod invalid/expirat/folosit/revocat → 422 generic. Limitat
+        la rată (per utilizator + IP).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Vehicul activat }
+        '422': { description: Cod invalid sau expirat }
+        '429': { description: Prea multe încercări }
   /admin/vehicles/{vehicleId}/service-records:
     parameters: [ { $ref: '#/components/parameters/VehicleId' } ]
     get:

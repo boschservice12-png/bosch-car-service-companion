@@ -15,7 +15,6 @@ export default function RegisterPage() {
     password: '',
     firstName: '',
     lastName: '',
-    plateNumber: '',
     consent: false,
   });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
@@ -32,7 +31,7 @@ export default function RegisterPage() {
     setGeneral(null);
     setBusy(true);
     try {
-      await api.register({ ...form, plateNumber: form.plateNumber.trim() || undefined });
+      await api.register(form);
       // După înregistrare, autentificare automată.
       await api.login(form.email, form.password);
       router.replace('/');
@@ -84,18 +83,8 @@ export default function RegisterPage() {
           <div className="hint">{t('Minim 8 caractere.')}</div>
           {fieldErr('password') ? <div className="err">{t(fieldErr('password') as string)}</div> : null}
         </div>
-        <div className="field">
-          <label htmlFor="plateNumber">{t('Număr de înmatriculare (opțional)')}</label>
-          <input
-            id="plateNumber"
-            value={form.plateNumber}
-            onChange={(e) => set('plateNumber', e.target.value)}
-            placeholder="MS 01 ABC"
-          />
-          <div className="hint">
-            {t('Dacă sunteți deja client al service-ului, confirmați numărul de înmatriculare al mașinii — contul se leagă automat de vehiculele și istoricul dumneavoastră.')}
-          </div>
-          {fieldErr('plateNumber') ? <div className="err">{t(fieldErr('plateNumber') as string)}</div> : null}
+        <div className="hint" style={{ marginBottom: 12 }}>
+          {t('Dacă sunteți deja client al service-ului, cereți service-ului un cod de activare pentru vehicul și introduceți-l după autentificare (pagina Vehicule).')}
         </div>
         <div className="field">
           <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontWeight: 400 }}>

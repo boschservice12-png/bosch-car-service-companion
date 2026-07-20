@@ -25,6 +25,18 @@ export default function DashboardPage() {
   const [qPlate, setQPlate] = useState('');
   const [qVin, setQVin] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Blocul 3: codul de activare emis pentru un vehicul (afișat o singură dată).
+  const [issued, setIssued] = useState<{ plate: string; token: string } | null>(null);
+
+  async function issueCode(vehicleId: string, plate: string) {
+    setIssued(null);
+    try {
+      const res = await api.issueActivationToken(vehicleId);
+      setIssued({ plate, token: res.token });
+    } catch (err) {
+      setError(err instanceof ApiError ? err.problem.title : t('Nu am putut emite codul.'));
+    }
+  }
 
   // La schimbarea filtrelor, fereastra de afișare revine la început.
   useEffect(() => {
@@ -169,6 +181,17 @@ export default function DashboardPage() {
                   />
                 ) : (
                   <div className="card">
+                    {issued ? (
+                      <div className="alert alert-ok" role="status" style={{ marginBottom: 8 }}>
+                        <div>
+                          <strong>{t('Cod de activare pentru {plate}', { plate: issued.plate })}:</strong>{' '}
+                          <code className="tabnum">{issued.token}</code>
+                        </div>
+                        <div className="muted" style={{ fontSize: '0.8rem' }}>
+                          {t('Comunicați acest cod clientului. Se afișează O SINGURĂ DATĂ și expiră în 7 zile.')}
+                        </div>
+                      </div>
+                    ) : null}
                     {filtered.slice(0, visibleCount).map((v) => (
                       <div key={v.id} className="list-row">
                         <div>
@@ -179,7 +202,17 @@ export default function DashboardPage() {
                           </div>
                           <div className="muted" style={{ fontSize: '0.78rem' }}>VIN: {v.vin}</div>
                         </div>
-                        <Link href={`/vehicule/${v.id}`}>{t('Scadențe →')}</Link>
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ width: 'auto', padding: '6px 10px' }}
+                            onClick={() => issueCode(v.id, v.plateNumber)}
+                          >
+                            {t('🔑 Cod activare')}
+                          </button>
+                          <Link href={`/vehicule/${v.id}`}>{t('Scadențe →')}</Link>
+                        </div>
                       </div>
                     ))}
                     {filtered.length > visibleCount ? (

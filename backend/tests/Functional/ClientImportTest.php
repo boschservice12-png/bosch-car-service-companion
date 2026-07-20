@@ -127,57 +127,45 @@ final class ClientImportTest extends ApiTestCase
         $client->request('POST', '/api/admin/import/clients', files: ['file' => $this->upload($csv, 'clienti.csv')]);
         self::assertResponseIsSuccessful();
 
-        // Înainte de înregistrare, contul importat nu se poate autentifica.
+        // Blocul 3: revendicarea prin număr de înmatriculare este DEZACTIVATĂ.
+        // Contul importat nu se poate autentifica și nu se poate revendica doar
+        // cu emailul/numărul — accesul se obține cu un cod de activare.
         $client->request('POST', '/api/auth/login', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
             'email' => $ownerEmail, 'password' => 'Parola1234',
         ]));
         self::assertResponseStatusCodeSame(401, 'Fără parolă setată, loginul e refuzat.');
 
-        // Fără număr de înmatriculare → 422 (dovada proprietății e obligatorie).
-        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
-            'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true,
-        ]));
-        self::assertResponseStatusCodeSame(422, 'Contul importat nu se revendică fără numărul de înmatriculare.');
-
-        // Cu număr greșit → 422, contul rămâne nerevendicat.
-        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
-            'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true, 'plateNumber' => 'B 99 XXX',
-        ]));
-        self::assertResponseStatusCodeSame(422, 'Un număr de înmatriculare străin nu deblochează contul.');
-        $client->request('POST', '/api/auth/login', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
-            'email' => $ownerEmail, 'password' => 'Parola1234',
-        ]));
-        self::assertResponseStatusCodeSame(401, 'După încercările eșuate, parola tot nu e setată.');
-
-        // Cu numărul corect (litere mici, fără spații — se normalizează) → revendicat.
+        // Înregistrarea cu emailul importat + numărul de înmatriculare → refuzată.
         $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
             'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true,
             'plateNumber' => strtolower('ms71'.$suffix),
         ]));
-        self::assertResponseStatusCodeSame(201);
-        $this->login($client, $ownerEmail, 'Parola1234');
+        self::assertResponseStatusCodeSame(422, 'Numărul de înmatriculare nu mai revendică un cont.');
+        self::assertStringContainsString('cod de activare', (string) $client->getResponse()->getContent());
 
-        // Clientul își vede imediat vehiculul importat, cu numele din evidență.
-        $client->request('GET', '/api/vehicles');
+        // Fluxul sigur: adminul emite un cod pentru vehiculul importat.
+        /** @var EntityManagerInterface $em */
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $vehicleId = (string) $em->getConnection()->fetchOne('SELECT id FROM vehicles WHERE vin = ?', [$vin]);
+        $client->request('POST', "/api/admin/vehicles/$vehicleId/activation-token", server: ['CONTENT_TYPE' => 'application/json'], content: '{}');
+        self::assertResponseStatusCodeSame(201);
+        $token = json_decode((string) $client->getResponse()->getContent(), true)['token'];
+
+        // Un client nou activează cu codul → vede vehiculul importat.
+        $activatorEmail = 'activator-'.uniqid().'@example.test';
+        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $activatorEmail, 'password' => 'Parola1234', 'consent' => true,
+        ]));
+        self::assertResponseStatusCodeSame(201);
+        $this->login($client, $activatorEmail, 'Parola1234');
+        $client->request('POST', '/api/me/vehicles/activate', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode(['token' => $token]));
         self::assertResponseIsSuccessful();
+        $client->request('GET', '/api/vehicles');
         $vehicles = json_decode((string) $client->getResponse()->getContent(), true);
         self::assertCount(1, $vehicles);
         self::assertSame($vin, $vehicles[0]['vin']);
 
-        $client->request('GET', '/api/me');
-        $me = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertSame('Andrei Kiss', $me['name'], 'Numele din importul service-ului rămâne sursa de adevăr.');
-
-        // Contul, odată activat, nu mai poate fi „re-revendicat" cu altă parolă.
-        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
-            'email' => $ownerEmail, 'password' => 'AltaParola999', 'consent' => true,
-        ]));
-        self::assertResponseStatusCodeSame(422, 'Un cont activat nu se suprascrie prin re-înregistrare.');
-
-        // Auditul consemnează revendicarea.
-        /** @var EntityManagerInterface $em */
-        $em = static::getContainer()->get(EntityManagerInterface::class);
-        $count = (int) $em->getConnection()->fetchOne("SELECT COUNT(*) FROM audit_logs WHERE action = 'user.import_account_claimed'");
+        $count = (int) $em->getConnection()->fetchOne("SELECT COUNT(*) FROM audit_logs WHERE action = 'vehicle.activation_used'");
         self::assertGreaterThanOrEqual(1, $count);
     }
 
@@ -211,14 +199,15 @@ final class ClientImportTest extends ApiTestCase
             [$ownerEmail],
         );
 
-        // Chiar și cu numărul de înmatriculare „corect", revendicarea e refuzată.
+        // Blocul 3: chiar și cu numărul de înmatriculare „corect", revendicarea
+        // este refuzată — numărul nu dovedește proprietatea (accesul se obține
+        // cu un cod de activare emis de service).
         $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
             'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true,
             'plateNumber' => 'MS72'.$suffix,
         ]));
-        self::assertResponseStatusCodeSame(422, 'Fără vehicul activ nu există dovadă — contul nu se revendică.');
-        $body = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertStringContainsString('fără un vehicul activ', json_encode($body['errors'] ?? [], JSON_UNESCAPED_UNICODE));
+        self::assertResponseStatusCodeSame(422, 'Numărul de înmatriculare nu revendică un cont.');
+        self::assertStringContainsString('cod de activare', (string) $client->getResponse()->getContent());
 
         // Contul rămâne nerevendicat: loginul e refuzat în continuare.
         $client->request('POST', '/api/auth/login', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
