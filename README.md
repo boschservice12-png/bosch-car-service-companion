@@ -48,6 +48,19 @@ cd apps/service-admin && npm install && npm run dev
 Alternativ, toată stiva cu date demo: `docker compose -f compose.demo.yaml up --build`
 (client: http://localhost:3000 · admin: http://localhost:3001). Detalii: `docs/DEMO.md`.
 
+Stiva demo include un **worker Messenger** (serviciul `worker`) care consumă
+transportul `async` (scanarea antimalware a documentelor, notificări). Fără el,
+documentele ar rămâne veșnic în starea PENDING. Verificare:
+
+```bash
+docker compose -f compose.demo.yaml logs -f worker      # pornire + fiecare mesaj procesat
+docker compose -f compose.demo.yaml exec backend php bin/console messenger:stats
+docker compose -f compose.demo.yaml exec backend php bin/console messenger:failed:show   # mesaje eșuate definitiv
+```
+
+Workerul are `restart: unless-stopped`; oprirea lui e vizibilă în readiness
+(`GET /api/health/ready`, cheia `messenger`). Vezi `docs/PILOT_READINESS.md`.
+
 ## Verificare
 
 ```bash

@@ -23,7 +23,8 @@ COPY backend/ /app/
 RUN composer dump-autoload --optimize --no-interaction
 
 COPY demo/backend-entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY demo/worker-entrypoint.sh /usr/local/bin/worker-entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/worker-entrypoint.sh
 
 EXPOSE 8080
 CMD ["/usr/local/bin/entrypoint.sh"]
