@@ -16,6 +16,10 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
+  // Un singur worker: testul 2FA activează/dezactivează 2FA pe contul COMUN
+  // de admin demo — rulat în paralel cu celelalte fișiere, loginul de admin
+  // din ele ar nimeri aleator provocarea OTP (picaje intermitente).
+  workers: 1,
   retries: 0,
   reporter: [['list']],
   use: {
