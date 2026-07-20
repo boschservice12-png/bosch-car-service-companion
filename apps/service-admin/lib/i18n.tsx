@@ -362,6 +362,23 @@ const HU: Dict = {
   // Liste mari (P2-03)
   'Afișează încă {n} (din {m} rămase)': 'Még {n} megjelenítése ({m} van hátra)',
 
+  // Import ASM (.xls)
+  'Încărcați „lista parteneri" din ASM (.xls, .xlsx sau .csv). Coloane recunoscute:': 'Töltse fel az ASM „lista parteneri" exportját (.xls, .xlsx vagy .csv). Felismert oszlopok:',
+  'sau': 'vagy',
+  'Fișier (.xls, .xlsx sau .csv, max. 10 MB)': 'Fájl (.xls, .xlsx vagy .csv, max. 10 MB)',
+  'Fișier istoric (.xls, .xlsx sau .csv, max. 10 MB)': 'Előzményfájl (.xls, .xlsx vagy .csv, max. 10 MB)',
+  'Pasul 2 — Istoric reparații → carte service': '2. lépés — Javítási lista → szervizkönyv',
+  'Exportul „PersonalManopere" din ASM sau orice tabel legat prin VIN (importați întâi clienții). Coloane recunoscute:': 'Az ASM „PersonalManopere" exportja vagy bármely VIN-nel kapcsolt tábla (előbb az ügyfeleket importálja). Felismert oszlopok:',
+  'Pasul 3 — Report ITP/RCA → scadențe': '3. lépés — ITP/RCA riport → lejáratok',
+  'Raportul de alerte din ASM („report itp . rca"). Coloane recunoscute:': 'Az ASM riasztás-riportja („report itp . rca"). Felismert oszlopok:',
+  'Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și 🔔 Notificări.': 'Csak az ITP/RCA riasztásokból lesz lejárat (a többit kihagyja); az autót rendszám alapján azonosítja, az újraimport duplikálás nélkül frissít. A lejáratok az Alerte (ügyfél) és a 🔔 Értesítések alatt jelennek meg.',
+  'Fișier raport (.xls, .xlsx sau .csv, max. 10 MB)': 'Riportfájl (.xls, .xlsx vagy .csv, max. 10 MB)',
+  'Importă scadențele': 'Lejáratok importálása',
+  'Raport scadențe': 'Lejárat-jelentés',
+  'Scadențe create:': 'Létrehozott lejáratok:',
+  'Neschimbate (sărite):': 'Változatlan (kihagyva):',
+  'alte alerte (nu ITP/RCA):': 'egyéb riasztás (nem ITP/RCA):',
+
   // Notificări de scadență (P1-03)
   '🔔 Notificări': '🔔 Értesítések',
   'Notificări de scadență': 'Lejárati értesítések',
@@ -721,6 +738,23 @@ const EN: Dict = {
 
   // Liste mari (P2-03)
   'Afișează încă {n} (din {m} rămase)': 'Show {n} more ({m} remaining)',
+
+  // ASM (.xls) import
+  'Încărcați „lista parteneri" din ASM (.xls, .xlsx sau .csv). Coloane recunoscute:': 'Upload the ASM “lista parteneri” export (.xls, .xlsx or .csv). Recognised columns:',
+  'sau': 'or',
+  'Fișier (.xls, .xlsx sau .csv, max. 10 MB)': 'File (.xls, .xlsx or .csv, max. 10 MB)',
+  'Fișier istoric (.xls, .xlsx sau .csv, max. 10 MB)': 'History file (.xls, .xlsx or .csv, max. 10 MB)',
+  'Pasul 2 — Istoric reparații → carte service': 'Step 2 — Repair list → service book',
+  'Exportul „PersonalManopere" din ASM sau orice tabel legat prin VIN (importați întâi clienții). Coloane recunoscute:': 'The ASM “PersonalManopere” export, or any table linked by VIN (import the clients first). Recognised columns:',
+  'Pasul 3 — Report ITP/RCA → scadențe': 'Step 3 — ITP/RCA report → deadlines',
+  'Raportul de alerte din ASM („report itp . rca"). Coloane recunoscute:': 'The ASM alert report (“report itp . rca”). Recognised columns:',
+  'Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și 🔔 Notificări.': 'Only ITP/RCA alerts become deadlines (the rest are skipped); the vehicle is matched by plate, and re-importing updates without duplicates. Deadlines then appear in Alerts (client) and 🔔 Notifications.',
+  'Fișier raport (.xls, .xlsx sau .csv, max. 10 MB)': 'Report file (.xls, .xlsx or .csv, max. 10 MB)',
+  'Importă scadențele': 'Import deadlines',
+  'Raport scadențe': 'Deadline report',
+  'Scadențe create:': 'Deadlines created:',
+  'Neschimbate (sărite):': 'Unchanged (skipped):',
+  'alte alerte (nu ITP/RCA):': 'other alerts (not ITP/RCA):',
 
   // Notificări de scadență (P1-03)
   '🔔 Notificări': '🔔 Notifications',

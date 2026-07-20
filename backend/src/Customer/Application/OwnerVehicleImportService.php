@@ -29,6 +29,8 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class OwnerVehicleImportService
 {
+    private const MAX_REPORTED_ERRORS = 200;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly VehicleRepository $vehicles,
@@ -56,12 +58,32 @@ final class OwnerVehicleImportService
             }
         }
 
+        // Performanță (fișiere reale de ~15.000 de rânduri): TOATE căutările
+        // se fac pe hărți preîncărcate — zero interogări per rând, un singur
+        // flush la final. Hărțile se actualizează pe măsură ce creăm entități,
+        // deci rândurile duplicate din același fișier se rezolvă corect.
+        $ctx = ['users' => [], 'vehicles' => [], 'owners' => []];
+        foreach ($this->em->getRepository(User::class)->findAll() as $u) {
+            $ctx['users'][mb_strtolower($u->getEmail())] = $u;
+        }
+        foreach ($this->em->createQuery('SELECT v FROM '.Vehicle::class.' v')->getResult() as $v) {
+            $ctx['vehicles'][(string) $v->vin()] = $v;
+        }
+        $ownerships = $this->em->createQuery(
+            'SELECT o, p, v FROM '.\App\Vehicle\Domain\VehicleOwnership::class.' o JOIN o.customerProfile p JOIN o.vehicle v WHERE o.active = true',
+        )->getResult();
+        foreach ($ownerships as $o) {
+            $ctx['owners'][(string) $o->vehicle()->id()] = $o->customerProfile();
+        }
+
         $report = [
             'totalRows' => 0,
             'ownersCreated' => 0,
             'vehiclesCreated' => 0,
             'vehiclesUpdated' => 0,
             'ownershipsCreated' => 0,
+            'rowsWithoutVehicle' => 0,
+            'errorCount' => 0,
             'errors' => [],
         ];
 
@@ -78,9 +100,13 @@ final class OwnerVehicleImportService
                 ++$report['totalRows'];
 
                 try {
-                    $this->importRow($row, $map, $report);
+                    $this->importRow($row, $map, $report, $ctx);
                 } catch (\InvalidArgumentException $e) {
-                    $report['errors'][] = ['row' => $rowNo, 'message' => $e->getMessage()];
+                    ++$report['errorCount'];
+                    // Fișierele reale au mii de rânduri — raportul rămâne lizibil.
+                    if (\count($report['errors']) < self::MAX_REPORTED_ERRORS) {
+                        $report['errors'][] = ['row' => $rowNo, 'message' => $e->getMessage()];
+                    }
                 }
             }
 
@@ -95,7 +121,7 @@ final class OwnerVehicleImportService
             'totalRows' => $report['totalRows'],
             'ownersCreated' => $report['ownersCreated'],
             'vehiclesCreated' => $report['vehiclesCreated'],
-            'errors' => \count($report['errors']),
+            'errors' => $report['errorCount'],
         ]);
 
         return $report;
@@ -106,13 +132,20 @@ final class OwnerVehicleImportService
      * @param array<string, int>    $map
      * @param array<string, mixed>  $report
      */
-    private function importRow(array $row, array $map, array &$report): void
+    private function importRow(array $row, array $map, array &$report, array &$ctx): void
     {
         $cell = static fn (string $key): string => trim($row[$map[$key] ?? -1] ?? '');
 
         $ownerName = $cell('owner');
         $plate = $cell('plate');
         $vinRaw = $cell('vin');
+        // Listele reale conțin și parteneri FĂRĂ vehicul — nu e o eroare,
+        // doar nu avem ce importa pentru ei (se numără separat).
+        if ($ownerName !== '' && $plate === '' && $vinRaw === '') {
+            ++$report['rowsWithoutVehicle'];
+
+            return;
+        }
         if ($ownerName === '' || $plate === '' || $vinRaw === '') {
             throw new \InvalidArgumentException('Proprietarul, numărul de înmatriculare și VIN-ul sunt obligatorii.');
         }
@@ -120,17 +153,39 @@ final class OwnerVehicleImportService
 
         $make = isset($map['make']) ? ($cell('make') ?: null) : null;
         $model = isset($map['model']) ? ($cell('model') ?: null) : null;
-        $phone = isset($map['phone']) ? ($cell('phone') ?: null) : null;
+        // Exporturile ASM au marca+modelul într-o singură coloană („Tip autovehicul").
+        if ($make === null && $model === null && ($combined = $cell('makemodel')) !== '') {
+            $bits = preg_split('/\s+/', $combined, 2) ?: [];
+            $make = $bits[0] ?? null;
+            $model = $bits[1] ?? null;
+        }
+        // Datele reale depășesc uneori limitele coloanelor — trunchiem, nu picăm.
+        $make = $make !== null ? mb_substr($make, 0, 80) : null;
+        $model = $model !== null ? mb_substr($model, 0, 80) : null;
+        // Mobilul e preferat (WhatsApp); telefonul fix rămâne rezervă.
+        $phone = $cell('mobile') ?: ($cell('phone') ?: null);
+        $phone = $phone !== null ? mb_substr($phone, 0, 32) : null;
+        $postalAddress = trim(implode(', ', array_filter([$cell('city'), $cell('county')]))) ?: null;
+        if (mb_strlen($plate) > 16) {
+            throw new \InvalidArgumentException(sprintf('Număr de înmatriculare nevalid: „%s".', mb_substr($plate, 0, 24)));
+        }
         $email = isset($map['email']) ? mb_strtolower($cell('email')) : '';
         if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            throw new \InvalidArgumentException(sprintf('Email invalid: „%s".', $email));
+            // În evidențele reale coloana E-mail conține adesea un telefon sau
+            // resturi — nu picăm rândul: recuperăm ca telefon dacă seamănă,
+            // altfel ignorăm valoarea.
+            $digits = preg_replace('/\D/', '', $email) ?? '';
+            if ($phone === null && \strlen($digits) >= 7 && preg_match('/^[\d\s+.\/-]+$/', $email) === 1) {
+                $phone = mb_substr(trim($email), 0, 32);
+            }
+            $email = '';
         }
 
         // --- Identificarea proprietarului VIZAT, fără a crea sau modifica nimic ---
         // (verificarea de conflict trebuie să vină ÎNAINTEA oricărei scrieri).
         $emailUser = null;
         if ($email !== '') {
-            $emailUser = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
+            $emailUser = $ctx['users'][$email] ?? null;
             if ($emailUser !== null && $emailUser->isServiceAdmin()) {
                 throw new \InvalidArgumentException(sprintf(
                     'Emailul „%s" aparține unui cont de serviciu (admin) — rândul a fost sărit.',
@@ -139,8 +194,8 @@ final class OwnerVehicleImportService
             }
         }
 
-        $vehicle = $this->findVehicleByVin($vin->value());
-        $currentOwner = $vehicle !== null ? $this->vehicles->findActiveOwner($vehicle) : null;
+        $vehicle = $ctx['vehicles'][$vin->value()] ?? null;
+        $currentOwner = $vehicle !== null ? ($ctx['owners'][(string) $vehicle->id()] ?? null) : null;
 
         $targetProfile = $emailUser?->customerProfile();
         if ($targetProfile === null && $emailUser === null
@@ -162,6 +217,7 @@ final class OwnerVehicleImportService
             $vehicle = new Vehicle($vin, $plate);
             $vehicle->updateDetails($make, $model, null);
             $this->em->persist($vehicle);
+            $ctx['vehicles'][$vin->value()] = $vehicle;
             ++$report['vehiclesCreated'];
         } else {
             $vehicle->changePlateNumber($plate);
@@ -183,23 +239,28 @@ final class OwnerVehicleImportService
                 $targetProfile = new CustomerProfile($user, $firstName, $lastName);
                 $this->em->persist($user);
                 $this->em->persist($targetProfile);
+                $ctx['users'][mb_strtolower($address)] = $user;
                 ++$report['ownersCreated'];
             }
         }
-        $this->fillContact($targetProfile, $phone);
+        $this->fillContact($targetProfile, $phone, $postalAddress);
 
-        // --- Legătura de proprietate ---
+        // --- Legătura de proprietate (fără flush per rând!) ---
         if ($currentOwner === null) {
-            $this->em->flush();
-            $this->vehicles->assignOwner($vehicle, $targetProfile);
+            $this->em->persist(new \App\Vehicle\Domain\VehicleOwnership($vehicle, $targetProfile));
+            $ctx['owners'][(string) $vehicle->id()] = $targetProfile;
             ++$report['ownershipsCreated'];
         }
     }
 
-    private function fillContact(CustomerProfile $profile, ?string $phone): void
+    private function fillContact(CustomerProfile $profile, ?string $phone, ?string $address = null): void
     {
-        if ($phone !== null && $phone !== '' && ($profile->phone() === null || $profile->phone() === '')) {
-            $profile->updateContact($phone, $profile->address());
+        $newPhone = ($profile->phone() === null || $profile->phone() === '') && $phone !== null && $phone !== ''
+            ? $phone : $profile->phone();
+        $newAddress = ($profile->address() === null || $profile->address() === '') && $address !== null
+            ? $address : $profile->address();
+        if ($newPhone !== $profile->phone() || $newAddress !== $profile->address()) {
+            $profile->updateContact($newPhone, $newAddress);
         }
     }
 
@@ -242,12 +303,16 @@ final class OwnerVehicleImportService
     private function headerMap(array $header): array
     {
         $aliases = [
-            'owner' => ['proprietar', 'numeproprietar', 'nume', 'client', 'tulajdonos', 'owner'],
+            'owner' => ['proprietar', 'numeproprietar', 'nume', 'client', 'tulajdonos', 'owner', 'partener'],
             'plate' => ['numarinmatriculare', 'nrinmatriculare', 'numar', 'inmatriculare', 'rendszam', 'plate', 'platenumber'],
             'vin' => ['vin', 'seriesasiu', 'seriasasiului', 'alvazszam'],
             'make' => ['marca', 'marka', 'make'],
             'model' => ['model', 'modell'],
             'phone' => ['telefon', 'telefonszam', 'phone', 'nrtelefon'],
+            'mobile' => ['mobil', 'mobiltelefon', 'nrmobil'],
+            'makemodel' => ['tipautovehicul', 'marcamodel', 'autovehicul'],
+            'city' => ['localitate', 'oras', 'varos'],
+            'county' => ['judet', 'megye'],
             'email' => ['email', 'emailcim', 'adresaemail'],
         ];
 

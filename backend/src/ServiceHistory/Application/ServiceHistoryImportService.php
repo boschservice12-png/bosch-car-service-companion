@@ -154,7 +154,10 @@ final class ServiceHistoryImportService
         }
 
         // Complet → publicat direct (clientul îl vede); incomplet → rămâne ciornă.
-        if ($record->missingForPublish() === []) {
+        // Exporturile ASM nu au kilometraj și nici descriere separată — pentru
+        // evidența istorică data + lucrarea sunt suficiente pentru publicare.
+        $blocking = array_diff($record->missingForPublish(), ['odometerKm', 'workDescription']);
+        if ($blocking === []) {
             $record->publish();
             ++$report['recordsPublished'];
         } else {
@@ -281,8 +284,8 @@ final class ServiceHistoryImportService
             'vin' => ['vin', 'seriesasiu', 'seriasasiului', 'alvazszam'],
             'date' => ['data', 'dataservice', 'datareparatie', 'datareparatiei', 'datum', 'date'],
             'odometer' => ['kilometraj', 'km', 'odometru', 'rulaj', 'kmora', 'kmallas'],
-            'worktype' => ['lucrare', 'tiplucrare', 'categorie', 'munka', 'worktype', 'tip'],
-            'description' => ['descriere', 'descrierelucrari', 'lucrari', 'leiras', 'description', 'detalii'],
+            'worktype' => ['lucrare', 'tiplucrare', 'categorie', 'munka', 'worktype', 'tip', 'tipinterventiereparatie', 'tipinterventie'],
+            'description' => ['descriere', 'descrierelucrari', 'lucrari', 'leiras', 'description', 'detalii', 'observatii'],
             'parts' => ['piese', 'pieseschimbate', 'alkatresz', 'alkatreszek', 'parts'],
             'labor' => ['manopera', 'munkadij', 'labor'],
             'total' => ['total', 'totalron', 'suma', 'osszeg', 'vegosszeg'],

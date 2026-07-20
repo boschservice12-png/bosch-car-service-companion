@@ -52,9 +52,11 @@ final class ServiceHistoryImportTest extends ApiTestCase
         $report = json_decode((string) $client->getResponse()->getContent(), true);
 
         self::assertSame(4, $report['totalRows']);
-        self::assertSame(1, $report['recordsPublished'], 'Rândul complet devine PUBLISHED (o singură dată).');
+        // Exporturile ASM nu au km/descriere — data + lucrarea ajung pentru
+        // publicare (decizie de produs la importul „PersonalManopere").
+        self::assertSame(2, $report['recordsPublished'], 'Rândurile cu dată + lucrare devin PUBLISHED (fără dubluri).');
         self::assertSame(1, $report['recordsSkipped'], 'Dublura din ACELAȘI fișier este sărită.');
-        self::assertSame(1, $report['recordsDraft'], 'Rândul fără km/descriere rămâne DRAFT.');
+        self::assertSame(0, $report['recordsDraft']);
         self::assertCount(1, $report['errors'], 'VIN necunoscut → eroare per rând.');
         self::assertStringContainsString('nu există', $report['errors'][0]['message']);
 
@@ -90,7 +92,8 @@ final class ServiceHistoryImportTest extends ApiTestCase
         $client->request('GET', "/api/vehicles/$vehicleId/service-records");
         self::assertResponseIsSuccessful();
         $records = json_decode((string) $client->getResponse()->getContent(), true);
-        self::assertCount(1, $records, 'Clientul vede doar intrarea publicată (ciorna nu).');
+        self::assertCount(2, $records, 'Clientul vede ambele intrări publicate.');
+        $records = array_values(array_filter($records, fn (array $r) => $r['workOrderNumber'] === 'WO-2025-0442'));
         self::assertSame('WO-2025-0442', $records[0]['workOrderNumber']);
         self::assertEqualsWithDelta(1250.5, $records[0]['totalAmount'], 0.001);
     }

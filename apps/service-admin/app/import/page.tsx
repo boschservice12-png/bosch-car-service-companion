@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { api } from '@/lib/api';
-import { ApiError, type HistoryImportReport, type ImportReport } from '@/lib/types';
+import { ApiError, type DeadlineImportReport, type HistoryImportReport, type ImportReport } from '@/lib/types';
 import { useT } from '@/lib/i18n';
 
 /**
@@ -21,6 +21,10 @@ export default function ImportPage() {
   const [histReport, setHistReport] = useState<HistoryImportReport | null>(null);
   const [histError, setHistError] = useState<string | null>(null);
   const [histBusy, setHistBusy] = useState(false);
+  const [dlFile, setDlFile] = useState<File | null>(null);
+  const [dlReport, setDlReport] = useState<DeadlineImportReport | null>(null);
+  const [dlError, setDlError] = useState<string | null>(null);
+  const [dlBusy, setDlBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +64,25 @@ export default function ImportPage() {
     }
   }
 
+  async function submitDeadlines(e: React.FormEvent) {
+    e.preventDefault();
+    if (!dlFile) return;
+    setDlBusy(true);
+    setDlError(null);
+    setDlReport(null);
+    try {
+      setDlReport(await api.importDeadlines(dlFile));
+    } catch (err) {
+      setDlError(err instanceof ApiError ? err.problem.title : 'Importul a eșuat.');
+      if (err instanceof ApiError && err.problem.errors) {
+        const fieldErrors = Object.values(err.problem.errors).flat();
+        if (fieldErrors.length > 0) setDlError(fieldErrors.join(' '));
+      }
+    } finally {
+      setDlBusy(false);
+    }
+  }
+
   return (
     <>
       <Link href="/" className="muted">
@@ -68,20 +91,20 @@ export default function ImportPage() {
       <h1>{t('Import date din Excel')}</h1>
       <h2 style={{ marginTop: 8 }}>{t('Pasul 1 — Clienți și vehicule')}</h2>
       <p className="muted">
-        {t('Încărcați tabelul cu proprietari și vehicule (.xlsx sau .csv). Coloane:')} <b>Proprietar</b>,{' '}
-        <b>Număr înmatriculare</b>, <b>VIN</b>, <b>Marcă</b>, <b>Model</b>, {t('opțional')} <b>Telefon</b> {t('și')}{' '}
-        <b>Email</b>. {t('Reimportul aceluiași fișier nu creează dubluri.')}
+        {t('Încărcați „lista parteneri" din ASM (.xls, .xlsx sau .csv). Coloane recunoscute:')} <b>Partener/Proprietar</b>,{' '}
+        <b>Nr. înmatriculare</b>, <b>Serie şasiu (VIN)</b>, <b>Tip autovehicul</b> {t('sau')} <b>Marcă</b>+<b>Model</b>,{' '}
+        {t('opțional')} <b>Telefon</b>/<b>Mobil</b> {t('și')} <b>E-mail</b>. {t('Reimportul aceluiași fișier nu creează dubluri.')}
       </p>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
       <form onSubmit={submit} className="card stack" style={{ gap: 12 }}>
         <div className="field">
-          <label htmlFor="file">{t('Fișier (.xlsx sau .csv, max. 5 MB)')}</label>
+          <label htmlFor="file">{t('Fișier (.xls, .xlsx sau .csv, max. 10 MB)')}</label>
           <input
             id="file"
             type="file"
-            accept=".xlsx,.csv"
+            accept=".xls,.xlsx,.csv"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             required
           />
@@ -118,11 +141,11 @@ export default function ImportPage() {
         </>
       ) : null}
 
-      <h2 style={{ marginTop: 28 }}>{t('Pasul 2 — Istoric reparații')}</h2>
+      <h2 style={{ marginTop: 28 }}>{t('Pasul 2 — Istoric reparații → carte service')}</h2>
       <p className="muted">
-        {t('Tabelul cu istoricul de reparații, legat de vehicule prin VIN (importați întâi clienții). Coloane:')}{' '}
-        <b>VIN</b>, <b>Dată</b>, <b>Kilometraj</b>, <b>Lucrare</b>, <b>Descriere</b>, <b>Piese</b>,{' '}
-        <b>Manoperă</b>, <b>Total</b>, <b>Garanție</b>, <b>Număr comandă</b>.{' '}
+        {t('Exportul „PersonalManopere" din ASM sau orice tabel legat prin VIN (importați întâi clienții). Coloane recunoscute:')}{' '}
+        <b>Serie şasiu (VIN)</b>, <b>Data</b>, <b>Tip interventie/Lucrare</b>, {t('opțional')} <b>Kilometraj</b>, <b>Descriere/Observații</b>,{' '}
+        <b>Total</b>, <b>Număr comandă</b>.{' '}
         {t('Rândurile complete devin vizibile clientului imediat; cele incomplete rămân ciorne. Reimportul nu creează dubluri.')}
       </p>
 
@@ -130,11 +153,11 @@ export default function ImportPage() {
 
       <form onSubmit={submitHistory} className="card stack" style={{ gap: 12 }}>
         <div className="field">
-          <label htmlFor="histFile">{t('Fișier istoric (.xlsx sau .csv, max. 5 MB)')}</label>
+          <label htmlFor="histFile">{t('Fișier istoric (.xls, .xlsx sau .csv, max. 10 MB)')}</label>
           <input
             id="histFile"
             type="file"
-            accept=".xlsx,.csv"
+            accept=".xls,.xlsx,.csv"
             onChange={(e) => setHistFile(e.target.files?.[0] ?? null)}
             required
           />
@@ -156,6 +179,53 @@ export default function ImportPage() {
           {histReport.errors.length > 0 ? (
             <div className="stack" style={{ gap: 6, marginTop: 10 }}>
               {histReport.errors.map((e) => (
+                <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: '0.88rem' }}>
+                  {t('Rândul {n}:', { n: e.row })} {e.message}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori. ✔')}</p>
+          )}
+        </>
+      ) : null}
+
+      <h2 style={{ marginTop: 28 }}>{t('Pasul 3 — Report ITP/RCA → scadențe')}</h2>
+      <p className="muted">
+        {t('Raportul de alerte din ASM („report itp . rca"). Coloane recunoscute:')} <b>Denumire alertă</b>,{' '}
+        <b>Data alertei</b>, <b>Nr. înmatriculare</b>.{' '}
+        {t('Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și 🔔 Notificări.')}
+      </p>
+
+      {dlError ? <div className="alert alert-err" role="alert">{t(dlError)}</div> : null}
+
+      <form onSubmit={submitDeadlines} className="card stack" style={{ gap: 12 }}>
+        <div className="field">
+          <label htmlFor="dlFile">{t('Fișier raport (.xls, .xlsx sau .csv, max. 10 MB)')}</label>
+          <input
+            id="dlFile"
+            type="file"
+            accept=".xls,.xlsx,.csv"
+            onChange={(e) => setDlFile(e.target.files?.[0] ?? null)}
+            required
+          />
+        </div>
+        <button className="btn" type="submit" disabled={dlBusy || !dlFile}>
+          {dlBusy ? t('Se importă…') : t('Importă scadențele')}
+        </button>
+      </form>
+
+      {dlReport ? (
+        <>
+          <h3 style={{ marginTop: 16 }}>{t('Raport scadențe')}</h3>
+          <div className="card stack" style={{ gap: 6 }}>
+            <div><span className="muted">{t('Rânduri procesate:')}</span> <b>{dlReport.totalRows}</b></div>
+            <div><span className="muted">{t('Scadențe create:')}</span> <b>{dlReport.deadlinesCreated}</b> · <span className="muted">{t('actualizate:')}</span> <b>{dlReport.deadlinesUpdated}</b></div>
+            <div><span className="muted">{t('Neschimbate (sărite):')}</span> <b>{dlReport.rowsSkipped}</b> · <span className="muted">{t('alte alerte (nu ITP/RCA):')}</span> <b>{dlReport.nonItpRcaSkipped}</b></div>
+          </div>
+          {dlReport.errors.length > 0 ? (
+            <div className="stack" style={{ gap: 6, marginTop: 10 }}>
+              {dlReport.errors.map((e) => (
                 <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: '0.88rem' }}>
                   {t('Rândul {n}:', { n: e.row })} {e.message}
                 </div>

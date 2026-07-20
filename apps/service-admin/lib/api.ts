@@ -1,4 +1,5 @@
 import {
+  type DeadlineImportReport,
   type HistoryImportReport,
   type ImportReport,
   type QuoteRequest,
@@ -162,6 +163,13 @@ export const api = {
   },
 
   /** Import istoric reparații (multipart), legat de vehicule prin VIN. */
+  /** Pasul 3: raportul de alerte ITP/RCA (ASM) → scadențe. */
+  importDeadlines: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return uploadRequest<DeadlineImportReport>('/admin/import/deadlines', form);
+  },
+
   importServiceHistory: (file: File) => {
     const form = new FormData();
     form.append('file', file);

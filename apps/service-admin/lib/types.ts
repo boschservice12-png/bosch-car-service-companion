@@ -253,10 +253,21 @@ export interface QuoteRequest {
 // ---- Import clienți + vehicule (Excel/CSV) ----
 export interface ImportReport {
   totalRows: number;
+  errorCount?: number;
   ownersCreated: number;
   vehiclesCreated: number;
   vehiclesUpdated: number;
   ownershipsCreated: number;
+  errors: { row: number; message: string }[];
+}
+
+export interface DeadlineImportReport {
+  totalRows: number;
+  deadlinesCreated: number;
+  deadlinesUpdated: number;
+  rowsSkipped: number;
+  nonItpRcaSkipped: number;
+  errorCount: number;
   errors: { row: number; message: string }[];
 }
 

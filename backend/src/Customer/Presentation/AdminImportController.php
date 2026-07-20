@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Customer\Presentation;
 
 use App\Customer\Application\OwnerVehicleImportService;
+use App\Deadline\Application\DeadlineImportService;
 use App\Identity\Domain\User;
 use App\ServiceHistory\Application\ServiceHistoryImportService;
+use App\Shared\Infrastructure\Spreadsheet\SimpleXlsReader;
 use App\Shared\Infrastructure\Spreadsheet\SimpleXlsxReader;
 use App\Shared\Presentation\ValidationFailedException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,12 +24,14 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class AdminImportController extends AbstractController
 {
-    private const MAX_BYTES = 5 * 1024 * 1024;
+    private const MAX_BYTES = 10 * 1024 * 1024;
 
     public function __construct(
         private readonly OwnerVehicleImportService $importer,
         private readonly ServiceHistoryImportService $historyImporter,
+        private readonly DeadlineImportService $deadlineImporter,
         private readonly SimpleXlsxReader $xlsx,
+        private readonly SimpleXlsReader $xls,
     ) {
     }
 
@@ -55,27 +59,59 @@ final class AdminImportController extends AbstractController
         }
     }
 
+    /** Pasul 3: raportul de alerte ITP/RCA din ASM → scadențele vehiculelor. */
+    #[Route('/api/admin/import/deadlines', name: 'api_admin_import_deadlines', methods: ['POST'])]
+    public function importDeadlines(Request $request): JsonResponse
+    {
+        $rows = $this->rowsFromUpload($request);
+        try {
+            return $this->json($this->deadlineImporter->import($rows));
+        } catch (\InvalidArgumentException $e) {
+            throw ValidationFailedException::fromArray(['file' => [$e->getMessage()]]);
+        }
+    }
+
     /** @return list<list<string>> */
     private function rowsFromUpload(Request $request): array
     {
+        // Importurile reale au mii de rânduri — limita implicită de 30s nu ajunge.
+        set_time_limit(600);
+
         $file = $request->files->get('file');
         if (!$file instanceof UploadedFile || !$file->isValid()) {
-            throw ValidationFailedException::fromArray(['file' => ['Încărcați un fișier .xlsx sau .csv.']]);
+            throw ValidationFailedException::fromArray(['file' => ['Încărcați un fișier .xls, .xlsx sau .csv.']]);
         }
         if ($file->getSize() > self::MAX_BYTES) {
-            throw ValidationFailedException::fromArray(['file' => ['Fișier prea mare (max. 5 MB).']]);
+            throw ValidationFailedException::fromArray(['file' => ['Fișier prea mare (max. 10 MB).']]);
         }
 
         $extension = strtolower($file->getClientOriginalExtension());
         try {
             return match ($extension) {
                 'xlsx' => $this->xlsx->rows($file->getPathname()),
+                // Exporturile ASM vin ca .xls binar (BIFF8); extensia poate fi
+                // stricată la export („.xlssunil.xls") — decidem după conținut.
+                'xls' => $this->xls->rows($file->getPathname()),
                 'csv' => $this->csvRows($file->getPathname()),
-                default => throw new \InvalidArgumentException('Format neacceptat — folosiți .xlsx sau .csv.'),
+                default => $this->rowsByContent($file->getPathname()),
             };
         } catch (\InvalidArgumentException $e) {
             throw ValidationFailedException::fromArray(['file' => [$e->getMessage()]]);
         }
+    }
+
+    /** Extensie necunoscută: decide după octeții „magici" ai conținutului. @return list<list<string>> */
+    private function rowsByContent(string $path): array
+    {
+        $head = (string) file_get_contents($path, false, null, 0, 8);
+        if (str_starts_with($head, "\xD0\xCF\x11\xE0")) {
+            return $this->xls->rows($path);
+        }
+        if (str_starts_with($head, 'PK')) {
+            return $this->xlsx->rows($path);
+        }
+
+        return $this->csvRows($path);
     }
 
     /** @return list<list<string>> Suportă separatorul virgulă sau punct-și-virgulă. */

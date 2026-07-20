@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pecl install redis && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
 
+# Limite PHP pentru importurile Excel din ASM (fișiere .xls de mai mulți MB).
+RUN { echo "upload_max_filesize=12M"; echo "post_max_size=16M"; echo "memory_limit=512M"; echo "max_execution_time=600"; } > /usr/local/etc/php/conf.d/uploads.ini
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/app

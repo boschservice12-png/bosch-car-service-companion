@@ -506,6 +506,20 @@ paths:
         '200': { description: 'Raport de import (rânduri, creați, erori per rând)' }
         '403': { description: Doar service }
         '422': { description: Fișier lipsă / antet incomplet }
+  /admin/import/deadlines:
+    post:
+      tags: [Import]
+      summary: '(admin) Pasul 3: raportul de alerte ITP/RCA (ASM) → scadențe'
+      description: >
+        Multipart, câmpul `file` (.xls/.xlsx/.csv — exporturile ASM vin ca
+        .xls binar). Coloane: denumire alertă, data alertei (număr serial
+        Excel sau dată), nr. înmatriculare. Doar alertele ITP/RCA (și
+        rovinietă) devin scadențe; vehiculul se identifică după număr;
+        re-importul actualizează/sare idempotent.
+      responses:
+        '200': { description: 'Raport (create, actualizate, sărite, erori pe rând)' }
+        '403': { description: Doar service }
+        '422': { description: Fișier lipsă / antet incomplet }
   /admin/import/service-history:
     post:
       tags: [Import]
