@@ -52,6 +52,15 @@ services:
     App\QuoteRequest\Domain\QuoteRequestRepository:
         alias: App\QuoteRequest\Infrastructure\DoctrineQuoteRequestRepository
 
+    App\Notification\Domain\NotificationRepository:
+        alias: App\Notification\Infrastructure\DoctrineNotificationRepository
+
+    # Livrarea notificărilor: în pilot nu există furnizor automat (fără mailer/
+    # push/API WhatsApp plătit) → MANUAL_ACTION_REQUIRED / SKIPPED, niciodată
+    # SENT „orb". Se înlocuiește cu un furnizor real când e configurat.
+    App\Notification\Domain\NotificationDelivery:
+        alias: App\Notification\Infrastructure\ManualNotificationDelivery
+
     # Calculator de stare — value object fără dependențe, aflat în Domain/
     # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
     App\Deadline\Domain\DeadlineStatusCalculator: ~

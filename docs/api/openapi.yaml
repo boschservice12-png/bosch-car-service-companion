@@ -372,6 +372,36 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '422': { description: Canal necunoscut }
 
+  /admin/notifications:
+    get:
+      tags: [Notifications]
+      summary: (admin) Notificările recente cu starea reală de livrare
+      description: >
+        Stări: PENDING, PROCESSING, MANUAL_ACTION_REQUIRED, SENT, FAILED,
+        SKIPPED. Fără furnizor automat (pilot) notificările sunt
+        MANUAL_ACTION_REQUIRED sau SKIPPED — niciodată SENT „orb".
+      responses:
+        '200': { description: OK }
+  /admin/notifications/{id}/manually-sent:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Notifications]
+      summary: (admin) Confirmă trimiterea MANUALĂ → SENT (auditat)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel]
+              properties:
+                channel: { type: string, example: whatsapp }
+                note: { type: string }
+      responses:
+        '200': { description: 'Marcată SENT (manual, cu sentBy/sentAt)' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { description: Canal lipsă }
+
   # ------------------------------------------------- Istoric service (client)
   /vehicles/{vehicleId}/service-records:
     parameters: [ { $ref: '#/components/parameters/VehicleId' } ]
