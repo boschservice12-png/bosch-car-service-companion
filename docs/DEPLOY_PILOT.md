@@ -88,12 +88,20 @@ secrets, messenger}}` — kritikus függőség hibája **503**-at ad (szándéko
 
 ## 5. Backup + visszaállítás
 
-- Napi backup: futtasd a hoston az `infrastructure/backup/backup.sh`-t a
-  `db` konténer `DATABASE_URL`-jével (a hoston telepített `pg_dump`-fal, vagy
-  `docker compose exec db pg_dump`-on át). A MinIO dokumentumtárat `mc mirror`-ral
-  mentsd egy külső célra. Részletek + retenció: `infrastructure/backup/backup.sh`.
+- **Automata napi backup**: a `backup` szolgáltatás a stack része — minden nap
+  03:00 UTC-kor `pg_dump`-ol ÉS `mc mirror`-ral menti a MinIO dokumentumtárat a
+  `backups` volume-ra, integritás-ellenőrzéssel és 14 napos retencióval. Nincs
+  külön teendő; az órát/retenciót a compose `backup` env-jei állítják.
+  ```bash
+  docker compose --env-file .env.prod -f compose.prod.yaml logs -f backup   # figyelés
+  docker compose --env-file .env.prod -f compose.prod.yaml run --rm \
+    -e BACKUP_ONESHOT=1 backup                                              # azonnali mentés (fut+kilép)
+  ```
+  > A `backups` volume-ot rendszeresen másold **külső** helyre (másik gép /
+  > objektumtár) — egy gépen tartott mentés nem katasztrófa-biztos.
 - **A visszaállítást havonta próbáld ki** izolált környezetben:
-  `infrastructure/backup/restore.sh` + `restore.md` (RTO/RPO feljegyezve).
+  `infrastructure/backup/restore.sh` + `restore.md` (RTO/RPO feljegyezve). A
+  mentés `db.sql.gz` + `documents.tar.gz` párost tartalmaz mentési mappánként.
 - GDPR-purge napi cron:
   ```bash
   docker compose --env-file .env.prod -f compose.prod.yaml exec backend \

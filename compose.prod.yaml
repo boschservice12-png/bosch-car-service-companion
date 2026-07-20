@@ -141,6 +141,28 @@ services:
     depends_on:
       - api
 
+  # Backup automat zilnic: pg_dump + oglindirea bucketului MinIO (mc mirror),
+  # cu verificare de integritate și retenție. Mentiunea în docs/DEPLOY_PILOT.md.
+  backup:
+    build:
+      context: ./infrastructure/backup
+      dockerfile: Dockerfile
+    image: bcsc-prod-backup
+    restart: unless-stopped
+    env_file: [.env.prod]
+    environment:
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: "14"
+      BACKUP_HOUR: "3"
+      BACKUP_RUN_ON_START: "0"
+    volumes:
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
   # Proxy de margine + TLS. Cu domeniu → Let's Encrypt automat pe 443.
   caddy:
     image: caddy:2
@@ -167,3 +189,4 @@ volumes:
   clamavdata:
   caddydata:
   caddyconfig:
+  backups:
