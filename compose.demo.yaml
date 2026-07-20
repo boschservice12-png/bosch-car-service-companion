@@ -31,6 +31,11 @@ services:
       DATABASE_URL: "postgresql://bcsc:bcsc@db:5432/bcsc?serverVersion=16&charset=utf8"
       MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
       CORS_ALLOW_ORIGIN: "http://localhost:3000,http://localhost:3001"
+      STORAGE_DRIVER: "local"
+    # Blocul 6: documentele scanate/încărcate stau pe un volum PERSISTENT, nu în
+    # stratul efemer al containerului — supraviețuiesc unui `up --build`/restart.
+    volumes:
+      - storage_data:/app/var/storage
     depends_on:
       db:
         condition: service_healthy
@@ -50,7 +55,12 @@ services:
       APP_DEBUG: "0"
       DATABASE_URL: "postgresql://bcsc:bcsc@db:5432/bcsc?serverVersion=16&charset=utf8"
       MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
+      STORAGE_DRIVER: "local"
     restart: unless-stopped
+    # Worker-ul scrie documentele scanate în ACELAȘI volum ca backend-ul, altfel
+    # fișierele produse de scanare n-ar fi vizibile la descărcare.
+    volumes:
+      - storage_data:/app/var/storage
     depends_on:
       db:
         condition: service_healthy
@@ -93,6 +103,7 @@ services:
 
 volumes:
   db_data:
+  storage_data:
   cw_node_modules:
   cw_next:
   sa_node_modules:

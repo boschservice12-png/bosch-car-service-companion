@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace App\System\Presentation;
 
-use Doctrine\DBAL\Connection;
+use App\System\Application\ReadinessChecker;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 
+/**
+ * Blocul 6 — liveness și readiness sunt SEPARATE:
+ *  - `/api/health` (liveness): procesul trăiește și poate răspunde. NU atinge
+ *    dependențe externe → nu declanșează restart-uri în lanț dacă baza pică.
+ *  - `/api/health/ready` (readiness): aplicația poate SERVI în siguranță o cerere
+ *    reală. O dependență critică picată → 503, ca orchestratorul să scoată
+ *    instanța din rotație. Nu arătăm niciodată „ready" cu o dependență critică jos.
+ */
 final class HealthController extends AbstractController
 {
     #[Route('/api/health', name: 'api_health', methods: ['GET'])]
@@ -18,21 +26,10 @@ final class HealthController extends AbstractController
     }
 
     #[Route('/api/health/ready', name: 'api_health_ready', methods: ['GET'])]
-    public function ready(Connection $connection): JsonResponse
+    public function ready(ReadinessChecker $readiness): JsonResponse
     {
-        $checks = ['database' => false];
-        try {
-            $connection->executeQuery('SELECT 1');
-            $checks['database'] = true;
-        } catch (\Throwable) {
-            // rămâne false
-        }
+        $result = $readiness->check();
 
-        $ready = !in_array(false, $checks, true);
-
-        return $this->json(
-            ['status' => $ready ? 'ready' : 'degraded', 'checks' => $checks],
-            $ready ? 200 : 503,
-        );
+        return $this->json($result, $result['ready'] ? 200 : 503);
     }
 }

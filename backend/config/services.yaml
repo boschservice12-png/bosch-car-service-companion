@@ -68,12 +68,30 @@ services:
     # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
     App\Deadline\Domain\DeadlineStatusCalculator: ~
 
-    # ---- Storage privat documente (local în dev; S3 în prod) ----
+    # ---- Storage privat documente (local în dev/demo; S3/MinIO în prod) ----
+    # Comutare la runtime prin STORAGE_DRIVER=local|s3 (Blocul 6). Ambele
+    # implementări sunt construibile mereu; fabrica alege una la cerere.
     App\Document\Infrastructure\LocalFilesystemStorage:
         arguments:
             $rootDir: '%app.storage_dir%'
+    App\Document\Infrastructure\S3Storage:
+        arguments:
+            $endpoint: '%env(S3_ENDPOINT)%'
+            $bucket: '%env(S3_BUCKET)%'
+            $accessKey: '%env(S3_KEY)%'
+            $secretKey: '%env(S3_SECRET)%'
+            $region: '%env(S3_REGION)%'
+    App\Document\Infrastructure\StorageFactory:
+        arguments:
+            $driver: '%env(STORAGE_DRIVER)%'
     App\Document\Domain\StorageAdapter:
-        alias: App\Document\Infrastructure\LocalFilesystemStorage
+        factory: ['@App\Document\Infrastructure\StorageFactory', 'create']
+
+    # ---- Readiness (Blocul 6): verificare profundă a dependențelor critice ----
+    App\System\Application\ReadinessChecker:
+        arguments:
+            $migrations: '@doctrine.migrations.dependency_factory'
+            $appSecret: '%env(APP_SECRET)%'
 
     # ---- Scaner antimalware: dev = permisiv (marchează CLEAN + avertisment) ----
     # ClamAvScanner e mereu constructibil (argumente scalare), dar devine
