@@ -132,8 +132,28 @@ final class ClientImportTest extends ApiTestCase
         ]));
         self::assertResponseStatusCodeSame(401, 'Fără parolă setată, loginul e refuzat.');
 
-        // Înregistrarea revendică contul importat (același id de utilizator).
-        $this->register($client, $ownerEmail);
+        // Fără număr de înmatriculare → 422 (dovada proprietății e obligatorie).
+        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true,
+        ]));
+        self::assertResponseStatusCodeSame(422, 'Contul importat nu se revendică fără numărul de înmatriculare.');
+
+        // Cu număr greșit → 422, contul rămâne nerevendicat.
+        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true, 'plateNumber' => 'B 99 XXX',
+        ]));
+        self::assertResponseStatusCodeSame(422, 'Un număr de înmatriculare străin nu deblochează contul.');
+        $client->request('POST', '/api/auth/login', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'Parola1234',
+        ]));
+        self::assertResponseStatusCodeSame(401, 'După încercările eșuate, parola tot nu e setată.');
+
+        // Cu numărul corect (litere mici, fără spații — se normalizează) → revendicat.
+        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true,
+            'plateNumber' => strtolower('ms71'.$suffix),
+        ]));
+        self::assertResponseStatusCodeSame(201);
         $this->login($client, $ownerEmail, 'Parola1234');
 
         // Clientul își vede imediat vehiculul importat, cu numele din evidență.

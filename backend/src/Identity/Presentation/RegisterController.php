@@ -26,7 +26,7 @@ final class RegisterController extends AbstractController
             throw ValidationFailedException::fromViolations($violations);
         }
 
-        $user = $registerUser($req->email, $req->password, $req->firstName, $req->lastName);
+        $user = $registerUser($req->email, $req->password, $req->firstName, $req->lastName, $req->plateNumber);
 
         return $this->json([
             'id' => (string) $user->id(),

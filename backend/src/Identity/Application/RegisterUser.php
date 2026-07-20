@@ -10,6 +10,7 @@ use App\Customer\Domain\CustomerProfile;
 use App\Identity\Domain\User;
 use App\Settings\Application\SettingsProvider;
 use App\Shared\Presentation\ValidationFailedException;
+use App\Vehicle\Domain\VehicleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
@@ -20,8 +21,10 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * Dacă emailul aparține unui cont creat de importul Excel (fără parolă,
  * niciodată activat), înregistrarea REVENDICĂ acel cont: setează parola și
  * consimțământul, iar clientul își vede imediat vehiculele și istoricul
- * importate de service. Un cont deja activat rămâne protejat (eroare de
- * duplicat) — parola existentă nu poate fi suprascrisă prin re-înregistrare.
+ * importate de service. Revendicarea cere dovada proprietății — numărul de
+ * înmatriculare al unui vehicul din evidență (fără verificare pe email, e
+ * singurul secret partajat client–service). Un cont deja activat rămâne
+ * protejat (eroare de duplicat) — parola nu se suprascrie prin re-înregistrare.
  */
 final class RegisterUser
 {
@@ -30,11 +33,17 @@ final class RegisterUser
         private readonly UserPasswordHasherInterface $hasher,
         private readonly AuditRecorder $audit,
         private readonly SettingsProvider $settings,
+        private readonly VehicleRepository $vehicles,
     ) {
     }
 
-    public function __invoke(string $email, string $plainPassword, ?string $firstName, ?string $lastName): User
-    {
+    public function __invoke(
+        string $email,
+        string $plainPassword,
+        ?string $firstName,
+        ?string $lastName,
+        ?string $plateNumber = null,
+    ): User {
         $email = strtolower(trim($email));
 
         $existing = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
@@ -45,7 +54,7 @@ final class RegisterUser
                 ]);
             }
 
-            return $this->claimImportedAccount($existing, $plainPassword);
+            return $this->claimImportedAccount($existing, $plainPassword, $plateNumber);
         }
 
         $user = new User($email, User::ROLE_CLIENT);
@@ -72,12 +81,17 @@ final class RegisterUser
     }
 
     /**
-     * Activarea unui cont creat de importul Excel: parola se setează acum,
-     * consimțământul se înregistrează, iar datele importate (nume, vehicule,
-     * istoric) rămân neatinse — evidența service-ului e sursa de adevăr.
+     * Activarea unui cont creat de importul Excel: dovada proprietății este
+     * numărul de înmatriculare al unuia dintre vehiculele din evidență
+     * (comparat fără spații, insensibil la litere mari/mici). Parola se
+     * setează acum, consimțământul se înregistrează, iar datele importate
+     * (nume, vehicule, istoric) rămân neatinse — evidența service-ului e
+     * sursa de adevăr.
      */
-    private function claimImportedAccount(User $user, string $plainPassword): User
+    private function claimImportedAccount(User $user, string $plainPassword, ?string $plateNumber): User
     {
+        $this->assertPlateMatches($user, $plateNumber);
+
         $user->setPasswordHash($this->hasher->hashPassword($user, $plainPassword));
 
         if ($user->customerProfile() === null) {
@@ -95,5 +109,31 @@ final class RegisterUser
         $this->audit->record('user.import_account_claimed', 'User', (string) $user->id());
 
         return $user;
+    }
+
+    private function assertPlateMatches(User $user, ?string $plateNumber): void
+    {
+        $profile = $user->customerProfile();
+        $vehicles = $profile !== null ? $this->vehicles->findActiveForCustomer($profile) : [];
+        if ($vehicles === []) {
+            return; // Fără vehicule în evidență nu există nimic de dovedit (și nimic de expus).
+        }
+
+        $given = (string) preg_replace('/\s+/', '', strtoupper((string) $plateNumber));
+        if ($given === '') {
+            throw ValidationFailedException::fromArray([
+                'plateNumber' => ['Acest email este deja în evidența service-ului. Introduceți numărul de înmatriculare al mașinii pentru a activa contul.'],
+            ]);
+        }
+
+        foreach ($vehicles as $vehicle) {
+            if (preg_replace('/\s+/', '', $vehicle->plateNumber()) === $given) {
+                return;
+            }
+        }
+
+        throw ValidationFailedException::fromArray([
+            'plateNumber' => ['Numărul de înmatriculare nu corespunde evidenței service-ului.'],
+        ]);
     }
 }

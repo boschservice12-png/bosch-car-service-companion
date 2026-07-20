@@ -10,7 +10,14 @@ import { useT } from '@/lib/i18n';
 export default function RegisterPage() {
   const router = useRouter();
   const t = useT();
-  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', consent: false });
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    plateNumber: '',
+    consent: false,
+  });
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [general, setGeneral] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -25,7 +32,7 @@ export default function RegisterPage() {
     setGeneral(null);
     setBusy(true);
     try {
-      await api.register(form);
+      await api.register({ ...form, plateNumber: form.plateNumber.trim() || undefined });
       // După înregistrare, autentificare automată.
       await api.login(form.email, form.password);
       router.replace('/');
@@ -76,6 +83,19 @@ export default function RegisterPage() {
           />
           <div className="hint">{t('Minim 8 caractere.')}</div>
           {fieldErr('password') ? <div className="err">{fieldErr('password')}</div> : null}
+        </div>
+        <div className="field">
+          <label htmlFor="plateNumber">{t('Număr de înmatriculare (opțional)')}</label>
+          <input
+            id="plateNumber"
+            value={form.plateNumber}
+            onChange={(e) => set('plateNumber', e.target.value)}
+            placeholder="MS 01 ABC"
+          />
+          <div className="hint">
+            {t('Dacă sunteți deja client al service-ului, confirmați numărul de înmatriculare al mașinii — contul se leagă automat de vehiculele și istoricul dumneavoastră.')}
+          </div>
+          {fieldErr('plateNumber') ? <div className="err">{t(fieldErr('plateNumber') as string)}</div> : null}
         </div>
         <div className="field">
           <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontWeight: 400 }}>

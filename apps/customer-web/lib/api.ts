@@ -109,8 +109,15 @@ export const api = {
 
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
 
-  register: (data: { email: string; password: string; firstName?: string; lastName?: string; consent: boolean }) =>
-    request<{ id: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+  register: (data: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    /** Cerut doar când emailul e deja în evidența service-ului (cont importat). */
+    plateNumber?: string;
+    consent: boolean;
+  }) => request<{ id: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
 
   vehicles: () => request<Vehicle[]>('/vehicles'),
 

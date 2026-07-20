@@ -373,6 +373,15 @@ const HU: Dict = {
   'Interval preferat (opțional)': 'Kívánt időszak (opcionális)',
   'Ex.: luni–vineri după 16:00': 'Pl.: hétfő–péntek 16:00 után',
   'Salvează ca ciornă': 'Mentés piszkozatként',
+
+  // Înregistrare — revendicarea contului importat (P1-02)
+  'Număr de înmatriculare (opțional)': 'Rendszám (nem kötelező)',
+  'Dacă sunteți deja client al service-ului, confirmați numărul de înmatriculare al mașinii — contul se leagă automat de vehiculele și istoricul dumneavoastră.':
+    'Ha már a szerviz ügyfele, erősítse meg az autó rendszámát — a fiók automatikusan összekapcsolódik a járműveivel és a szerviztörténetével.',
+  'Acest email este deja în evidența service-ului. Introduceți numărul de înmatriculare al mașinii pentru a activa contul.':
+    'Ez az e-mail már szerepel a szerviz nyilvántartásában. A fiók aktiválásához adja meg az autó rendszámát.',
+  'Numărul de înmatriculare nu corespunde evidenței service-ului.':
+    'A rendszám nem egyezik a szerviz nyilvántartásával.',
 };
 
 const EN: Dict = {
@@ -730,6 +739,15 @@ const EN: Dict = {
   'Interval preferat (opțional)': 'Preferred time slot (optional)',
   'Ex.: luni–vineri după 16:00': 'E.g. Mon–Fri after 4 p.m.',
   'Salvează ca ciornă': 'Save as draft',
+
+  // Înregistrare — revendicarea contului importat (P1-02)
+  'Număr de înmatriculare (opțional)': 'Licence plate number (optional)',
+  'Dacă sunteți deja client al service-ului, confirmați numărul de înmatriculare al mașinii — contul se leagă automat de vehiculele și istoricul dumneavoastră.':
+    'If you are already a customer of the service, confirm your car’s licence plate — the account is linked automatically to your vehicles and service history.',
+  'Acest email este deja în evidența service-ului. Introduceți numărul de înmatriculare al mașinii pentru a activa contul.':
+    'This email is already in the service’s records. Enter your car’s licence plate number to activate the account.',
+  'Numărul de înmatriculare nu corespunde evidenței service-ului.':
+    'The licence plate number does not match the service’s records.',
 };
 
 const DICTS: Record<Locale, Dict | null> = { ro: null, hu: HU, en: EN };
