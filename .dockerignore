@@ -6,3 +6,7 @@ backend/vendor
 backend/var
 **/.env.local
 apps/*/.next
+# P0-01: demo-ul vechi (Vite/localStorage) NU face parte din niciun produs și
+# nu trebuie să intre în contextul de build al vreunei imagini.
+archive
+e2e
