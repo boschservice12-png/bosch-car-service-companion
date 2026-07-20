@@ -30,6 +30,18 @@ framework:
             policy: sliding_window
             limit: 30
             interval: '1 minute'
+        # Înregistrarea poartă dovada revendicării (numărul de înmatriculare) —
+        # fără limită ar putea fi ghicit prin forță brută. Cheia e emailul țintă.
+        register:
+            policy: sliding_window
+            limit: 5
+            interval: '15 minutes'
+        # Codurile TOTP au doar 6 cifre — fără limită ar putea fi ghicite.
+        # La reușită contorul se resetează (utilizatorul legitim nu acumulează).
+        twofa:
+            policy: sliding_window
+            limit: 5
+            interval: '15 minutes'
 
 when@test:
     framework:
@@ -38,5 +50,7 @@ when@test:
             login: { policy: sliding_window, limit: 5, interval: '1 minute' }
             messages: { policy: sliding_window, limit: 10, interval: '1 minute' }
             upload: { policy: sliding_window, limit: 10, interval: '1 minute' }
+            register: { policy: sliding_window, limit: 5, interval: '1 minute' }
+            twofa: { policy: sliding_window, limit: 5, interval: '1 minute' }
         session:
             storage_factory_id: session.storage.factory.mock_file

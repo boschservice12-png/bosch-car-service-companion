@@ -7,7 +7,10 @@ namespace App\Customer\Application;
 use App\Audit\Application\AuditRecorder;
 use App\Audit\Domain\AuditLog;
 use App\Communication\Domain\ConversationRepository;
+use App\DamageClaim\Domain\DamageClaimRepository;
 use App\Deadline\Domain\VehicleDeadlineRepository;
+use App\Document\Domain\Document;
+use App\Document\Domain\StorageAdapter;
 use App\Identity\Domain\User;
 use App\Mobility\Domain\MobilityRequestRepository;
 use App\Notification\Domain\Notification;
@@ -29,8 +32,10 @@ use Doctrine\ORM\EntityManagerInterface;
  *
  * Ce RĂMÂNE după anonimizare: vehiculul, scadențele și istoricul service —
  * evidența operațională a atelierului, nelegată de o persoană identificabilă
- * (legătura de proprietate se închide). Ce se ȘTERGE: conversațiile și
- * mesajele clientului (conțin text liber personal).
+ * (legătura de proprietate se închide). Ce se ȘTERGE: TOT ce ține de persoană —
+ * conversațiile și mesajele, cererile de ofertă/asistență/mobilitate, dosarele
+ * de daună, taxele, notificările și documentele încărcate de client (inclusiv
+ * fișierele din storage) — text liber și fișiere care pot re-identifica omul.
  */
 final class GdprService
 {
@@ -43,7 +48,9 @@ final class GdprService
         private readonly QuoteRequestRepository $quoteRequests,
         private readonly RoadsideRequestRepository $roadsideRequests,
         private readonly MobilityRequestRepository $mobilityRequests,
+        private readonly DamageClaimRepository $damageClaims,
         private readonly TaxItemRepository $taxes,
+        private readonly StorageAdapter $storage,
         private readonly AuditRecorder $audit,
     ) {
     }
@@ -122,6 +129,16 @@ final class GdprService
                 'status' => $m->status()->value,
                 'createdAt' => $m->createdAt()->format(\DateTimeInterface::ATOM),
             ], $this->mobilityRequests->findForCustomer($user)),
+            'damageClaims' => array_map(fn ($c) => [
+                'incidentDate' => $date($c->incidentDate()),
+                'incidentLocation' => $c->incidentLocation(),
+                'incidentDescription' => $c->incidentDescription(),
+                'insurer' => $c->insurer(),
+                'policyNumber' => $c->policyNumber(),
+                'status' => $c->status()->value,
+                'createdAt' => $c->createdAt()->format(\DateTimeInterface::ATOM),
+                'documents' => array_map(fn ($d) => $d->originalName(), $c->documents()),
+            ], $this->damageClaims->findForCustomer($user)),
         ];
     }
 
@@ -166,6 +183,27 @@ final class GdprService
                 $this->em->remove($conversation);
             }
 
+            // Cererile clientului conțin text liber care poate re-identifica
+            // persoana (locație, simptome, asigurător/poliță) — se șterg complet.
+            foreach ($this->quoteRequests->findForCustomer($user) as $request) {
+                $this->em->remove($request);
+            }
+            foreach ($this->roadsideRequests->findForCustomer($user) as $request) {
+                $this->em->remove($request);
+            }
+            foreach ($this->mobilityRequests->findForCustomer($user) as $request) {
+                $this->em->remove($request);
+            }
+            foreach ($this->damageClaims->findForCustomer($user) as $claim) {
+                $this->em->remove($claim);
+            }
+            foreach ($this->taxes->findForCustomer($user) as $tax) {
+                $this->em->remove($tax);
+            }
+            $this->em->createQuery('DELETE FROM '.Notification::class.' n WHERE n.user = :user')
+                ->setParameter('user', $user)
+                ->execute();
+
             // Legătura de proprietate se închide — vehiculul și istoricul rămân
             // în evidența service-ului, fără persoană identificabilă.
             $profile = $user->customerProfile();
@@ -181,6 +219,13 @@ final class GdprService
             $userId = (string) $user->id();
             $user->anonymize();
             $this->em->flush();
+
+            // Documentele încărcate de client (poze de daună, atașamente etc.):
+            // se șterg fișierele din storage și rândurile din DB. Legăturile
+            // rămase (scadențe — SET NULL la nivel de bază; tabele de legătură)
+            // se curăță explicit înainte, ca ștergerea să nu pice pe chei străine.
+            $this->purgeOwnedDocuments($user);
+
             $this->audit->record('user.purged', 'User', $userId);
         }
 
@@ -197,5 +242,41 @@ final class GdprService
             'deletedAuditLogs' => $deletedAudit,
             'deletedNotifications' => $deletedNotifications,
         ];
+    }
+
+    /**
+     * Șterge documentele al căror proprietar este utilizatorul purjat: întâi
+     * fișierul din storage, apoi rândul din DB. Entitățile care le refereau
+     * (dosare, cereri, mesaje) au fost deja șterse mai sus; referințele din
+     * scadențe se anulează la nivel de bază (SET NULL), iar tabelele de
+     * legătură rămase se golesc defensiv aici.
+     */
+    private function purgeOwnedDocuments(User $user): void
+    {
+        /** @var list<Document> $documents */
+        $documents = $this->em->getRepository(Document::class)->findBy(['owner' => $user]);
+        if ($documents === []) {
+            return;
+        }
+
+        $connection = $this->em->getConnection();
+        // Valoarea de bază a uuid-ului diferă pe platforme (PG: nativ, SQLite:
+        // binar) — convertim prin tipul Doctrine, nu presupunem formatul.
+        $uuidType = \Doctrine\DBAL\Types\Type::getType('uuid');
+        $platform = $connection->getDatabasePlatform();
+        $ids = array_map(static fn (Document $d) => $uuidType->convertToDatabaseValue($d->id(), $platform), $documents);
+        foreach (['service_record_documents', 'damage_claim_documents', 'roadside_request_documents', 'message_attachments'] as $joinTable) {
+            $connection->executeStatement(
+                sprintf('DELETE FROM %s WHERE document_id IN (?)', $joinTable),
+                [$ids],
+                [\Doctrine\DBAL\ArrayParameterType::STRING],
+            );
+        }
+
+        foreach ($documents as $document) {
+            $this->storage->delete($document->storageKey());
+            $this->em->remove($document);
+        }
+        $this->em->flush();
     }
 }

@@ -50,6 +50,35 @@ final class GdprTest extends ApiTestCase
             'subject' => 'Întrebare GDPR', 'body' => 'Text personal în mesaj.',
         ]));
         self::assertResponseStatusCodeSame(201);
+        // Cerere de asistență rutieră — locația e text liber personal.
+        $client->request('POST', '/api/roadside-requests', server: $this->json(), content: json_encode([
+            'location' => 'Str. Personală 7, Târgu Mureș', 'problem' => 'Pană lângă casă',
+            'mobility' => 'DRIVABLE', 'safety' => 'SAFE', 'phone' => '0740 000 000',
+        ]));
+        self::assertResponseStatusCodeSame(201);
+
+        // Dosar de daună + document încărcat de client (fișier real în storage).
+        /** @var EntityManagerInterface $em */
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        /** @var \App\Identity\Domain\User $user */
+        $user = $em->getRepository(User::class)->findOneBy(['email' => $email]);
+        /** @var \App\Document\Domain\StorageAdapter $storage */
+        $storage = static::getContainer()->get(\App\Document\Domain\StorageAdapter::class);
+        $storageKey = 'gd/gdpr-test-'.uniqid().'.txt';
+        $tmp = tempnam(sys_get_temp_dir(), 'gdpr');
+        file_put_contents((string) $tmp, 'poza de dauna');
+        $storage->store((string) $tmp, $storageKey, 'text/plain');
+        self::assertTrue($storage->exists($storageKey));
+        $document = new \App\Document\Domain\Document($storageKey, 'text/plain', 13, $user, 'dauna.jpg');
+        $claim = new \App\DamageClaim\Domain\DamageClaim(
+            $user, null, new \DateTimeImmutable('-3 days'),
+            'Intersecția de lângă serviciu', 'Tamponare ușoară, vinovat terț.',
+            'Asigurătorul SA', 'RO-123456',
+        );
+        $claim->attach($document);
+        $em->persist($document);
+        $em->persist($claim);
+        $em->flush();
 
         // Export: conține contul și datele operaționale.
         $client->request('GET', '/api/me/export');
@@ -61,6 +90,11 @@ final class GdprTest extends ApiTestCase
         self::assertSame($vin, $export['vehicles'][0]['vin']);
         self::assertCount(1, $export['taxes']);
         self::assertSame('Întrebare GDPR', $export['conversations'][0]['subject']);
+        self::assertCount(1, $export['roadsideRequests']);
+        self::assertSame('Str. Personală 7, Târgu Mureș', $export['roadsideRequests'][0]['location']);
+        self::assertCount(1, $export['damageClaims'], 'Dosarele de daună fac parte din export.');
+        self::assertSame('Asigurătorul SA', $export['damageClaims'][0]['insurer']);
+        self::assertSame(['dauna.jpg'], $export['damageClaims'][0]['documents']);
 
         // Ștergere cu parolă greșită → 422; cu parola corectă → cont blocat.
         $client->request('POST', '/api/me/delete', server: $this->json(), content: json_encode(['password' => 'gresita9']));
@@ -112,6 +146,22 @@ final class GdprTest extends ApiTestCase
             "SELECT COUNT(*) FROM conversations c WHERE c.subject = 'Întrebare GDPR'",
         );
         self::assertSame(0, $convCount, 'Conversațiile clientului s-au șters.');
+
+        // TOATE datele personale ale clientului au dispărut, nu doar conversațiile.
+        self::assertSame(0, (int) $em->getConnection()->fetchOne(
+            "SELECT COUNT(*) FROM roadside_requests WHERE location LIKE 'Str. Personală%'",
+        ), 'Cererile de asistență (text liber personal) s-au șters.');
+        self::assertSame(0, (int) $em->getConnection()->fetchOne(
+            "SELECT COUNT(*) FROM damage_claims WHERE insurer = 'Asigurătorul SA'",
+        ), 'Dosarele de daună s-au șters.');
+        self::assertSame(0, (int) $em->getConnection()->fetchOne(
+            'SELECT COUNT(*) FROM tax_items t JOIN users u ON u.id = t.customer_id WHERE u.email LIKE ?',
+            ['sters-%@anonim.local'],
+        ), 'Taxele clientului s-au șters.');
+        self::assertSame(0, (int) $em->getConnection()->fetchOne(
+            "SELECT COUNT(*) FROM documents WHERE original_name = 'dauna.jpg'",
+        ), 'Documentele încărcate de client s-au șters din DB.');
+        self::assertFalse($storage->exists($storageKey), 'Fișierul din storage s-a șters odată cu contul.');
 
         // Emailul vechi NU redevine folosibil... dar nici cel anonimizat.
         $client->request('POST', '/api/auth/register', server: $this->json(), content: json_encode([

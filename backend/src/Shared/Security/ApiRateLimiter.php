@@ -19,6 +19,8 @@ final class ApiRateLimiter
     public function __construct(
         private readonly RateLimiterFactory $messagesLimiter,
         private readonly RateLimiterFactory $uploadLimiter,
+        private readonly RateLimiterFactory $registerLimiter,
+        private readonly RateLimiterFactory $twofaLimiter,
     ) {
     }
 
@@ -34,13 +36,43 @@ final class ApiRateLimiter
         $this->check($this->uploadLimiter, 'up', $request, $user);
     }
 
+    /**
+     * Înregistrare / revendicare de cont. Cheia este DOAR emailul țintă: dovada
+     * revendicării (numărul de înmatriculare) nu trebuie să fie ghicibilă prin
+     * forță brută nici de pe multe IP-uri diferite.
+     */
+    public function checkRegister(string $email): void
+    {
+        $limit = $this->registerLimiter->create('reg|'.mb_strtolower(trim($email)))->consume();
+        if (!$limit->isAccepted()) {
+            $retryAfter = max(1, $limit->getRetryAfter()->getTimestamp() - time());
+            throw new TooManyRequestsHttpException($retryAfter, 'Prea multe încercări pentru acest email — încercați din nou mai târziu.');
+        }
+    }
+
+    /** Rutele 2FA (codul TOTP are 6 cifre — nu trebuie să fie ghicibil). */
+    public function checkTwoFactor(Request $request, User $user, string $action): void
+    {
+        $this->check($this->twofaLimiter, '2fa-'.$action, $request, $user);
+    }
+
+    /** La o verificare 2FA reușită contorul se golește — utilizatorul legitim nu acumulează eșecuri. */
+    public function resetTwoFactor(Request $request, User $user, string $action): void
+    {
+        $this->twofaLimiter->create($this->key('2fa-'.$action, $request, $user))->reset();
+    }
+
     private function check(RateLimiterFactory $factory, string $prefix, Request $request, ?User $user): void
     {
-        $key = sprintf('%s|%s|%s', $prefix, $user !== null ? (string) $user->id() : 'anon', $request->getClientIp() ?? '0');
-        $limit = $factory->create($key)->consume();
+        $limit = $factory->create($this->key($prefix, $request, $user))->consume();
         if (!$limit->isAccepted()) {
             $retryAfter = max(1, $limit->getRetryAfter()->getTimestamp() - time());
             throw new TooManyRequestsHttpException($retryAfter, 'Prea multe cereri — încercați din nou în câteva momente.');
         }
+    }
+
+    private function key(string $prefix, Request $request, ?User $user): string
+    {
+        return sprintf('%s|%s|%s', $prefix, $user !== null ? (string) $user->id() : 'anon', $request->getClientIp() ?? '0');
     }
 }

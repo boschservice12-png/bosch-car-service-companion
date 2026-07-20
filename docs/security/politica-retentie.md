@@ -15,7 +15,7 @@ zilnic — vezi `infrastructure/monitoring/monitoring.md`).
 | Categorie | Termen | Ce se întâmplă |
 |---|---|---|
 | Cont cu ștergere cerută | **30 de zile grație** | contul e blocat; operatorul poate anula cererea (`app:gdpr:cancel-deletion <email>`) dacă clientul se răzgândește |
-| După grație | **anonimizare ireversibilă** | email → `sters-…@anonim.local`, nume → „Cont Șters", telefon/adresă/parolă/2FA șterse; conversațiile și mesajele clientului se ȘTERG |
+| După grație | **anonimizare ireversibilă** | email → `sters-…@anonim.local`, nume → „Cont Șters", telefon/adresă/parolă/2FA șterse; se ȘTERG complet: conversațiile și mesajele, cererile de ofertă / asistență rutieră / mobilitate, dosarele de daună, taxele, notificările și documentele încărcate de client (inclusiv fișierele din storage) |
 | Vehicule + scadențe + istoric service | **rămân** | evidența operațională a atelierului; legătura de proprietate se închide (`active=false`), deci nu mai indică o persoană identificabilă |
 | Jurnal de audit | **365 de zile** | intrările mai vechi se șterg la purjare |
 | Notificări în aplicație | **90 de zile** | intrările mai vechi se șterg la purjare |

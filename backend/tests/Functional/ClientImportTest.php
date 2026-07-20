@@ -181,6 +181,52 @@ final class ClientImportTest extends ApiTestCase
         self::assertGreaterThanOrEqual(1, $count);
     }
 
+    /**
+     * Un cont importat FĂRĂ vehicul activ nu are dovadă de proprietate, deci
+     * NU se poate revendica self-service — altfel ar fi de ajuns emailul, iar
+     * datele personale importate (nume, telefon, adresă) ar putea fi preluate
+     * de oricine cunoaște adresa.
+     */
+    public function testImportedAccountWithoutActiveVehicleCannotBeClaimed(): void
+    {
+        $client = static::createClient();
+        $adminEmail = 'ad-'.uniqid().'@bcsc.ro';
+        $this->createAdmin($adminEmail, 'Parola1234');
+        $this->login($client, $adminEmail, 'Parola1234');
+
+        $suffix = strtoupper(substr(uniqid(), -4));
+        $vin = 'WVWZZZ1KZAW'.str_pad((string) random_int(100000, 999999), 6, '0');
+        $ownerEmail = 'orfan-'.uniqid().'@example.test';
+        $csv = "Proprietar;Numar inmatriculare;VIN;Marca;Model;Email\n"
+            ."Pop Vasile;MS 72 $suffix;$vin;Dacia;Logan;$ownerEmail\n";
+        $client->request('POST', '/api/admin/import/clients', files: ['file' => $this->upload($csv, 'clienti.csv')]);
+        self::assertResponseIsSuccessful();
+
+        // Legătura de proprietate se închide (mașină vândută / evidență veche).
+        /** @var EntityManagerInterface $em */
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $em->getConnection()->executeStatement(
+            'UPDATE vehicle_ownerships SET active = FALSE WHERE customer_profile_id IN '
+            .'(SELECT cp.id FROM customer_profiles cp JOIN users u ON u.id = cp.user_id WHERE u.email = ?)',
+            [$ownerEmail],
+        );
+
+        // Chiar și cu numărul de înmatriculare „corect", revendicarea e refuzată.
+        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'Parola1234', 'consent' => true,
+            'plateNumber' => 'MS72'.$suffix,
+        ]));
+        self::assertResponseStatusCodeSame(422, 'Fără vehicul activ nu există dovadă — contul nu se revendică.');
+        $body = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertStringContainsString('fără un vehicul activ', json_encode($body['errors'] ?? [], JSON_UNESCAPED_UNICODE));
+
+        // Contul rămâne nerevendicat: loginul e refuzat în continuare.
+        $client->request('POST', '/api/auth/login', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'Parola1234',
+        ]));
+        self::assertResponseStatusCodeSame(401);
+    }
+
     public function testCsvImportAndAccessControl(): void
     {
         $client = static::createClient();

@@ -7,6 +7,7 @@ namespace App\Identity\Presentation;
 use App\Identity\Application\RegisterUser;
 use App\Identity\Presentation\Dto\RegisterRequest;
 use App\Shared\Presentation\ValidationFailedException;
+use App\Shared\Security\ApiRateLimiter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -20,11 +21,16 @@ final class RegisterController extends AbstractController
         #[MapRequestPayload] RegisterRequest $req,
         ValidatorInterface $validator,
         RegisterUser $registerUser,
+        ApiRateLimiter $rateLimiter,
     ): JsonResponse {
         $violations = $validator->validate($req);
         if (count($violations) > 0) {
             throw ValidationFailedException::fromViolations($violations);
         }
+
+        // Revendicarea folosește numărul de înmatriculare drept dovadă — fără
+        // limită de încercări ar putea fi ghicit prin forță brută.
+        $rateLimiter->checkRegister($req->email);
 
         $user = $registerUser($req->email, $req->password, $req->firstName, $req->lastName, $req->plateNumber);
 

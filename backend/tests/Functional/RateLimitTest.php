@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Identity\Application\TotpService;
+use App\Identity\Domain\User;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
  * P1-04 — limitele de rată chiar se aplică (în test: 10/min mesaje, 10/min upload):
@@ -74,6 +78,104 @@ final class RateLimitTest extends ApiTestCase
         $client->request('POST', '/api/documents', files: ['file' => $this->tempUpload('peste.png')]);
         self::assertResponseStatusCodeSame(429);
         self::assertNotNull($client->getResponse()->headers->get('Retry-After'));
+    }
+
+    /**
+     * Revendicarea contului importat folosește numărul de înmatriculare drept
+     * dovadă — încercările pe ACELAȘI email sunt limitate (anti forță-brută),
+     * indiferent de IP; alte emailuri nu sunt afectate.
+     */
+    public function testRegisterAttemptsAreLimitedPerEmail(): void
+    {
+        $client = static::createClient();
+        $email = 'rlr-'.uniqid().'@example.test';
+        $this->register($client, $email); // consumă 1 din limita de 5
+
+        for ($i = 2; $i <= 5; ++$i) {
+            $client->request('POST', '/api/auth/register', server: $this->json(), content: json_encode([
+                'email' => $email, 'password' => 'AltaParola9', 'consent' => true,
+            ]));
+            self::assertResponseStatusCodeSame(422, "Încercarea $i e sub limită (respinsă ca duplicat).");
+        }
+
+        $client->request('POST', '/api/auth/register', server: $this->json(), content: json_encode([
+            'email' => $email, 'password' => 'AltaParola9', 'consent' => true,
+        ]));
+        self::assertResponseStatusCodeSame(429, 'A 6-a încercare pe același email este blocată.');
+        self::assertNotNull($client->getResponse()->headers->get('Retry-After'));
+
+        // Limita este per email țintă — un alt email se înregistrează normal.
+        $this->register($client, 'rlr2-'.uniqid().'@example.test');
+    }
+
+    /**
+     * Codul TOTP are 6 cifre — verificarea este limitată la 5 încercări;
+     * un cod corect golește contorul (adminul legitim nu acumulează eșecuri).
+     */
+    public function testTwoFactorVerifyBruteForceIsLimited(): void
+    {
+        $client = static::createClient();
+        $adminEmail = 'rl2fa-'.uniqid().'@bcsc.ro';
+        $this->createAdmin($adminEmail, 'Parola1234');
+        /** @var TotpService $totp */
+        $totp = static::getContainer()->get(TotpService::class);
+        $this->login($client, $adminEmail);
+
+        $client->request('POST', '/api/auth/2fa/setup', server: $this->json(), content: json_encode(['password' => 'Parola1234']));
+        self::assertResponseIsSuccessful();
+        $secret = json_decode((string) $client->getResponse()->getContent(), true)['secret'];
+        $client->request('POST', '/api/auth/2fa/enable', server: $this->json(), content: json_encode([
+            'code' => $totp->codeAt($secret, time()),
+        ]));
+        self::assertResponseIsSuccessful();
+
+        $client->request('POST', '/api/auth/logout');
+        $this->refreshCsrf($client);
+        $this->login($client, $adminEmail);
+
+        // 4 eșecuri, apoi codul corect → verificat; contorul se golește.
+        for ($i = 1; $i <= 4; ++$i) {
+            $client->request('POST', '/api/auth/2fa/verify', server: $this->json(), content: json_encode(['code' => '000000']));
+            self::assertResponseStatusCodeSame(422, "Eșecul $i e sub limită.");
+        }
+        $client->request('POST', '/api/auth/2fa/verify', server: $this->json(), content: json_encode([
+            'code' => $totp->codeAt($secret, time()),
+        ]));
+        self::assertResponseIsSuccessful();
+
+        // Sesiune nouă: 5 eșecuri consecutive → a 6-a încercare e blocată cu 429.
+        $client->request('POST', '/api/auth/logout');
+        $this->refreshCsrf($client);
+        $this->login($client, $adminEmail);
+        for ($i = 1; $i <= 5; ++$i) {
+            $client->request('POST', '/api/auth/2fa/verify', server: $this->json(), content: json_encode(['code' => '000000']));
+            self::assertResponseStatusCodeSame(422, "Eșecul $i e sub limită (contorul fusese golit).");
+        }
+        $client->request('POST', '/api/auth/2fa/verify', server: $this->json(), content: json_encode(['code' => '000000']));
+        self::assertResponseStatusCodeSame(429, 'Forța brută pe codul TOTP este oprită.');
+        self::assertNotNull($client->getResponse()->headers->get('Retry-After'));
+    }
+
+    private function createAdmin(string $email, string $password): void
+    {
+        $c = static::getContainer();
+        /** @var EntityManagerInterface $em */
+        $em = $c->get(EntityManagerInterface::class);
+        /** @var UserPasswordHasherInterface $hasher */
+        $hasher = $c->get(UserPasswordHasherInterface::class);
+        $admin = new User($email, User::ROLE_SERVICE_ADMIN);
+        $admin->setPasswordHash($hasher->hashPassword($admin, $password));
+        $em->persist($admin);
+        $em->flush();
+    }
+
+    private function refreshCsrf(KernelBrowser $client): void
+    {
+        $client->getCookieJar()->set(new \Symfony\Component\BrowserKit\Cookie(
+            \App\Shared\Security\CsrfProtectionSubscriber::COOKIE,
+            self::CSRF_TOKEN,
+        ));
+        $client->setServerParameter('HTTP_X_CSRF_TOKEN', self::CSRF_TOKEN);
     }
 
     private function tempUpload(string $name): UploadedFile

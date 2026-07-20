@@ -118,7 +118,12 @@ final class RegisterUser
         $profile = $user->customerProfile();
         $vehicles = $profile !== null ? $this->vehicles->findActiveForCustomer($profile) : [];
         if ($vehicles === []) {
-            return; // Fără vehicule în evidență nu există nimic de dovedit (și nimic de expus).
+            // Fără vehicul activ nu există dovadă de proprietate — contul NU se
+            // poate revendica self-service (altfel ar fi de ajuns emailul, iar
+            // datele personale importate ar putea fi preluate de oricine).
+            throw ValidationFailedException::fromArray([
+                'plateNumber' => ['Acest email este deja în evidența service-ului, dar fără un vehicul activ. Contactați service-ul pentru activarea contului.'],
+            ]);
         }
 
         $given = (string) preg_replace('/\s+/', '', strtoupper((string) $plateNumber));

@@ -7,6 +7,7 @@ namespace App\Identity\Presentation;
 use App\Audit\Application\AuditRecorder;
 use App\Identity\Application\TotpService;
 use App\Identity\Domain\User;
+use App\Shared\Security\ApiRateLimiter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -34,6 +35,7 @@ final class TwoFactorController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $hasher,
         private readonly AuditRecorder $audit,
+        private readonly ApiRateLimiter $rateLimiter,
     ) {
     }
 
@@ -49,10 +51,14 @@ final class TwoFactorController extends AbstractController
             throw new \DomainException('2FA este deja activ pe acest cont.');
         }
 
+        // Parola se verifică aici — fără limită, endpointul ar fi un „oracol"
+        // de ghicit parole. Contorul se golește la parola corectă.
+        $this->rateLimiter->checkTwoFactor($request, $user, 'setup');
         $password = $this->stringField($request, 'password');
         if ($password === '' || !$this->hasher->isPasswordValid($user, $password)) {
             return $this->problem('invalid_password', 'Parola introdusă nu este corectă.');
         }
+        $this->rateLimiter->resetTwoFactor($request, $user, 'setup');
 
         $secret = $this->totp->generateSecret();
         $user->setPendingTotpSecret($secret);
@@ -77,9 +83,11 @@ final class TwoFactorController extends AbstractController
         if ($user->totpEnabled() || $secret === null) {
             throw new \DomainException('Nu există o înrolare în așteptare — rulați întâi pasul de configurare.');
         }
+        $this->rateLimiter->checkTwoFactor($request, $user, 'enable');
         if (!$this->totp->verify($secret, $this->stringField($request, 'code'))) {
             return $this->problem('invalid_code', 'Cod TOTP invalid sau expirat.');
         }
+        $this->rateLimiter->resetTwoFactor($request, $user, 'enable');
 
         $plainCodes = [];
         $hashes = [];
@@ -110,16 +118,21 @@ final class TwoFactorController extends AbstractController
             throw new \DomainException('2FA nu este activat pe acest cont.');
         }
 
+        // Codul TOTP are 6 cifre (±1 fereastră) — fără limită de încercări ar
+        // putea fi ghicit. La un cod corect contorul se golește.
+        $this->rateLimiter->checkTwoFactor($request, $user, 'verify');
         $code = $this->stringField($request, 'code');
         $recovery = $this->stringField($request, 'recoveryCode');
 
         if ($code !== '' && $this->totp->verify($secret, $code)) {
+            $this->rateLimiter->resetTwoFactor($request, $user, 'verify');
             $request->getSession()->set(self::SESSION_VERIFIED, true);
 
             return new JsonResponse(['verified' => true]);
         }
 
         if ($recovery !== '' && $user->consumeRecoveryCode(strtoupper(trim($recovery)))) {
+            $this->rateLimiter->resetTwoFactor($request, $user, 'verify');
             $this->em->flush();
             $request->getSession()->set(self::SESSION_VERIFIED, true);
             $this->audit->record('identity.2fa_recovery_code_used', 'User', (string) $user->id(), null, [
@@ -141,9 +154,11 @@ final class TwoFactorController extends AbstractController
         if (!$user->totpEnabled() || $secret === null) {
             throw new \DomainException('2FA nu este activat pe acest cont.');
         }
+        $this->rateLimiter->checkTwoFactor($request, $user, 'disable');
         if (!$this->totp->verify($secret, $this->stringField($request, 'code'))) {
             return $this->problem('invalid_code', 'Cod TOTP invalid sau expirat.');
         }
+        $this->rateLimiter->resetTwoFactor($request, $user, 'disable');
 
         $user->disableTotp();
         $this->em->flush();

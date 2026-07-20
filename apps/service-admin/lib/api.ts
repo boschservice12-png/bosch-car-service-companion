@@ -97,10 +97,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 204) return undefined as T;
   const body = (await res.json().catch(() => null)) as unknown;
   if (!res.ok) {
-    const problem = (body as ApiProblem | null) ?? { type: 'error', title: 'Eroare.', status: res.status, traceId: '' };
-    throw new ApiError(problem, res.status);
+    throwProblem((body as ApiProblem | null) ?? { type: 'error', title: 'Eroare.', status: res.status, traceId: '' }, res.status);
   }
   return body as T;
+}
+
+/**
+ * În producție, un admin fără 2FA activ primește 403 `two_factor_enrollment_required`
+ * pe tot /api/admin — NU e o problemă de login, ci de înrolare: îl ducem la pagina
+ * Securitate. (Fără redirecționarea asta paginile îl trimit la /login, unde loginul
+ * reușește și îl trimite înapoi — buclă infinită la prima instalare.)
+ */
+function throwProblem(problem: ApiProblem, status: number): never {
+  if (
+    problem.type === 'two_factor_enrollment_required' &&
+    typeof window !== 'undefined' &&
+    window.location.pathname !== '/securitate'
+  ) {
+    window.location.assign('/securitate');
+  }
+  throw new ApiError(problem, status);
 }
 
 export const api = {
@@ -282,8 +298,7 @@ async function uploadRequest<T>(path: string, body: FormData): Promise<T> {
 
   const parsed = (await res.json().catch(() => null)) as unknown;
   if (!res.ok) {
-    const problem = (parsed as ApiProblem | null) ?? { type: 'error', title: 'Încărcare eșuată.', status: res.status, traceId: '' };
-    throw new ApiError(problem, res.status);
+    throwProblem((parsed as ApiProblem | null) ?? { type: 'error', title: 'Încărcare eșuată.', status: res.status, traceId: '' }, res.status);
   }
 
   return parsed as T;

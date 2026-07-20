@@ -382,6 +382,8 @@ const HU: Dict = {
     'Ez az e-mail már szerepel a szerviz nyilvántartásában. A fiók aktiválásához adja meg az autó rendszámát.',
   'Numărul de înmatriculare nu corespunde evidenței service-ului.':
     'A rendszám nem egyezik a szerviz nyilvántartásával.',
+  'Acest email este deja în evidența service-ului, dar fără un vehicul activ. Contactați service-ul pentru activarea contului.':
+    'Ez az e-mail már szerepel a szerviz nyilvántartásában, de nincs hozzá aktív jármű. A fiók aktiválásához forduljon a szervizhez.',
 
   // PWA telepítés (P2-01)
   'Instalează Companion pe telefon': 'Telepítse a Companiont a telefonra',
@@ -766,6 +768,8 @@ const EN: Dict = {
     'This email is already in the service’s records. Enter your car’s licence plate number to activate the account.',
   'Numărul de înmatriculare nu corespunde evidenței service-ului.':
     'The licence plate number does not match the service’s records.',
+  'Acest email este deja în evidența service-ului, dar fără un vehicul activ. Contactați service-ul pentru activarea contului.':
+    'This email is already in the service’s records but has no active vehicle. Please contact the service to activate the account.',
 
   // PWA install (P2-01)
   'Instalează Companion pe telefon': 'Install Companion on your phone',
