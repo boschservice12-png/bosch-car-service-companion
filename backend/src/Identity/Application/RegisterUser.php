@@ -14,9 +14,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * Înregistrare client (self-service). Creează User (ROLE_USER) + CustomerProfile
- * și înregistrează consimțământul. Onboarding-ul poate fi schimbat pe „invitație
- * de la admin" după clarificarea întrebării blocante #8.
+ * Înregistrare client (self-service), conform deciziei de produs (P1-02):
+ * clientul se înregistrează cu email + parolă și își vede propriile date.
+ *
+ * Dacă emailul aparține unui cont creat de importul Excel (fără parolă,
+ * niciodată activat), înregistrarea REVENDICĂ acel cont: setează parola și
+ * consimțământul, iar clientul își vede imediat vehiculele și istoricul
+ * importate de service. Un cont deja activat rămâne protejat (eroare de
+ * duplicat) — parola existentă nu poate fi suprascrisă prin re-înregistrare.
  */
 final class RegisterUser
 {
@@ -34,9 +39,13 @@ final class RegisterUser
 
         $existing = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existing !== null) {
-            throw ValidationFailedException::fromArray([
-                'email' => ['Există deja un cont cu acest email.'],
-            ]);
+            if ($existing->isServiceAdmin() || $existing->getPassword() !== '') {
+                throw ValidationFailedException::fromArray([
+                    'email' => ['Există deja un cont cu acest email.'],
+                ]);
+            }
+
+            return $this->claimImportedAccount($existing, $plainPassword);
         }
 
         $user = new User($email, User::ROLE_CLIENT);
@@ -58,6 +67,32 @@ final class RegisterUser
         $this->em->flush();
 
         $this->audit->record('user.registered', 'User', (string) $user->id());
+
+        return $user;
+    }
+
+    /**
+     * Activarea unui cont creat de importul Excel: parola se setează acum,
+     * consimțământul se înregistrează, iar datele importate (nume, vehicule,
+     * istoric) rămân neatinse — evidența service-ului e sursa de adevăr.
+     */
+    private function claimImportedAccount(User $user, string $plainPassword): User
+    {
+        $user->setPasswordHash($this->hasher->hashPassword($user, $plainPassword));
+
+        if ($user->customerProfile() === null) {
+            $this->em->persist(new CustomerProfile($user));
+        }
+
+        $this->em->persist(new Consent(
+            $user,
+            Consent::TYPE_DATA_PROCESSING,
+            true,
+            $this->settings->privacyTextVersion(),
+        ));
+        $this->em->flush();
+
+        $this->audit->record('user.import_account_claimed', 'User', (string) $user->id());
 
         return $user;
     }

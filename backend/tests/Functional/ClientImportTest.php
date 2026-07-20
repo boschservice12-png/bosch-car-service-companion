@@ -105,6 +105,61 @@ final class ClientImportTest extends ApiTestCase
         self::assertSame(0, $fourth['vehiclesCreated'], 'Rândul cu email de admin nu creează nimic.');
     }
 
+    /**
+     * Decizia de produs P1-02: clientul se înregistrează cu email + parolă și
+     * își vede propriile date. Un cont creat de importul Excel (fără parolă)
+     * este REVENDICAT la înregistrare — clientul își vede imediat vehiculele —
+     * iar un cont deja activat nu poate fi suprascris prin re-înregistrare.
+     */
+    public function testImportedAccountIsClaimedByRegistration(): void
+    {
+        $client = static::createClient();
+        $adminEmail = 'ad-'.uniqid().'@bcsc.ro';
+        $this->createAdmin($adminEmail, 'Parola1234');
+        $this->login($client, $adminEmail, 'Parola1234');
+
+        $suffix = strtoupper(substr(uniqid(), -4));
+        $vin = 'WVWZZZ1KZAW'.str_pad((string) random_int(100000, 999999), 6, '0');
+        $ownerEmail = 'claim-'.uniqid().'@example.test';
+        $csv = "Proprietar;Numar inmatriculare;VIN;Marca;Model;Email\n"
+            ."Kiss Andrei;MS 71 $suffix;$vin;Volkswagen;Golf;$ownerEmail\n";
+        $client->request('POST', '/api/admin/import/clients', files: ['file' => $this->upload($csv, 'clienti.csv')]);
+        self::assertResponseIsSuccessful();
+
+        // Înainte de înregistrare, contul importat nu se poate autentifica.
+        $client->request('POST', '/api/auth/login', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'Parola1234',
+        ]));
+        self::assertResponseStatusCodeSame(401, 'Fără parolă setată, loginul e refuzat.');
+
+        // Înregistrarea revendică contul importat (același id de utilizator).
+        $this->register($client, $ownerEmail);
+        $this->login($client, $ownerEmail, 'Parola1234');
+
+        // Clientul își vede imediat vehiculul importat, cu numele din evidență.
+        $client->request('GET', '/api/vehicles');
+        self::assertResponseIsSuccessful();
+        $vehicles = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertCount(1, $vehicles);
+        self::assertSame($vin, $vehicles[0]['vin']);
+
+        $client->request('GET', '/api/me');
+        $me = json_decode((string) $client->getResponse()->getContent(), true);
+        self::assertSame('Andrei Kiss', $me['name'], 'Numele din importul service-ului rămâne sursa de adevăr.');
+
+        // Contul, odată activat, nu mai poate fi „re-revendicat" cu altă parolă.
+        $client->request('POST', '/api/auth/register', server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+            'email' => $ownerEmail, 'password' => 'AltaParola999', 'consent' => true,
+        ]));
+        self::assertResponseStatusCodeSame(422, 'Un cont activat nu se suprascrie prin re-înregistrare.');
+
+        // Auditul consemnează revendicarea.
+        /** @var EntityManagerInterface $em */
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $count = (int) $em->getConnection()->fetchOne("SELECT COUNT(*) FROM audit_logs WHERE action = 'user.import_account_claimed'");
+        self::assertGreaterThanOrEqual(1, $count);
+    }
+
     public function testCsvImportAndAccessControl(): void
     {
         $client = static::createClient();
