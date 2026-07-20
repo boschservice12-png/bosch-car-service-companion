@@ -82,6 +82,7 @@ cd e2e && npm install && npx playwright test
 | Subiect | Unde |
 |---|---|
 | Operare pilot (readiness, storage, activare, notificări, TOTP, backup) | `docs/PILOT_READINESS.md` |
+| Telepítés pilotra (production compose, `.env.prod`, TLS, runbook) | `docs/DEPLOY_PILOT.md` |
 | Contract API (sincron cu routerul, impus de `OpenApiSyncTest`) | `docs/api/openapi.yaml` |
 | Rulare demo + date demo | `docs/DEMO.md` |
 | Backup + restaurare (drill lunar) | `infrastructure/backup/` |
