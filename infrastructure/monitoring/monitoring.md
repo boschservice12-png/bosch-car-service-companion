@@ -29,6 +29,9 @@ uptime-checker (cron + mail, Uptime Kuma, healthchecks.io etc.).
 
 # Verificare de sănătate la 5 minute; alertează pe exit code nenul
 */5 * * * *  BASE_URL=https://service.example.ro BACKUP_DIR=/backups  /opt/bcsc/infrastructure/monitoring/healthcheck.sh || <comanda-de-alertare>
+
+# Purjare GDPR zilnică la 03:15 (după backup) — vezi docs/security/politica-retentie.md
+15 3 * * *  /usr/bin/php /opt/bcsc/backend/bin/console app:gdpr:purge >> /var/log/bcsc-gdpr.log 2>&1
 ```
 
 ## Ce mai merită urmărit (din logurile aplicației)

@@ -48,7 +48,9 @@ final class RegisterUser
 
         $existing = $this->em->getRepository(User::class)->findOneBy(['email' => $email]);
         if ($existing !== null) {
-            if ($existing->isServiceAdmin() || $existing->getPassword() !== '') {
+            // Doar conturile ACTIVE de import se pot revendica — un cont
+            // dezactivat sau anonimizat (GDPR) nu redevine folosibil.
+            if ($existing->isServiceAdmin() || $existing->getPassword() !== '' || !$existing->isActive()) {
                 throw ValidationFailedException::fromArray([
                     'email' => ['Există deja un cont cu acest email.'],
                 ]);

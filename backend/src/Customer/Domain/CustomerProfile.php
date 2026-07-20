@@ -85,4 +85,13 @@ class CustomerProfile
         $this->phone = $phone;
         $this->address = $address;
     }
+
+    /** P1-06: anonimizare ireversibilă la purjarea GDPR. */
+    public function anonymize(): void
+    {
+        $this->firstName = 'Cont';
+        $this->lastName = 'Șters';
+        $this->phone = null;
+        $this->address = null;
+    }
 }

@@ -58,6 +58,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     #[ORM\Column]
     private bool $isActive = true;
 
+    /** P1-06: cererea de ștergere GDPR — anonimizare după perioada de grație. */
+    #[ORM\Column(type: 'datetimetz_immutable', nullable: true)]
+    private ?\DateTimeImmutable $deletionRequestedAt = null;
+
     #[ORM\Column(type: 'datetimetz_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -121,6 +125,44 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     public function activate(): void
     {
         $this->isActive = true;
+    }
+
+    public function deletionRequestedAt(): ?\DateTimeImmutable
+    {
+        return $this->deletionRequestedAt;
+    }
+
+    /** Cerere de ștergere: contul se blochează imediat; datele se anonimizează după grație. */
+    public function requestDeletion(): void
+    {
+        $this->deletionRequestedAt = new \DateTimeImmutable();
+        $this->isActive = false;
+    }
+
+    /** Răzgândire în perioada de grație (prin operator). */
+    public function cancelDeletion(): void
+    {
+        $this->deletionRequestedAt = null;
+        $this->isActive = true;
+    }
+
+    /**
+     * P1-06: anonimizare ireversibilă — identitatea dispare, dar înregistrările
+     * operaționale ale service-ului (vehicule, istoric) rămân, nelegate de o
+     * persoană identificabilă. Contul nu se mai poate folosi sau revendica.
+     */
+    public function anonymize(): void
+    {
+        $this->email = sprintf('sters-%s@anonim.local', substr((string) $this->id, 0, 13));
+        $this->passwordHash = '';
+        $this->phone = null;
+        $this->isActive = false;
+        $this->disableTotp();
+    }
+
+    public function isAnonymized(): bool
+    {
+        return str_ends_with($this->email, '@anonim.local');
     }
 
     /**

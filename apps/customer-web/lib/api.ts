@@ -109,6 +109,10 @@ export const api = {
 
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
 
+  /** P1-06: cerere de ștergere GDPR — contul se blochează imediat. */
+  requestAccountDeletion: (password: string) =>
+    request<{ deletionRequested: boolean }>('/me/delete', { method: 'POST', body: JSON.stringify({ password }) }),
+
   register: (data: {
     email: string;
     password: string;

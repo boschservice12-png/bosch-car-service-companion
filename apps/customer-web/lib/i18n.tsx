@@ -382,6 +382,15 @@ const HU: Dict = {
     'Ez az e-mail már szerepel a szerviz nyilvántartásában. A fiók aktiválásához adja meg az autó rendszámát.',
   'Numărul de înmatriculare nu corespunde evidenței service-ului.':
     'A rendszám nem egyezik a szerviz nyilvántartásával.',
+
+  // GDPR (P1-06)
+  'Datele mele (GDPR)': 'Az adataim (GDPR)',
+  '⬇️ Descarcă datele mele (JSON)': '⬇️ Adataim letöltése (JSON)',
+  'Șterge contul…': 'Fiók törlése…',
+  'Contul se blochează imediat, iar după 30 de zile datele personale se șterg definitiv. În acest interval vă puteți răzgândi contactând service-ul.':
+    'A fiók azonnal zárolódik, 30 nap után pedig a személyes adatok véglegesen törlődnek. Ez idő alatt meggondolhatja magát — vegye fel a kapcsolatot a szervizzel.',
+  'Confirmați parola': 'Erősítse meg a jelszavát',
+  'Confirm ștergerea contului': 'Megerősítem a fiók törlését',
 };
 
 const EN: Dict = {
@@ -748,6 +757,15 @@ const EN: Dict = {
     'This email is already in the service’s records. Enter your car’s licence plate number to activate the account.',
   'Numărul de înmatriculare nu corespunde evidenței service-ului.':
     'The licence plate number does not match the service’s records.',
+
+  // GDPR (P1-06)
+  'Datele mele (GDPR)': 'My data (GDPR)',
+  '⬇️ Descarcă datele mele (JSON)': '⬇️ Download my data (JSON)',
+  'Șterge contul…': 'Delete account…',
+  'Contul se blochează imediat, iar după 30 de zile datele personale se șterg definitiv. În acest interval vă puteți răzgândi contactând service-ul.':
+    'The account is locked immediately, and after 30 days the personal data is permanently deleted. You can change your mind during this period by contacting the workshop.',
+  'Confirmați parola': 'Confirm your password',
+  'Confirm ștergerea contului': 'Confirm account deletion',
 };
 
 const DICTS: Record<Locale, Dict | null> = { ro: null, hu: HU, en: EN };

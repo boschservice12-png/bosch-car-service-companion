@@ -211,6 +211,35 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Me' }
         '401': { $ref: '#/components/responses/Error' }
+  /me/export:
+    get:
+      tags: [Me]
+      summary: 'P1-06 — export GDPR: toate datele clientului, ca JSON descărcabil'
+      responses:
+        '200': { description: 'JSON cu cont, vehicule, scadențe, istoric, taxe, conversații, cereri' }
+        '403': { description: Doar conturi de client }
+  /me/delete:
+    post:
+      tags: [Me]
+      summary: 'P1-06 — cerere de ștergere GDPR (cu re-introducerea parolei)'
+      description: >
+        Contul se blochează imediat și sesiunea se închide. După perioada de
+        grație (implicit 30 de zile, `app:gdpr:purge`) identitatea se
+        anonimizează ireversibil; în grație operatorul poate anula cererea
+        (`app:gdpr:cancel-deletion`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '200': { description: Cerere înregistrată; contul e blocat }
+        '403': { description: Doar conturi de client }
+        '422': { description: Parolă incorectă }
 
   # -------------------------------------------------------------- Vehicles
   /vehicles:
