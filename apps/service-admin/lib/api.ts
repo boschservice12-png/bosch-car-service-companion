@@ -44,6 +44,19 @@ export interface UploadedDocument {
   scanStatus: string;
 }
 
+/** P1-03: o scadență apropiată, cu contactul proprietarului. */
+export interface UpcomingDeadline {
+  id: string;
+  type: string;
+  typeLabel: string;
+  expiresAt: string | null;
+  daysLeft: number | null;
+  stateLabel: string;
+  vehicle: { id: string; plateNumber: string; make: string | null; model: string | null };
+  owner: { name: string | null; phone: string | null; email: string | null } | null;
+  lastNotifiedAt: string | null;
+}
+
 
 /** P0-05 — CSRF „double submit": citește cookie-ul `bcsc_csrf` și trimite-l ca antet. */
 function readCsrfCookie(): string | null {
@@ -121,6 +134,16 @@ export const api = {
     request<{ twoFactorEnabled: boolean }>('/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ code }) }),
 
   adminVehicles: () => request<AdminVehicle[]>('/admin/vehicles'),
+
+  // ---- P1-03: notificări de scadență (WhatsApp propriu + email, operator) ----
+  upcomingDeadlines: (days: number) =>
+    request<{ days: number; items: UpcomingDeadline[] }>(`/admin/deadlines/upcoming?days=${days}`),
+
+  markDeadlineNotified: (id: string, channel: 'whatsapp' | 'email') =>
+    request<{ ok: boolean; notifiedAt: string }>(`/admin/deadlines/${id}/notifications`, {
+      method: 'POST',
+      body: JSON.stringify({ channel }),
+    }),
 
   vehicleDeadlines: (vehicleId: string) => request<Deadline[]>(`/vehicles/${vehicleId}/deadlines`),
 

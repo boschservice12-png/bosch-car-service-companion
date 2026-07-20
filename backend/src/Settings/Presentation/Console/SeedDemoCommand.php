@@ -88,6 +88,7 @@ final class SeedDemoCommand extends Command
         $client = new User(self::CLIENT_EMAIL, User::ROLE_CLIENT);
         $client->setPasswordHash($this->hasher->hashPassword($client, self::DEMO_PASSWORD));
         $profile = new CustomerProfile($client, 'Ion', 'Popescu');
+        $profile->updateContact('0722 000 111', null);
         $this->em->persist($client);
         $this->em->persist($profile);
         $this->em->persist(new Consent($client, Consent::TYPE_DATA_PROCESSING, true, $this->settings->privacyTextVersion()));

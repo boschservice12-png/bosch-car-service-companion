@@ -79,6 +79,9 @@ export default function DashboardPage() {
           <Link href="/taxe" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
             {t('🧾 Taxe')}
           </Link>
+          <Link href="/notificari" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
+            {t('🔔 Notificări')}
+          </Link>
           <Link href="/securitate" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
             {t('🔐 Securitate')}
           </Link>

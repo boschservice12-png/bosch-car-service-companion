@@ -24,4 +24,22 @@ interface VehicleDeadlineRepository
     public function notificationAlreadySent(VehicleDeadline $deadline, int $thresholdDays, string $channel): bool;
 
     public function recordNotification(DeadlineNotification $notification): void;
+
+    /**
+     * P1-03: scadențele care expiră în cel mult $days zile (inclusiv cele
+     * deja expirate), ordonate crescător după data expirării.
+     *
+     * @return VehicleDeadline[]
+     */
+    public function findExpiringWithin(int $days): array;
+
+    /**
+     * Ultima notificare MANUALĂ (whatsapp/email, trimisă de operator) per
+     * scadență, pentru lista dată de id-uri.
+     *
+     * @param list<string> $deadlineIds
+     *
+     * @return array<string, \DateTimeImmutable>
+     */
+    public function lastManualNotifications(array $deadlineIds): array;
 }

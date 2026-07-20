@@ -309,6 +309,40 @@ paths:
         '403': { description: Vehiculul altui client }
         '404': { description: Documentul nu aparține scadenței / nu e servibil }
 
+  # ------------------------------------- Notificări de scadență (P1-03, admin)
+  /admin/deadlines/upcoming:
+    get:
+      tags: [Deadlines]
+      summary: (admin) Scadențele care expiră în cel mult ?days zile, cu contactul proprietarului
+      description: >
+        Decizie de produs P1-03: notificările pleacă de pe WhatsApp-ul PROPRIU
+        al service-ului (fără API plătit) și pe email — portalul compune
+        mesajul (wa.me / mailto), operatorul îl trimite. Include și scadențele
+        deja expirate; `lastNotifiedAt` = ultima notificare manuală consemnată.
+      parameters:
+        - { name: days, in: query, required: false, schema: { type: integer, default: 30, minimum: 1, maximum: 365 } }
+      responses:
+        '200': { description: 'Listă cu vehicul, proprietar (nume/telefon/email), zile rămase' }
+        '403': { description: Doar service }
+  /admin/deadlines/{id}/notifications:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Deadlines]
+      summary: (admin) Consemnează o notificare trimisă manual (whatsapp / email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel]
+              properties:
+                channel: { type: string, enum: [whatsapp, email] }
+      responses:
+        '200': { description: Consemnată (idempotent pe același prag+canal) }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { description: Canal necunoscut }
+
   # ------------------------------------------------- Istoric service (client)
   /vehicles/{vehicleId}/service-records:
     parameters: [ { $ref: '#/components/parameters/VehicleId' } ]

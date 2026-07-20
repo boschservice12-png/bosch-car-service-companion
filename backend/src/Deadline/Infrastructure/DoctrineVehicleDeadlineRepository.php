@@ -68,4 +68,44 @@ final class DoctrineVehicleDeadlineRepository implements VehicleDeadlineReposito
         $this->em->persist($notification);
         $this->em->flush();
     }
+
+    public function findExpiringWithin(int $days): array
+    {
+        $limit = (new \DateTimeImmutable('today'))->modify(sprintf('+%d days', $days));
+
+        return $this->em->createQueryBuilder()
+            ->select('d')
+            ->from(VehicleDeadline::class, 'd')
+            ->where('d.expiresAt IS NOT NULL')
+            ->andWhere('d.expiresAt <= :limit')
+            ->orderBy('d.expiresAt', 'ASC')
+            ->setParameter('limit', $limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function lastManualNotifications(array $deadlineIds): array
+    {
+        if ($deadlineIds === []) {
+            return [];
+        }
+
+        $rows = $this->em->createQueryBuilder()
+            ->select('IDENTITY(n.deadline) AS did', 'MAX(n.sentAt) AS lastAt')
+            ->from(DeadlineNotification::class, 'n')
+            ->where('n.channel IN (:channels)')
+            ->andWhere('IDENTITY(n.deadline) IN (:ids)')
+            ->groupBy('n.deadline')
+            ->setParameter('channels', ['whatsapp', 'email'])
+            ->setParameter('ids', $deadlineIds)
+            ->getQuery()
+            ->getArrayResult();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[(string) $row['did']] = new \DateTimeImmutable((string) $row['lastAt']);
+        }
+
+        return $map;
+    }
 }

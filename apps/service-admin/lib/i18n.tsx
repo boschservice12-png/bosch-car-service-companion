@@ -361,6 +361,21 @@ const HU: Dict = {
 
   // Liste mari (P2-03)
   'Afișează încă {n} (din {m} rămase)': 'Még {n} megjelenítése ({m} van hátra)',
+
+  // Notificări de scadență (P1-03)
+  '🔔 Notificări': '🔔 Értesítések',
+  'Notificări de scadență': 'Lejárati értesítések',
+  'Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.':
+    'Az üzenet előre megírva nyílik meg a szerviz WhatsAppjában vagy e-mailben — egy kattintással elküldi, a küldés pedig rögzül.',
+  'Fereastra de timp': 'Időablak',
+  'Următoarele {n} zile': 'A következő {n} nap',
+  'Nicio scadență în fereastra aleasă': 'Nincs lejárat a kiválasztott időablakban',
+  'în {n} zile': '{n} nap múlva',
+  'expirat': 'lejárt',
+  'fără telefon': 'nincs telefonszám',
+  'Notificat ultima dată: {date}': 'Utoljára értesítve: {date}',
+  '📲 WhatsApp': '📲 WhatsApp',
+  '✉️ Email': '✉️ E-mail',
 };
 
 const EN: Dict = {
@@ -706,6 +721,21 @@ const EN: Dict = {
 
   // Liste mari (P2-03)
   'Afișează încă {n} (din {m} rămase)': 'Show {n} more ({m} remaining)',
+
+  // Notificări de scadență (P1-03)
+  '🔔 Notificări': '🔔 Notifications',
+  'Notificări de scadență': 'Deadline notifications',
+  'Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.':
+    'The message opens pre-written in the workshop’s own WhatsApp or in email — send it with one click, and the send is recorded.',
+  'Fereastra de timp': 'Time window',
+  'Următoarele {n} zile': 'Next {n} days',
+  'Nicio scadență în fereastra aleasă': 'No deadlines in the selected window',
+  'în {n} zile': 'in {n} days',
+  'expirat': 'expired',
+  'fără telefon': 'no phone number',
+  'Notificat ultima dată: {date}': 'Last notified: {date}',
+  '📲 WhatsApp': '📲 WhatsApp',
+  '✉️ Email': '✉️ Email',
 };
 
 const DICTS: Record<Locale, Dict | null> = { ro: null, hu: HU, en: EN };
