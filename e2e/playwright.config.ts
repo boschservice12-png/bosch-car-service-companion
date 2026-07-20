@@ -6,6 +6,10 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * URL-urile pot fi suprascrise prin variabile de mediu:
  *   CLIENT_URL (implicit http://localhost:3000), ADMIN_URL (implicit http://localhost:3001)
+ *
+ * Pe mașini cu un Chromium preinstalat (altă versiune decât cea cerută de
+ * Playwright), setați CHROMIUM_PATH către executabil — se folosește acela,
+ * fără descărcare. Fără variabilă, Playwright își folosește browserul propriu.
  */
 export default defineConfig({
   testDir: './tests',
@@ -18,7 +22,9 @@ export default defineConfig({
     headless: true,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    // În acest mediu, Chromium este preinstalat (PLAYWRIGHT_BROWSERS_PATH).
     ...devices['Desktop Chrome'],
+    ...(process.env.CHROMIUM_PATH
+      ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox'] } }
+      : {}),
   },
 });

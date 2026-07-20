@@ -16,10 +16,13 @@ async function login(page: Page, base: string, email: string, password: string) 
   await page.getByLabel('Email').fill(email);
   await page.getByLabel(/Parol/).fill(password);
   await page.getByRole('button', { name: /Intr|conect/i }).click();
+  // Așteptăm încheierea autentificării (redirect din /login) — altfel pasul
+  // următor pornește fără cookie de sesiune.
+  await page.waitForURL((u) => !u.pathname.endsWith('/login'));
 }
 
 test.describe('CLIENT', () => {
-  test('vede vehiculele, scadențele, istoricul și oferta', async ({ page }) => {
+  test('vede vehiculele, scadențele, istoricul și conversația', async ({ page }) => {
     await login(page, CLIENT_URL, CLIENT.email, CLIENT.password);
 
     // Vehicule
@@ -27,26 +30,30 @@ test.describe('CLIENT', () => {
     await expect(page.getByText('MS01POP')).toBeVisible();
 
     // Scadențe pe primul vehicul
-    await page.getByText('MS01POP').click();
+    await page.getByRole('link', { name: 'Detalii MS01POP' }).click();
     await expect(page.getByRole('heading', { name: 'Scadențe' })).toBeVisible();
 
     // Istoric service (înregistrare publicată)
     await page.getByRole('link', { name: /Istoric service/i }).click();
     await expect(page.getByRole('heading', { name: 'Istoric service' })).toBeVisible();
 
-    // Comunicare: cererea de ofertă demo, în stare QUOTED
+    // Comunicare: conversația demo cu service-ul
     await page.goto(`${CLIENT_URL}/mesaje`);
-    await expect(page.getByText('Zgomot la frânare')).toBeVisible();
+    await expect(page.getByText('Programare revizie')).toBeVisible();
   });
 });
 
 test.describe('ADMIN', () => {
-  test('vede vehiculele clienților și conversațiile', async ({ page }) => {
+  test('vede vehiculele clienților, conversațiile și cererea de ofertă', async ({ page }) => {
     await login(page, ADMIN_URL, ADMIN.email, ADMIN.password);
 
     await expect(page.getByText('MS01POP')).toBeVisible();
 
     await page.getByRole('link', { name: /Mesaje/i }).click();
-    await expect(page.getByText('Zgomot la frânare')).toBeVisible();
+    await expect(page.getByText('Programare revizie')).toBeVisible();
+
+    // Cererea de ofertă demo (scârțâit la frânare), în inbox-ul de oferte
+    await page.goto(`${ADMIN_URL}/oferte`);
+    await expect(page.getByText(/scârțâit la frânare/).first()).toBeVisible();
   });
 });
