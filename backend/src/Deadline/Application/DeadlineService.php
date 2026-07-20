@@ -57,18 +57,33 @@ final class DeadlineService
         $this->assertDateOrder($validFrom, $expiresAt);
 
         $before = [
+            'validFrom' => $deadline->validFrom()?->format('Y-m-d'),
             'expiresAt' => $deadline->expiresAt()?->format('Y-m-d'),
+            'source' => $deadline->source()->value,
             'verified' => $deadline->isVerified(),
         ];
+        $wasVerified = $deadline->isVerified();
+        $prevSource = $deadline->source();
 
         $datesChanged = $expiresAt?->format('Y-m-d') !== $deadline->expiresAt()?->format('Y-m-d')
             || $validFrom?->format('Y-m-d') !== $deadline->validFrom()?->format('Y-m-d');
 
         $deadline->update($validFrom, $expiresAt, $req->note ?? $deadline->note());
 
-        // Datele modificate de CLIENT nu pot păstra validarea service-ului.
-        if ($admin === null && $datesChanged && $deadline->isVerified()) {
+        // Regula de proveniență (documentată în docs/PILOT_READINESS.md):
+        // o modificare de CLIENT a unui câmp relevant pentru verificare
+        // (validFrom / expiresAt / document) rupe ștampila service-ului —
+        // source devine CLIENT și verificarea se anulează, CHIAR DACĂ rândul
+        // nu era încă validat (un rând SERVICE nevalidat editat de client NU
+        // rămâne SERVICE). Modificarea DOAR a notei NU rupe verificarea (nota
+        // e un comentariu liber, nu un fapt verificat). Editările adminului NU
+        // validează automat — validarea se face doar prin `verify: true`.
+        $reason = null;
+        if ($admin === null && $datesChanged) {
             $deadline->resetVerification();
+            if ($prevSource !== DeadlineSource::CLIENT || $wasVerified) {
+                $reason = 'client_edited_dates';
+            }
         }
 
         if ($req->verify === true) {
@@ -79,21 +94,48 @@ final class DeadlineService
         }
 
         $this->deadlines->save($deadline);
-        $this->audit->record('deadline.updated', 'VehicleDeadline', (string) $deadline->id(), $before, [
+        $after = [
+            'validFrom' => $deadline->validFrom()?->format('Y-m-d'),
             'expiresAt' => $deadline->expiresAt()?->format('Y-m-d'),
+            'source' => $deadline->source()->value,
             'verified' => $deadline->isVerified(),
-        ]);
+        ];
+        if ($reason !== null) {
+            $after['verificationClearedReason'] = $reason;
+        }
+        $this->audit->record('deadline.updated', 'VehicleDeadline', (string) $deadline->id(), $before, $after);
 
         return $deadline;
     }
 
-    public function attachDocument(VehicleDeadline $deadline, Document $document): VehicleDeadline
+    /**
+     * Atașarea unui document. Documentul e un câmp relevant pentru verificare:
+     * dacă îl atașează CLIENTUL, proveniența devine CLIENT și verificarea
+     * service-ului se anulează (la fel ca la editarea datelor). Atașarea de
+     * către admin nu schimbă proveniența.
+     */
+    public function attachDocument(VehicleDeadline $deadline, Document $document, ?User $admin = null): VehicleDeadline
     {
+        $prevSource = $deadline->source();
+        $wasVerified = $deadline->isVerified();
         $deadline->attachDocument($document);
+
+        $reason = null;
+        if ($admin === null && ($prevSource !== DeadlineSource::CLIENT || $wasVerified)) {
+            $deadline->resetVerification();
+            $reason = 'client_attached_document';
+        }
+
         $this->deadlines->save($deadline);
-        $this->audit->record('deadline.document_attached', 'VehicleDeadline', (string) $deadline->id(), null, [
+        $this->audit->record('deadline.document_attached', 'VehicleDeadline', (string) $deadline->id(), [
+            'source' => $prevSource->value,
+            'verified' => $wasVerified,
+        ], array_filter([
             'documentId' => (string) $document->id(),
-        ]);
+            'source' => $deadline->source()->value,
+            'verified' => $deadline->isVerified(),
+            'verificationClearedReason' => $reason,
+        ], static fn ($v) => $v !== null));
 
         return $deadline;
     }

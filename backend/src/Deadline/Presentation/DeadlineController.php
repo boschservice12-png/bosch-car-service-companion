@@ -127,7 +127,8 @@ final class DeadlineController extends AbstractController
         }
         $this->denyAccessUnlessGranted(DocumentVoter::VIEW, $document);
 
-        $updated = $this->service->attachDocument($deadline, $document);
+        $admin = $this->isGranted(User::ROLE_SERVICE_ADMIN) ? $this->currentUser() : null;
+        $updated = $this->service->attachDocument($deadline, $document, $admin);
 
         return $this->json($this->serialize($updated));
     }
