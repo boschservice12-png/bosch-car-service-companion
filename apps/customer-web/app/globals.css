@@ -53,6 +53,8 @@ a { color: var(--primary); }
 }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--border); }
+/* Țintă de atingere pe telefon: orice buton/link-buton are minim 44px. */
+.btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 
 .alert { border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; font-size: 0.92rem; }
 .alert-err { background: #fdeceb; color: var(--err); border: 1px solid #f5c2bd; }
@@ -92,3 +94,17 @@ a { color: var(--primary); }
 .lang-switcher button { border: none; background: transparent; color: var(--muted); font-size: 0.72rem;
   font-weight: 700; padding: 4px 8px; border-radius: 999px; cursor: pointer; }
 .lang-switcher button.active { background: var(--primary); color: #fff; }
+
+/* ---- Panoul de instalare PWA (P2-01) ---- */
+.pwa-banner {
+  position: fixed; left: 12px; right: 12px; bottom: 72px; z-index: 60;
+  display: flex; gap: 10px; align-items: center; justify-content: space-between;
+  background: #fff; border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(10, 37, 64, 0.18); padding: 12px 14px;
+}
+.pwa-banner-text { display: flex; flex-direction: column; gap: 2px; font-size: 0.9rem; }
+.pwa-banner-text .muted { font-size: 0.8rem; }
+.pwa-banner-actions { display: flex; gap: 8px; align-items: center; }
+.pwa-banner-actions .btn { width: auto; min-height: 44px; padding: 10px 14px; }
+.pwa-steps { margin: 6px 0 0; padding-left: 18px; font-size: 0.85rem; color: var(--muted-fg, #5b6b7c); }
+.pwa-steps li { margin: 2px 0; }

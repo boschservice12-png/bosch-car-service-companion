@@ -383,6 +383,15 @@ const HU: Dict = {
   'Numărul de înmatriculare nu corespunde evidenței service-ului.':
     'A rendszám nem egyezik a szerviz nyilvántartásával.',
 
+  // PWA telepítés (P2-01)
+  'Instalează Companion pe telefon': 'Telepítse a Companiont a telefonra',
+  'Accesează rapid cartea de service, documentele și mesajele service-ului.': 'Gyors hozzáférés a szervizkönyvhöz, a dokumentumokhoz és a szerviz üzeneteihez.',
+  'Instalează': 'Telepítés',
+  'Închide': 'Bezárás',
+  'Instalează Companion pe ecranul telefonului': 'Tegye a Companiont a telefon főképernyőjére',
+  'Apasă butonul Partajare din Safari.': 'Nyomja meg a Megosztás gombot a Safariban.',
+  'Selectează „Adăugați la ecranul principal”.': 'Válassza a „Hozzáadás a főképernyőhöz” lehetőséget.',
+  'Confirmă apăsând „Adăugați”.': 'Erősítse meg a „Hozzáadás” gombbal.',
   // GDPR (P1-06)
   'Datele mele (GDPR)': 'Az adataim (GDPR)',
   '⬇️ Descarcă datele mele (JSON)': '⬇️ Adataim letöltése (JSON)',
@@ -758,6 +767,15 @@ const EN: Dict = {
   'Numărul de înmatriculare nu corespunde evidenței service-ului.':
     'The licence plate number does not match the service’s records.',
 
+  // PWA install (P2-01)
+  'Instalează Companion pe telefon': 'Install Companion on your phone',
+  'Accesează rapid cartea de service, documentele și mesajele service-ului.': 'Quick access to your service book, documents and workshop messages.',
+  'Instalează': 'Install',
+  'Închide': 'Close',
+  'Instalează Companion pe ecranul telefonului': 'Add Companion to your home screen',
+  'Apasă butonul Partajare din Safari.': 'Tap the Share button in Safari.',
+  'Selectează „Adăugați la ecranul principal”.': 'Choose “Add to Home Screen”.',
+  'Confirmă apăsând „Adăugați”.': 'Confirm by tapping “Add”.',
   // GDPR (P1-06)
   'Datele mele (GDPR)': 'My data (GDPR)',
   '⬇️ Descarcă datele mele (JSON)': '⬇️ Download my data (JSON)',

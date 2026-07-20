@@ -1,6 +1,6 @@
 {
   "name": "Bosch Car Service Companion",
-  "short_name": "BCS Companion",
+  "short_name": "Companion",
   "description": "Aplicația clienților SC Szkaliczki Service SRL",
   "lang": "ro",
   "start_url": "/",
@@ -21,10 +21,11 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "scope": "/"
 }
