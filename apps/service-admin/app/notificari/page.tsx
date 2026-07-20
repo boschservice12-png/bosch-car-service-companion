@@ -85,6 +85,12 @@ export default function NotificationsPage() {
       <p className="muted">
         {t('Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.')}
       </p>
+      <div className="card" style={{ borderLeft: '4px solid #25D366', marginBottom: 12 }}>
+        <b>📲 {t('Expeditor: WhatsApp-ul service-ului')} — <span className="tabnum">{SERVICE_PHONE}</span></b>
+        <div className="muted" style={{ fontSize: '0.85rem' }}>
+          {t('Folosiți acest calculator cu WhatsApp Web conectat la numărul de mai sus — mesajele pleacă de pe numărul cu care sunteți autentificați.')}
+        </div>
+      </div>
 
       <div className="field" style={{ maxWidth: 260 }}>
         <label htmlFor="window">{t('Fereastra de timp')}</label>

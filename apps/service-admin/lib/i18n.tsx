@@ -382,6 +382,8 @@ const HU: Dict = {
   'alte alerte (nu ITP/RCA):': 'egyéb riasztás (nem ITP/RCA):',
 
   // Notificări de scadență (P1-03)
+  'Expeditor: WhatsApp-ul service-ului': 'Feladó: a szerviz WhatsAppja',
+  'Folosiți acest calculator cu WhatsApp Web conectat la numărul de mai sus — mesajele pleacă de pe numărul cu care sunteți autentificați.': 'Ezt a gépet a fenti számmal bejelentkezett WhatsApp Webbel használja — az üzenetek arról a számról mennek, amelyikkel be van jelentkezve.',
   '🔔 Notificări': '🔔 Értesítések',
   'Notificări de scadență': 'Lejárati értesítések',
   'Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.':
@@ -761,6 +763,8 @@ const EN: Dict = {
   'alte alerte (nu ITP/RCA):': 'other alerts (not ITP/RCA):',
 
   // Notificări de scadență (P1-03)
+  'Expeditor: WhatsApp-ul service-ului': 'Sender: the workshop’s WhatsApp',
+  'Folosiți acest calculator cu WhatsApp Web conectat la numărul de mai sus — mesajele pleacă de pe numărul cu care sunteți autentificați.': 'Use this computer with WhatsApp Web signed in with the number above — messages are sent from whichever number you are signed in with.',
   '🔔 Notificări': '🔔 Notifications',
   'Notificări de scadență': 'Deadline notifications',
   'Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.':
