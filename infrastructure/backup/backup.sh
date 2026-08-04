@@ -17,8 +17,24 @@ STORAGE="${STORAGE_DIR:-/app/var/storage}"
 KEEP_DAYS="${BACKUP_KEEP_DAYS:-14}"
 mkdir -p "${DEST}"
 
+# DSN-ul Doctrine conține `serverVersion` / `charset`, pe care libpq NU le
+# cunoaște — pg_dump ar ieși cu „invalid URI query parameter". Le eliminăm,
+# păstrând restul parametrilor (ex. sslmode).
+pg_dsn() {
+  printf '%s' "$1" | sed -E 's/([?&])(serverVersion|charset)=[^&]*/\1/g; s/&&+/\&/g; s/[?&]+$//; s/\?&/?/'
+}
+
 echo "[backup] pg_dump -> ${DEST}/db.sql.gz"
-pg_dump "${DATABASE_URL}" | gzip > "${DEST}/db.sql.gz"
+# Pas separat, nu `pg_dump | gzip`: într-un pipeline codul de ieșire e al
+# gzip-ului, deci un pg_dump eșuat ar produce o arhivă GOALĂ dar validă, pe
+# care `gzip -t` o acceptă. (`set -o pipefail` e activ aici, dar scriem explicit
+# ca varianta din backup-cron.sh — care rulează sub `sh` — să arate la fel.)
+pg_dump "$(pg_dsn "${DATABASE_URL}")" > "${DEST}/db.sql"
+grep -q "PostgreSQL database dump complete" "${DEST}/db.sql" \
+  || { echo "[backup] EROARE: dump trunchiat (lipsește marcajul de final)" >&2; exit 1; }
+grep -qE "^(CREATE TABLE|COPY )" "${DEST}/db.sql" \
+  || { echo "[backup] EROARE: dump fără schemă/date" >&2; exit 1; }
+gzip -f "${DEST}/db.sql"
 # Verificare de integritate: o arhivă coruptă e mai rea decât una lipsă.
 gzip -t "${DEST}/db.sql.gz"
 

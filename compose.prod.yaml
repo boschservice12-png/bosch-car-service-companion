@@ -71,8 +71,27 @@ services:
       timeout: 10s
       retries: 10
 
-  # Backend PHP-FPM. Rulează migrațiile la pornire (un singur container o face),
-  # apoi servește prin FastCGI către nginx-ul `api`.
+  # Migrații — serviciu ONE-SHOT, proprietarul unic al schemei. Rulează, iese cu 0,
+  # iar `backend` și `worker` pornesc abia după aceea. Bariera trebuie să fie
+  # explicită: `service_started` pe backend se declanșa la pornirea containerului,
+  # nu după terminarea migrațiilor, ceea ce lăsa workerul să concureze pe crearea
+  # tabelei `messenger_messages`. Folosește imaginea construită de `backend`.
+  migrate:
+    image: bcsc-prod-backend
+    restart: "no"
+    env_file: [.env.prod]
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+    volumes:
+      - ./infrastructure/docker/migrate-entrypoint.sh:/usr/local/bin/migrate-entrypoint.sh:ro
+    entrypoint: ["sh", "/usr/local/bin/migrate-entrypoint.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Backend PHP-FPM. NU rulează migrații (vezi serviciul `migrate`) — doar
+  # încălzește cache-ul și servește prin FastCGI către nginx-ul `api`.
   backend:
     build:
       context: ./backend
@@ -89,6 +108,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       minio-setup:
         condition: service_completed_successfully
 
@@ -103,6 +124,10 @@ services:
 
   # Worker Messenger: scanare antimalware documente + notificări. NU rulează
   # migrații. Restart automat la time-limit/eroare.
+  #
+  # Depinde de `migrate`, nu de `backend`: workerul are nevoie de SCHEMĂ, nu de
+  # php-fpm. Așa pornește în paralel cu backend-ul, dar niciodată înaintea
+  # migrațiilor.
   worker:
     image: bcsc-prod-backend
     restart: unless-stopped
@@ -112,8 +137,10 @@ services:
       APP_DEBUG: "0"
     command: ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M", "-vv"]
     depends_on:
-      backend:
-        condition: service_started
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   customer-web:
     build:
@@ -162,6 +189,27 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+
+  # Sarcini periodice ale aplicației (azi: `app:gdpr:purge`). Rulează pe imaginea
+  # backend-ului, pentru că are nevoie de `bin/console`. Depinde de `migrate`:
+  # purjarea scrie în schemă, deci nu are ce căuta înaintea migrațiilor.
+  scheduler:
+    image: bcsc-prod-backend
+    restart: unless-stopped
+    env_file: [.env.prod]
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      # Deliberat DUPĂ ora backupului (3): întâi salvăm, apoi ștergem ireversibil.
+      GDPR_PURGE_HOUR: "4"
+    volumes:
+      - ./infrastructure/docker/scheduler-entrypoint.sh:/usr/local/bin/scheduler-entrypoint.sh:ro
+    entrypoint: ["sh", "/usr/local/bin/scheduler-entrypoint.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # Proxy de margine + TLS. Cu domeniu → Let's Encrypt automat pe 443.
   caddy:

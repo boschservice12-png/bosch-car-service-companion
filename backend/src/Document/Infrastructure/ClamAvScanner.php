@@ -20,7 +20,37 @@ final class ClamAvScanner implements MalwareScanner
         private readonly int $port,
         private readonly LoggerInterface $logger,
         private readonly int $timeoutSeconds = 30,
+        // Sonda de readiness are propriul timeout, mult mai scurt: un clamd mort
+        // nu are voie să țină `/api/health/ready` 30 de secunde în așteptare.
+        private readonly int $probeTimeoutSeconds = 2,
     ) {
+    }
+
+    /**
+     * PING/PONG pe protocolul clamd — nu transferă niciun fișier. Orice altceva
+     * decât „PONG" (conexiune refuzată, timeout, daemon care încă își încarcă
+     * bazele de semnături) înseamnă indisponibil.
+     */
+    public function isAvailable(): bool
+    {
+        $socket = @fsockopen($this->host, $this->port, $errno, $errstr, (float) $this->probeTimeoutSeconds);
+        if ($socket === false) {
+            $this->logger->warning('malware_scan.probe_unavailable', ['error' => $errstr]);
+
+            return false;
+        }
+
+        try {
+            stream_set_timeout($socket, $this->probeTimeoutSeconds);
+            fwrite($socket, "zPING\0");
+            $response = trim((string) fgets($socket));
+        } catch (\Throwable) {
+            return false;
+        } finally {
+            fclose($socket);
+        }
+
+        return $response === 'PONG';
     }
 
     public function isClean(string $sourcePath): bool

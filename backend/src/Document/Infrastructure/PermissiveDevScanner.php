@@ -27,4 +27,14 @@ final class PermissiveDevScanner implements MalwareScanner
 
         return true;
     }
+
+    /**
+     * Nu există daemon de contactat — adapterul e mereu „disponibil". În dev
+     * readiness nu trebuie să raporteze scanerul ca picat; faptul că scanarea
+     * reală e dezactivată e semnalat la fiecare fișier prin `malware_scan.disabled`.
+     */
+    public function isAvailable(): bool
+    {
+        return true;
+    }
 }

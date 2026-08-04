@@ -42,7 +42,7 @@ final class ReadinessTest extends WebTestCase
         self::assertIsArray($body);
         self::assertArrayHasKey('checks', $body);
 
-        foreach (['database', 'migrations', 'messenger', 'storage', 'secrets'] as $name) {
+        foreach (['database', 'migrations', 'messenger', 'storage', 'scanner', 'secrets'] as $name) {
             self::assertArrayHasKey($name, $body['checks'], "lipsește verificarea „$name");
             self::assertArrayHasKey('status', $body['checks'][$name]);
             self::assertArrayHasKey('critical', $body['checks'][$name]);
@@ -51,10 +51,13 @@ final class ReadinessTest extends WebTestCase
         // Baza și storage-ul trebuie să fie accesibile în test.
         self::assertSame('ok', $body['checks']['database']['status']);
         self::assertSame('ok', $body['checks']['storage']['status']);
-        // Baza, migrațiile, storage-ul și secretele sunt CRITICE; messenger nu.
+        // Baza, migrațiile, storage-ul și secretele sunt CRITICE; messenger și
+        // scanerul antimalware, nu — un scaner picat blochează procesarea
+        // documentelor, dar restul API-ului rămâne servibil.
         self::assertTrue($body['checks']['database']['critical']);
         self::assertTrue($body['checks']['storage']['critical']);
         self::assertFalse($body['checks']['messenger']['critical']);
+        self::assertFalse($body['checks']['scanner']['critical']);
 
         // Nu expunem secrete / connection string-uri în răspuns.
         self::assertStringNotContainsStringIgnoringCase('secret', json_encode($body['checks']['secrets']) ?: '');
@@ -85,15 +88,67 @@ final class ReadinessTest extends WebTestCase
         $connection = static::getContainer()->get('doctrine.dbal.default_connection');
         $storage = static::getContainer()->get('App\\Document\\Domain\\StorageAdapter');
         $migrations = static::getContainer()->get('doctrine.migrations.dependency_factory');
+        $scanner = static::getContainer()->get('App\\Document\\Domain\\MalwareScanner');
 
         // Un APP_SECRET implicit („...change...") e o regresie de securitate.
-        $checker = new ReadinessChecker($connection, $storage, $migrations, 'dev-secret-change-me');
+        $checker = new ReadinessChecker($connection, $storage, $migrations, $scanner, 'dev-secret-change-me');
         $result = $checker->check();
         self::assertSame('failed', $result['checks']['secrets']['status']);
         self::assertFalse($result['ready']);
 
         // Un secret real trece verificarea de secrete.
-        $ok = new ReadinessChecker($connection, $storage, $migrations, bin2hex(random_bytes(16)));
+        $ok = new ReadinessChecker($connection, $storage, $migrations, $scanner, bin2hex(random_bytes(16)));
         self::assertSame('ok', $ok->check()['checks']['secrets']['status']);
+    }
+
+    /**
+     * Regresia pe care o închide verificarea „scanner": scanerul e fail-closed,
+     * deci dacă daemonul moare, documentele încărcate rămân blocate în coadă.
+     * Înainte, readiness rămânea complet verde în timpul acestui eșec tăcut.
+     *
+     * Un scaner picat NU trebuie totuși să scoată instanța din rotație — restul
+     * API-ului (citiri, deadline-uri, istoric) rămâne servibil. Deci: degradat,
+     * dar `ready`.
+     */
+    public function testDeadScannerDegradesReadinessWithoutTakingItOutOfRotation(): void
+    {
+        self::bootKernel();
+        $connection = static::getContainer()->get('doctrine.dbal.default_connection');
+        $storage = static::getContainer()->get('App\\Document\\Domain\\StorageAdapter');
+        $migrations = static::getContainer()->get('doctrine.migrations.dependency_factory');
+
+        $dead = new class implements \App\Document\Domain\MalwareScanner {
+            public function isClean(string $sourcePath): bool
+            {
+                return true;
+            }
+
+            public function isAvailable(): bool
+            {
+                return false;
+            }
+        };
+
+        $result = (new ReadinessChecker($connection, $storage, $migrations, $dead, bin2hex(random_bytes(16))))->check();
+
+        self::assertSame('failed', $result['checks']['scanner']['status']);
+        self::assertFalse($result['checks']['scanner']['critical']);
+        self::assertNotSame('ok', $result['status'], 'un scaner mort trebuie să apară ca degradat, nu verde');
+
+        // Un scaner viu, cu toate celelalte identice, nu degradează din cauza lui.
+        $alive = new class implements \App\Document\Domain\MalwareScanner {
+            public function isClean(string $sourcePath): bool
+            {
+                return true;
+            }
+
+            public function isAvailable(): bool
+            {
+                return true;
+            }
+        };
+
+        $healthy = (new ReadinessChecker($connection, $storage, $migrations, $alive, bin2hex(random_bytes(16))))->check();
+        self::assertSame('ok', $healthy['checks']['scanner']['status']);
     }
 }

@@ -21,7 +21,7 @@ sistemul într-o stare în care poate fi pornit și rulat previzibil.
 | `S3_BUCKET` | `bcsc-documents` | Bucketul privat pentru documente. |
 | `S3_KEY` / `S3_SECRET` | *(gol)* | Credențiale de acces S3/MinIO. |
 | `S3_REGION` | `us-east-1` | Regiunea folosită la semnătura SigV4 (MinIO acceptă orice valoare). |
-| `MESSENGER_TRANSPORT_DSN` | `doctrine://default?auto_setup=1` | Transportul async consumat de worker. |
+| `MESSENGER_TRANSPORT_DSN` | `doctrine://default?auto_setup=1` (demo) / `auto_setup=0` (prod) | Transportul async consumat de worker. În producție `auto_setup=0`: migrațiile dețin schema (`messenger_messages` e creată de `Version20260715234015`). Ordinea de pornire e garantată de serviciul one-shot `migrate`. |
 | `LEGACY_PLATE_CLAIM_ENABLED` | `false` | Revendicarea contului doar cu numărul de înmatriculare — **dezactivată** (vezi Blocul 3). Nu activați în pilot/producție. |
 | `APP_SECRET` | *(setați!)* | Readiness pică dacă e gol sau conține `change` / `dev-secret`. |
 
@@ -140,11 +140,19 @@ Lista notificărilor: `GET /api/admin/notifications` (rol service-admin).
   externe → un outage de bază nu declanșează restart-uri în lanț. Mereu `200`.
 - `GET /api/health/ready` (**readiness**): aplicația poate SERVI în siguranță.
   Verifică dependențele **critice** — bază de date, stare migrații, storage
-  (probă scriere/citire/ștergere), secrete aplicație — plus `messenger`
-  (necritic). O dependență critică picată → `503`. Statusuri per verificare:
-  `ok` / `degraded` / `failed`; overall `ok` / `degraded` / `failed`.
+  (probă scriere/citire/ștergere), secrete aplicație — plus `messenger` și
+  `scanner` (necritice). O dependență critică picată → `503`. Statusuri per
+  verificare: `ok` / `degraded` / `failed`; overall `ok` / `degraded` / `failed`.
 - **Nu se arată niciodată readiness verde cu o dependență critică jos** — de ex.
   `APP_SECRET` implicit sau migrații neaplicate → `503`.
+- `scanner` sondează daemonul ClamAV cu `PING`/`PONG` (timeout scurt, 2s, fără
+  transfer de fișier). E **necritic** deliberat: scanerul e fail-closed, deci
+  dacă moare, documentele încărcate rămân în așteptare, dar restul API-ului
+  (citiri, deadline-uri, istoric) rămâne servibil — instanța nu trebuie scoasă
+  din rotație. Fără verificarea asta eșecul era complet tăcut: readiness rămânea
+  verde în timp ce procesarea documentelor sta pe loc. Un ClamAV picat arată deci
+  `200` cu `"status":"degraded"` și `checks.scanner.status = "failed"` — asta e
+  semnalul de urmărit în monitorizare, nu doar codul HTTP.
 
 ```bash
 curl -s http://localhost:8080/api/health          # {"status":"ok"}

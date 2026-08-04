@@ -7,9 +7,18 @@
 #   DATABASE_URL_RESTORE=postgresql://… STORAGE_DIR=/app/var/storage \
 #     ./restore.sh /backups/20260720-031500
 #
+#   # restaurare în bucket S3/MinIO (layout de PRODUCȚIE):
+#   DATABASE_URL_RESTORE=postgresql://… \
+#     S3_ENDPOINT_RESTORE=http://minio:9000 S3_BUCKET_RESTORE=bcsc-documents \
+#     S3_KEY_RESTORE=… S3_SECRET_RESTORE=… ./restore.sh /backups/20260720-031500
+#
 # Variabile:
 #   DATABASE_URL_RESTORE  (obligatoriu) — DSN țintă pentru psql (NU producția!)
 #   STORAGE_DIR           (implicit /app/var/storage) — unde se extrag documentele
+#                         la restaurarea pe disc local (STORAGE_DRIVER=local)
+#   S3_*_RESTORE          — dacă S3_ENDPOINT_RESTORE e setat, documentele se
+#                         restaurează în bucket cu `mc mirror` (STORAGE_DRIVER=s3)
+#   ALLOW_DB_ONLY_RESTORE=1 — acceptă explicit un backup fără documente
 set -euo pipefail
 
 SRC="${1:-}"
@@ -24,29 +33,100 @@ fi
 
 STORAGE="${STORAGE_DIR:-/app/var/storage}"
 DB_ARCHIVE="${SRC}/db.sql.gz"
-STORAGE_ARCHIVE="${SRC}/storage.tar.gz"
+
+# Cele DOUĂ layout-uri de backup din acest repo — trebuie acceptate amândouă:
+#   documents.tar.gz  — scris de backup-cron.sh (PRODUCȚIE, `mc mirror` din bucket)
+#   storage.tar.gz    — scris de backup.sh      (driver `local`, tar din disc)
+# Până acum scriptul căuta DOAR storage.tar.gz, deci pe un backup de producție
+# raporta „doar baza a fost restaurată" și ieșea cu 0 — adică pierdea TOATE
+# documentele fără să eșueze. Un restore care reușește pe jumătate e mai
+# periculos decât unul care crapă.
+if [ -f "${SRC}/documents.tar.gz" ]; then
+  DOC_ARCHIVE="${SRC}/documents.tar.gz"
+  DOC_LAYOUT="documents"   # arhiva conține directorul `documents/`
+elif [ -f "${SRC}/storage.tar.gz" ]; then
+  DOC_ARCHIVE="${SRC}/storage.tar.gz"
+  DOC_LAYOUT="flat"        # arhiva conține direct conținutul storage-ului
+else
+  DOC_ARCHIVE=""
+  DOC_LAYOUT=""
+fi
+
+# DSN-ul Doctrine conține `serverVersion` / `charset`, necunoscute de libpq —
+# psql ar ieși cu „invalid URI query parameter". Le eliminăm, păstrând restul.
+pg_dsn() {
+  printf '%s' "$1" | sed -E 's/([?&])(serverVersion|charset)=[^&]*/\1/g; s/&&+/\&/g; s/[?&]+$//; s/\?&/?/'
+}
 
 # 1) Integritatea arhivelor înainte de a atinge ținta — o arhivă coruptă oprește
 #    restaurarea devreme, nu la jumătate.
 echo "[restore] verific integritatea arhivelor…"
 [ -f "${DB_ARCHIVE}" ] || { echo "[restore] lipsește ${DB_ARCHIVE}" >&2; exit 1; }
 gzip -t "${DB_ARCHIVE}"
-if [ -f "${STORAGE_ARCHIVE}" ]; then
-  gzip -t "${STORAGE_ARCHIVE}"
+
+# `gzip -t` trece și pe o arhivă GOALĂ (20 de octeți) — exact ce producea un
+# pg_dump eșuat înainte de corecția din backup-cron.sh. Deci verificăm CONȚINUTUL,
+# nu doar integritatea: altfel „restaurăm" cu succes o bază complet goală.
+if ! gunzip -c "${DB_ARCHIVE}" | grep -q "PostgreSQL database dump complete"; then
+  echo "[restore] EROARE: ${DB_ARCHIVE} nu e un dump complet (gol sau trunchiat)." >&2
+  echo "[restore] Ținta NU a fost atinsă. Verificați log-ul backupului care l-a produs." >&2
+  exit 1
+fi
+
+if [ -n "${DOC_ARCHIVE}" ]; then
+  gzip -t "${DOC_ARCHIVE}"
+  echo "[restore] arhivă documente: $(basename "${DOC_ARCHIVE}") (layout: ${DOC_LAYOUT})"
+elif [ "${ALLOW_DB_ONLY_RESTORE:-0}" = "1" ]; then
+  echo "[restore] AVERTISMENT: backup fără documente, acceptat explicit (ALLOW_DB_ONLY_RESTORE=1)." >&2
+else
+  echo "[restore] EROARE: ${SRC} nu conține nici documents.tar.gz, nici storage.tar.gz." >&2
+  echo "[restore] Baza NU a fost atinsă. O restaurare doar-bază lasă înregistrări de" >&2
+  echo "[restore] documente fără fișierele lor. Dacă chiar asta vreți: ALLOW_DB_ONLY_RESTORE=1." >&2
+  exit 1
 fi
 
 # 2) Baza de date.
 echo "[restore] restaurez baza de date -> DATABASE_URL_RESTORE"
-gunzip -c "${DB_ARCHIVE}" | psql "${DATABASE_URL_RESTORE}"
+gunzip -c "${DB_ARCHIVE}" | psql --quiet --set ON_ERROR_STOP=on "$(pg_dsn "${DATABASE_URL_RESTORE}")"
 
-# 3) Documentele (storage local). La driver S3 documentele se restaurează în
-#    bucket cu `mc mirror` — vezi restore.md.
-if [ -f "${STORAGE_ARCHIVE}" ]; then
-  echo "[restore] restaurez documentele -> ${STORAGE}"
-  mkdir -p "${STORAGE}"
-  tar -xzf "${STORAGE_ARCHIVE}" -C "${STORAGE}"
-else
-  echo "[restore] AVERTISMENT: backupul nu conține storage.tar.gz — doar baza a fost restaurată." >&2
+# 3) Documentele — pe disc local sau înapoi în bucket, după cum e configurat.
+if [ -n "${DOC_ARCHIVE}" ]; then
+  if [ -n "${S3_ENDPOINT_RESTORE:-}" ]; then
+    : "${S3_BUCKET_RESTORE:?[restore] S3_BUCKET_RESTORE lipsește}"
+    : "${S3_KEY_RESTORE:?[restore] S3_KEY_RESTORE lipsește}"
+    : "${S3_SECRET_RESTORE:?[restore] S3_SECRET_RESTORE lipsește}"
+    command -v mc >/dev/null 2>&1 || { echo "[restore] EROARE: mc lipsește (folosiți imaginea de backup)." >&2; exit 1; }
+
+    TMP="$(mktemp -d)"
+    trap 'rm -rf "${TMP}"' EXIT
+    tar -xzf "${DOC_ARCHIVE}" -C "${TMP}"
+    # Normalizăm cele două layout-uri la un singur director sursă.
+    if [ "${DOC_LAYOUT}" = "documents" ]; then
+      SRC_DIR="${TMP}/documents"
+    else
+      SRC_DIR="${TMP}"
+    fi
+
+    echo "[restore] restaurez documentele -> ${S3_ENDPOINT_RESTORE}/${S3_BUCKET_RESTORE}"
+    mc alias set rst "${S3_ENDPOINT_RESTORE}" "${S3_KEY_RESTORE}" "${S3_SECRET_RESTORE}" >/dev/null
+    mc mb -p "rst/${S3_BUCKET_RESTORE}" >/dev/null 2>&1 || true
+    mc anonymous set none "rst/${S3_BUCKET_RESTORE}" >/dev/null 2>&1 || true
+    mc mirror --overwrite "${SRC_DIR}" "rst/${S3_BUCKET_RESTORE}"
+
+    RESTORED="$(mc ls --recursive "rst/${S3_BUCKET_RESTORE}" | wc -l | tr -d ' ')"
+    echo "[restore] obiecte în bucket după restaurare: ${RESTORED}"
+  else
+    echo "[restore] restaurez documentele -> ${STORAGE}"
+    mkdir -p "${STORAGE}"
+    if [ "${DOC_LAYOUT}" = "documents" ]; then
+      # Arhiva de producție are prefixul `documents/`; îl aplatizăm ca storage-ul
+      # local să arate identic cu cel produs de backup.sh.
+      tar -xzf "${DOC_ARCHIVE}" -C "${STORAGE}" --strip-components=1
+    else
+      tar -xzf "${DOC_ARCHIVE}" -C "${STORAGE}"
+    fi
+    echo "[restore] fișiere restaurate: $(find "${STORAGE}" -type f | wc -l | tr -d ' ')"
+  fi
 fi
 
 echo "[restore] gata. Verificări post-restaurare (vezi restore.md):"

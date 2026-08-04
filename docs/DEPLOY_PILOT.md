@@ -115,9 +115,16 @@ git pull
 docker compose --env-file .env.prod -f compose.prod.yaml up -d --build
 ```
 
-A backend entrypoint minden induláskor lefuttatja az új migrációkat és
-újramelegíti a cache-t. Nulla-leállásos deploy nincs a pilotban (rövid
-újraindítás elfogadható).
+A migrációkat egy külön, egyszer lefutó `migrate` szolgáltatás futtatja: elindul,
+alkalmazza a migrációkat, majd 0-s kóddal kilép. A `backend` és a `worker` csak
+ezután indul (`depends_on: condition: service_completed_successfully`), így a
+worker soha nem előzheti meg a sémát. A backend entrypoint már csak a cache-t
+melegíti újra. Nulla-leállásos deploy nincs a pilotban (rövid újraindítás
+elfogadható).
+
+Ha a `migrate` nem nullával lép ki, a `backend` és a `worker` **el sem indul** —
+a hibás migráció így látható leáll, nem pedig félig migrált sémán futó szolgáltatás.
+Ellenőrzés: `docker compose --env-file .env.prod -f compose.prod.yaml logs migrate`.
 
 ## 7. Domén nélküli indulás (IP)
 

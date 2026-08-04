@@ -28,6 +28,33 @@ check() { # nume, comandă…
 check "liveness  GET /api/health"        curl -fsS --max-time 10 "${BASE}/api/health"
 check "readiness GET /api/health/ready"  curl -fsS --max-time 10 "${BASE}/api/health/ready"
 
+# 1b) Verificările NECRITICE din readiness. Ele întorc 200 chiar și picate — asta
+# e intenționat (instanța rămâne servibilă), dar înseamnă că `curl -fsS` de mai
+# sus NU le vede. Fără bucata asta, un ClamAV mort e complet tăcut: readiness
+# rămâne „verde" pentru monitorizare, în timp ce documentele încărcate nu mai
+# avansează niciodată din coadă.
+READY_JSON="$(curl -fsS --max-time 10 "${BASE}/api/health/ready" 2>/dev/null || true)"
+probe_status() { # json, nume-verificare
+  printf '%s' "$1" | grep -o "\"$2\":{\"status\":\"[a-z]*\"" | sed 's/.*"\([a-z]*\)"$/\1/'
+}
+if [ -n "${READY_JSON}" ]; then
+  for probe in scanner messenger; do
+    ST="$(probe_status "${READY_JSON}" "${probe}")"
+    if [ "${ST}" = "ok" ]; then
+      echo "[ok]   readiness/${probe}"
+    elif [ -z "${ST}" ]; then
+      echo "[FAIL] readiness/${probe}: lipsește din răspuns (versiune veche de backend?)" >&2
+      FAIL=1
+    else
+      echo "[FAIL] readiness/${probe}: ${ST} (necritic, dar procesarea e blocată)" >&2
+      FAIL=1
+    fi
+  done
+else
+  echo "[FAIL] readiness: răspuns necitibil" >&2
+  FAIL=1
+fi
+
 # 2) Spațiu pe disc — documentele și baza cresc; plin = incident.
 USED_PCT="$(df --output=pcent "${DISK_PATH:-/}" | tail -1 | tr -dc '0-9')"
 if [ "${USED_PCT}" -le "${DISK_MAX_PCT:-85}" ]; then

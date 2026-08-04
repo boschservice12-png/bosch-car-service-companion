@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\System\Application;
 
+use App\Document\Domain\MalwareScanner;
 use App\Document\Domain\StorageAdapter;
 use Doctrine\DBAL\Connection;
 use Doctrine\Migrations\DependencyFactory;
@@ -26,6 +27,7 @@ final class ReadinessChecker
         private readonly Connection $connection,
         private readonly StorageAdapter $storage,
         private readonly DependencyFactory $migrations,
+        private readonly MalwareScanner $scanner,
         string $appSecret,
     ) {
         $this->config = [
@@ -44,6 +46,7 @@ final class ReadinessChecker
             'migrations' => $this->critical($this->checkMigrations()),
             'messenger' => $this->nonCritical($this->checkMessenger()),
             'storage' => $this->critical($this->checkStorage()),
+            'scanner' => $this->nonCritical($this->checkScanner()),
             'secrets' => $this->critical($this->checkSecrets()),
         ];
 
@@ -115,6 +118,23 @@ final class ReadinessChecker
             return ['status' => 'ok'];
         } catch (\Throwable) {
             return ['status' => 'failed', 'detail' => 'transport indisponibil'];
+        }
+    }
+
+    /** @return array{status: string, detail?: string} */
+    private function checkScanner(): array
+    {
+        // Scanerul antimalware e fail-closed: dacă daemonul moare, încărcările
+        // rămân blocate în coadă, dar API-ul poate servi în continuare tot restul
+        // (citiri, deadline-uri, istoric). Deci NECRITIC — degradează readiness,
+        // nu îl scoate din rotație. Fără verificarea asta însă, moartea lui e
+        // complet tăcută: readiness rămâne verde, iar documentele nu mai avansează.
+        try {
+            return $this->scanner->isAvailable()
+                ? ['status' => 'ok']
+                : ['status' => 'failed', 'detail' => 'scaner antimalware indisponibil — documentele rămân în așteptare'];
+        } catch (\Throwable) {
+            return ['status' => 'failed', 'detail' => 'sondă scaner eșuată'];
         }
     }
 
