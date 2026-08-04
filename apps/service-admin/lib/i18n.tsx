@@ -162,6 +162,11 @@ const HU: Dict = {
   'Niciun rezultat pentru filtrele introduse — căutați după numele proprietarului, numărul de înmatriculare sau VIN.':
     'Nincs találat a megadott szűrőkre — keressen a tulajdonos neve, a rendszám vagy az alvázszám (VIN) alapján.',
   'Scadențe →': 'Lejáratok →',
+  '🔑 Cod activare': '🔑 Aktiválókód',
+  'Nu am putut emite codul.': 'A kód kibocsátása nem sikerült.',
+  'Cod de activare pentru {plate}': 'Aktiválókód – {plate}',
+  'Comunicați acest cod clientului. Se afișează O SINGURĂ DATĂ și expiră în 7 zile.':
+    'Adja át ezt a kódot az ügyfélnek. CSAK EGYSZER jelenik meg, és 7 nap múlva lejár.',
 
   // Import Excel
   '← Panou': '← Vezérlőpult',
@@ -547,6 +552,11 @@ const EN: Dict = {
   'Niciun rezultat pentru filtrele introduse — căutați după numele proprietarului, numărul de înmatriculare sau VIN.':
     'No results for the given filters — search by owner name, license plate, or VIN.',
   'Scadențe →': 'Deadlines →',
+  '🔑 Cod activare': '🔑 Activation code',
+  'Nu am putut emite codul.': 'Could not issue the code.',
+  'Cod de activare pentru {plate}': 'Activation code for {plate}',
+  'Comunicați acest cod clientului. Se afișează O SINGURĂ DATĂ și expiră în 7 zile.':
+    'Give this code to the customer. It is shown ONCE and expires in 7 days.',
 
   // Import Excel
   '← Panou': '← Dashboard',

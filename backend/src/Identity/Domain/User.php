@@ -55,6 +55,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $totpRecoveryCodes = null;
 
+    /**
+     * Ultimul pas de timp TOTP acceptat (contorul RFC 6238 = time/30). Un cod
+     * dintr-un pas deja folosit sau mai vechi NU se mai acceptă (anti-replay).
+     * Reținem pasul, nu hash-ul codului: aceeași valoare TOTP reapare ciclic.
+     */
+    #[ORM\Column(type: 'bigint', nullable: true)]
+    private ?int $lastTotpStep = null;
+
     #[ORM\Column]
     private bool $isActive = true;
 
@@ -222,6 +230,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
         $this->totpSecret = null;
         $this->totpEnabled = false;
         $this->totpRecoveryCodes = null;
+        $this->lastTotpStep = null;
+    }
+
+    public function lastTotpStep(): ?int
+    {
+        return $this->lastTotpStep;
+    }
+
+    /**
+     * Marchează un pas TOTP drept consumat în entitatea încărcată. Sursa de
+     * adevăr pentru concurență este UPDATE-ul condițional atomic din
+     * TotpReplayGuard; aici doar ținem entitatea sincronă după acceptare.
+     */
+    public function recordTotpStep(int $step): void
+    {
+        $this->lastTotpStep = $step;
     }
 
     /**

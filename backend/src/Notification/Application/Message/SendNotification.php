@@ -16,6 +16,8 @@ final class SendNotification
         public readonly string $type,
         public readonly array $payload = [],
         public readonly string $channel = 'push',
+        /** Cheie de idempotență: la reîncercări/duplicate se refolosește notificarea. */
+        public readonly ?string $dedupKey = null,
     ) {
     }
 }

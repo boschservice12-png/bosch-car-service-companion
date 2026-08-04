@@ -24,17 +24,48 @@ services:
     build:
       context: .
       dockerfile: demo/backend.Dockerfile
+    image: bcsc-demo-backend
     environment:
       APP_ENV: dev
       APP_DEBUG: "0"
       DATABASE_URL: "postgresql://bcsc:bcsc@db:5432/bcsc?serverVersion=16&charset=utf8"
       MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
       CORS_ALLOW_ORIGIN: "http://localhost:3000,http://localhost:3001"
+      STORAGE_DRIVER: "local"
+    # Blocul 6: documentele scanate/încărcate stau pe un volum PERSISTENT, nu în
+    # stratul efemer al containerului — supraviețuiesc unui `up --build`/restart.
+    volumes:
+      - storage_data:/app/var/storage
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "8080:8080"
+
+  # Worker Messenger: consumă transportul „async" (scanare documente antimalware,
+  # notificări). Fără el, documentele ar rămâne veșnic PENDING. Folosește ACEEAȘI
+  # imagine ca backend-ul (construită de serviciul `backend`), dar cu un entrypoint
+  # dedicat. Restart automat: la --time-limit / eroare procesul iese, iar compose
+  # îl repornește (nu „moare în tăcere"). Un SINGUR worker în demo — nu scalăm.
+  worker:
+    image: bcsc-demo-backend
+    command: ["/usr/local/bin/worker-entrypoint.sh"]
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: "0"
+      DATABASE_URL: "postgresql://bcsc:bcsc@db:5432/bcsc?serverVersion=16&charset=utf8"
+      MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
+      STORAGE_DRIVER: "local"
+    restart: unless-stopped
+    # Worker-ul scrie documentele scanate în ACELAȘI volum ca backend-ul, altfel
+    # fișierele produse de scanare n-ar fi vizibile la descărcare.
+    volumes:
+      - storage_data:/app/var/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_started
 
   # Frontend client (PWA). Proxy /api -> http://backend:8080 (server-side, prin next.config).
   customer-web:
@@ -72,6 +103,7 @@ services:
 
 volumes:
   db_data:
+  storage_data:
   cw_node_modules:
   cw_next:
   sa_node_modules:

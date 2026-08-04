@@ -42,19 +42,30 @@ final class TotpService
      */
     public function verify(string $secret, string $code, int $window = 1): bool
     {
+        return $this->matchStep($secret, $code, $window) !== null;
+    }
+
+    /**
+     * Ca `verify`, dar întoarce PASUL de timp (contorul RFC 6238) la care s-a
+     * potrivit codul, sau null dacă nu se potrivește. Pasul e necesar pentru
+     * protecția anti-replay (un pas deja folosit sau mai vechi se respinge).
+     * Comparație în timp constant.
+     */
+    public function matchStep(string $secret, string $code, int $window = 1): ?int
+    {
         $code = trim($code);
         if (!preg_match('/^\d{6}$/', $code)) {
-            return false;
+            return null;
         }
 
         $counter = intdiv(time(), self::PERIOD);
         for ($offset = -$window; $offset <= $window; ++$offset) {
             if (hash_equals($this->codeForCounter($secret, $counter + $offset), $code)) {
-                return true;
+                return $counter + $offset;
             }
         }
 
-        return false;
+        return null;
     }
 
     /** Codul TOTP valabil la un moment dat (secunde Unix). Expus pentru testare. */

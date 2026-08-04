@@ -1,6 +1,6 @@
 # Imagine backend (PHP-FPM) — modular monolith Symfony.
 # Linia PHP se fixează în ADR-0004; folosim eticheta stabilă curentă.
-FROM php:8-fpm
+FROM php:8.3-fpm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip libpq-dev libicu-dev libzip-dev \

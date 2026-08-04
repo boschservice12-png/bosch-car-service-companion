@@ -21,6 +21,7 @@ final class ApiRateLimiter
         private readonly RateLimiterFactory $uploadLimiter,
         private readonly RateLimiterFactory $registerLimiter,
         private readonly RateLimiterFactory $twofaLimiter,
+        private readonly RateLimiterFactory $activationLimiter,
     ) {
     }
 
@@ -54,6 +55,12 @@ final class ApiRateLimiter
     public function checkTwoFactor(Request $request, User $user, string $action): void
     {
         $this->check($this->twofaLimiter, '2fa-'.$action, $request, $user);
+    }
+
+    /** Activare vehicul cu cod — limitare per utilizator + IP (anti forță-brută). */
+    public function checkActivation(Request $request, User $user): void
+    {
+        $this->check($this->activationLimiter, 'activate', $request, $user);
     }
 
     /** La o verificare 2FA reușită contorul se golește — utilizatorul legitim nu acumulează eșecuri. */

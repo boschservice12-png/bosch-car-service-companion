@@ -19,9 +19,11 @@ Interfață în 3 limbi: **română (implicită) · maghiară · engleză**.
   cereri de ofertă, asistență rutieră (două linii telefonice), mobilitate,
   taxe și impozite (evidență declarativă, **fără** încărcare de documente),
   „În caz de accident" → amiabila.com.
-- **Onboarding**: înregistrare liberă cu email + parolă; un cont creat de
-  importul Excel al service-ului se revendică la înregistrare cu **numărul de
-  înmatriculare** drept dovadă — clientul își vede imediat vehiculele și istoricul.
+- **Onboarding**: înregistrare liberă cu email + parolă. Un vehicul creat de
+  importul Excel al service-ului se leagă de cont cu un **cod de activare**
+  emis de service (unic, hash-uit, cu expirare, o singură utilizare, cu limită
+  de încercări) — numărul de înmatriculare / VIN **nu** mai acordă singur acces.
+  Detalii: `docs/PILOT_READINESS.md` (Blocul 3).
 - **Service/admin**: panou cu căutare pe 3 câmpuri (nume / număr / VIN),
   import Excel/CSV (clienți + istoric reparații, tranzacțional și idempotent),
   publicare/corecție istoric, inbox-uri (mesaje, oferte, asistență, mobilitate,
@@ -48,6 +50,19 @@ cd apps/service-admin && npm install && npm run dev
 Alternativ, toată stiva cu date demo: `docker compose -f compose.demo.yaml up --build`
 (client: http://localhost:3000 · admin: http://localhost:3001). Detalii: `docs/DEMO.md`.
 
+Stiva demo include un **worker Messenger** (serviciul `worker`) care consumă
+transportul `async` (scanarea antimalware a documentelor, notificări). Fără el,
+documentele ar rămâne veșnic în starea PENDING. Verificare:
+
+```bash
+docker compose -f compose.demo.yaml logs -f worker      # pornire + fiecare mesaj procesat
+docker compose -f compose.demo.yaml exec backend php bin/console messenger:stats
+docker compose -f compose.demo.yaml exec backend php bin/console messenger:failed:show   # mesaje eșuate definitiv
+```
+
+Workerul are `restart: unless-stopped`; oprirea lui e vizibilă în readiness
+(`GET /api/health/ready`, cheia `messenger`). Vezi `docs/PILOT_READINESS.md`.
+
 ## Verificare
 
 ```bash
@@ -66,6 +81,8 @@ cd e2e && npm install && npx playwright test
 
 | Subiect | Unde |
 |---|---|
+| Operare pilot (readiness, storage, activare, notificări, TOTP, backup) | `docs/PILOT_READINESS.md` |
+| Telepítés pilotra (production compose, `.env.prod`, TLS, runbook) | `docs/DEPLOY_PILOT.md` |
 | Contract API (sincron cu routerul, impus de `OpenApiSyncTest`) | `docs/api/openapi.yaml` |
 | Rulare demo + date demo | `docs/DEMO.md` |
 | Backup + restaurare (drill lunar) | `infrastructure/backup/` |

@@ -44,10 +44,16 @@ paths:
   /health/ready:
     get:
       tags: [System]
-      summary: Readiness (bază de date, storage)
+      summary: Readiness profund (bază de date, migrații, storage, secrete, messenger)
+      description: >
+        Separat de liveness. Verifică dependențele critice (bază de date, stare
+        migrații, storage scriere/citire, secrete aplicație) plus messenger
+        (necritic). O dependență critică picată → 503; nu se arată „ready" verde
+        cu un secret implicit sau migrații neaplicate. Răspunsul conține
+        {status, ready, checks{...}}, fără secrete sau connection string-uri.
       security: []
       responses:
-        '200': { description: Ready }
+        '200': { description: 'Ready (toate dependențele critice ok)' }
         '503': { $ref: '#/components/responses/Error' }
   /csrf:
     get:
@@ -372,6 +378,36 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '422': { description: Canal necunoscut }
 
+  /admin/notifications:
+    get:
+      tags: [Notifications]
+      summary: (admin) Notificările recente cu starea reală de livrare
+      description: >
+        Stări: PENDING, PROCESSING, MANUAL_ACTION_REQUIRED, SENT, FAILED,
+        SKIPPED. Fără furnizor automat (pilot) notificările sunt
+        MANUAL_ACTION_REQUIRED sau SKIPPED — niciodată SENT „orb".
+      responses:
+        '200': { description: OK }
+  /admin/notifications/{id}/manually-sent:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Notifications]
+      summary: (admin) Confirmă trimiterea MANUALĂ → SENT (auditat)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channel]
+              properties:
+                channel: { type: string, example: whatsapp }
+                note: { type: string }
+      responses:
+        '200': { description: 'Marcată SENT (manual, cu sentBy/sentAt)' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { description: Canal lipsă }
+
   # ------------------------------------------------- Istoric service (client)
   /vehicles/{vehicleId}/service-records:
     parameters: [ { $ref: '#/components/parameters/VehicleId' } ]
@@ -426,6 +462,47 @@ paths:
       responses:
         '200': { description: OK }
         '403': { description: Doar service }
+  /admin/vehicles/{id}/activation-token:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Vehicles]
+      summary: (admin) Emite un cod de activare pentru vehicul
+      description: >
+        Codul se întoarce în CLAR o SINGURĂ dată (în baza de date rămâne doar
+        hash-ul SHA-256). Numărul de înmatriculare / VIN NU dau acces — doar
+        acest cod. Emiterea revocă codurile încă valabile ale vehiculului.
+      responses:
+        '201': { description: 'Cod emis (returnat o singură dată)' }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/vehicles/{id}/activation-token/revoke:
+    parameters: [ { $ref: '#/components/parameters/Id' } ]
+    post:
+      tags: [Vehicles]
+      summary: (admin) Revocă codurile de activare valabile ale vehiculului
+      responses:
+        '200': { description: 'Numărul de coduri revocate' }
+        '404': { $ref: '#/components/responses/Error' }
+  /me/vehicles/activate:
+    post:
+      tags: [Vehicles]
+      summary: Activează un vehicul cu un cod primit de la service
+      description: >
+        Clientul devine proprietar activ (înlocuind eventualul proprietar
+        anterior). Cod invalid/expirat/folosit/revocat → 422 generic. Limitat
+        la rată (per utilizator + IP).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Vehicul activat }
+        '422': { description: Cod invalid sau expirat }
+        '429': { description: Prea multe încercări }
   /admin/vehicles/{vehicleId}/service-records:
     parameters: [ { $ref: '#/components/parameters/VehicleId' } ]
     get:

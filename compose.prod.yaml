@@ -1,0 +1,192 @@
+# Compose de PRODUCȚIE pentru pilot — stivă completă, neutră față de hosting.
+# Rulare:
+#   cp .env.prod.example .env.prod   # completați secretele!
+#   docker compose --env-file .env.prod -f compose.prod.yaml up -d --build
+#
+# Frontendurile sunt BUILD-uite (next build + next start), storage-ul e S3/MinIO,
+# scanarea antimalware e ClamAv (activă în APP_ENV=prod), iar Caddy termină TLS.
+# Vezi docs/DEPLOY_PILOT.md pentru procedura completă.
+name: bcsc-prod
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bcsc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?setați POSTGRES_PASSWORD în .env.prod}
+      POSTGRES_DB: ${POSTGRES_DB:-bcsc}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bcsc} -d ${POSTGRES_DB:-bcsc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?setați MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?setați MINIO_ROOT_PASSWORD}
+    volumes:
+      - miniodata:/data
+
+  # Creează bucketul privat o singură dată, apoi iese. Backend-ul așteaptă
+  # finalizarea lui cu succes înainte de pornire.
+  minio-setup:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-bcsc-documents}
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do echo 'aștept minio…'; sleep 2; done;
+      mc mb -p local/$$S3_BUCKET || true;
+      mc anonymous set none local/$$S3_BUCKET;
+      echo 'bucket pregătit (privat).'
+      "
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes:
+      - clamavdata:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdscan", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  # Backend PHP-FPM. Rulează migrațiile la pornire (un singur container o face),
+  # apoi servește prin FastCGI către nginx-ul `api`.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../infrastructure/docker/backend.Dockerfile
+    image: bcsc-prod-backend
+    restart: unless-stopped
+    env_file: [.env.prod]
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+    volumes:
+      - ./infrastructure/docker/backend-entrypoint.sh:/usr/local/bin/backend-entrypoint.sh:ro
+    entrypoint: ["sh", "/usr/local/bin/backend-entrypoint.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
+
+  # Nginx pentru backend (FastCGI). Punctul de intrare intern al API-ului: `http://api`.
+  api:
+    image: nginx:1.27
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+
+  # Worker Messenger: scanare antimalware documente + notificări. NU rulează
+  # migrații. Restart automat la time-limit/eroare.
+  worker:
+    image: bcsc-prod-backend
+    restart: unless-stopped
+    env_file: [.env.prod]
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+    command: ["php", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=256M", "-vv"]
+    depends_on:
+      backend:
+        condition: service_started
+
+  customer-web:
+    build:
+      context: ./apps/customer-web
+      dockerfile: ../../infrastructure/docker/frontend.Dockerfile
+    image: bcsc-prod-customer-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: "http://api"
+    command: ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+    depends_on:
+      - api
+
+  service-admin:
+    build:
+      context: ./apps/service-admin
+      dockerfile: ../../infrastructure/docker/frontend.Dockerfile
+    image: bcsc-prod-service-admin
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: "http://api"
+    command: ["npx", "next", "start", "-H", "0.0.0.0", "-p", "3001"]
+    depends_on:
+      - api
+
+  # Backup automat zilnic: pg_dump + oglindirea bucketului MinIO (mc mirror),
+  # cu verificare de integritate și retenție. Mentiunea în docs/DEPLOY_PILOT.md.
+  backup:
+    build:
+      context: ./infrastructure/backup
+      dockerfile: Dockerfile
+    image: bcsc-prod-backup
+    restart: unless-stopped
+    env_file: [.env.prod]
+    environment:
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: "14"
+      BACKUP_HOUR: "3"
+      BACKUP_RUN_ON_START: "0"
+    volumes:
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # Proxy de margine + TLS. Cu domeniu → Let's Encrypt automat pe 443.
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      CUSTOMER_SITE: ${CUSTOMER_SITE:-:80}
+      ADMIN_SITE: ${ADMIN_SITE:-:8081}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8081"
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - customer-web
+      - service-admin
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
+  clamavdata:
+  caddydata:
+  caddyconfig:
+  backups:

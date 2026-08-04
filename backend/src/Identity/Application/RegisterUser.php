@@ -34,6 +34,15 @@ final class RegisterUser
         private readonly AuditRecorder $audit,
         private readonly SettingsProvider $settings,
         private readonly VehicleRepository $vehicles,
+        /**
+         * Blocul 3: revendicarea prin numărul de înmatriculare este DEZACTIVATĂ
+         * implicit (numărul nu e secret, nu dovedește proprietatea). Accesul la
+         * un vehicul se obține DOAR cu un cod de activare emis de service
+         * (VehicleActivationService). Steagul e păstrat doar pentru migrare/regres
+         * și e false în dev/prod/pilot.
+         */
+        #[\Symfony\Component\DependencyInjection\Attribute\Autowire('%env(bool:LEGACY_PLATE_CLAIM_ENABLED)%')]
+        private readonly bool $legacyPlateClaimEnabled = false,
     ) {
     }
 
@@ -53,6 +62,15 @@ final class RegisterUser
             if ($existing->isServiceAdmin() || $existing->getPassword() !== '' || !$existing->isActive()) {
                 throw ValidationFailedException::fromArray([
                     'email' => ['Există deja un cont cu acest email.'],
+                ]);
+            }
+
+            // Blocul 3: revendicarea prin număr de înmatriculare e dezactivată
+            // implicit — accesul la vehicul se obține DOAR cu un cod de activare
+            // emis de service. Numărul de înmatriculare nu dovedește proprietatea.
+            if (!$this->legacyPlateClaimEnabled) {
+                throw ValidationFailedException::fromArray([
+                    'email' => ['Acest email este deja în evidența service-ului. Cereți service-ului un cod de activare pentru vehicul (nu se poate revendica doar cu numărul de înmatriculare).'],
                 ]);
             }
 

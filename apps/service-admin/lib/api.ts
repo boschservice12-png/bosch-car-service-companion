@@ -152,6 +152,10 @@ export const api = {
 
   adminVehicles: () => request<AdminVehicle[]>('/admin/vehicles'),
 
+  /** Blocul 3: emite un cod de activare pentru vehicul (returnat o singură dată). */
+  issueActivationToken: (vehicleId: string) =>
+    request<{ token: string }>(`/admin/vehicles/${vehicleId}/activation-token`, { method: 'POST', body: '{}' }),
+
   // ---- P1-03: notificări de scadență (WhatsApp propriu + email, operator) ----
   upcomingDeadlines: (days: number) =>
     request<{ days: number; items: UpcomingDeadline[] }>(`/admin/deadlines/upcoming?days=${days}`),

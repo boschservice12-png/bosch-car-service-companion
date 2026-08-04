@@ -79,6 +79,8 @@ final class ScanDeadlinesCommand extends Command
                     'daysLeft' => $daysLeft,
                 ],
                 self::CHANNEL,
+                // Idempotență la nivel de mesaj: un prag pe o scadență = o notificare.
+                sprintf('deadline:%s:%d:%s', $deadline->id(), $threshold, self::CHANNEL),
             ));
             $this->deadlines->recordNotification(new DeadlineNotification($deadline, $threshold, self::CHANNEL));
             ++$sent;

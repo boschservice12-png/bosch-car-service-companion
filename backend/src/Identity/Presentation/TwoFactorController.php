@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Identity\Presentation;
 
 use App\Audit\Application\AuditRecorder;
+use App\Identity\Application\TotpReplayGuard;
 use App\Identity\Application\TotpService;
 use App\Identity\Domain\User;
 use App\Shared\Security\ApiRateLimiter;
@@ -36,6 +37,7 @@ final class TwoFactorController extends AbstractController
         private readonly UserPasswordHasherInterface $hasher,
         private readonly AuditRecorder $audit,
         private readonly ApiRateLimiter $rateLimiter,
+        private readonly TotpReplayGuard $replayGuard,
     ) {
     }
 
@@ -124,11 +126,22 @@ final class TwoFactorController extends AbstractController
         $code = $this->stringField($request, 'code');
         $recovery = $this->stringField($request, 'recoveryCode');
 
-        if ($code !== '' && $this->totp->verify($secret, $code)) {
-            $this->rateLimiter->resetTwoFactor($request, $user, 'verify');
-            $request->getSession()->set(self::SESSION_VERIFIED, true);
+        if ($code !== '') {
+            $step = $this->totp->matchStep($secret, $code);
+            // Anti-replay: un cod corect e acceptat o SINGURĂ dată. Consumarea
+            // pasului e atomică (TotpReplayGuard) — la două cereri paralele cu
+            // același cod, cel mult una reușește. Un pas deja folosit sau mai
+            // vechi → replay: auditat, dar mesajul rămâne generic (nu dezvăluie
+            // dacă a fost cod greșit sau reutilizat).
+            if ($step !== null && $this->replayGuard->consume($user, $step)) {
+                $this->rateLimiter->resetTwoFactor($request, $user, 'verify');
+                $request->getSession()->set(self::SESSION_VERIFIED, true);
 
-            return new JsonResponse(['verified' => true]);
+                return new JsonResponse(['verified' => true]);
+            }
+            if ($step !== null) {
+                $this->audit->record('identity.2fa_replay_rejected', 'User', (string) $user->id());
+            }
         }
 
         if ($recovery !== '' && $user->consumeRecoveryCode(strtoupper(trim($recovery)))) {

@@ -118,8 +118,6 @@ export const api = {
     password: string;
     firstName?: string;
     lastName?: string;
-    /** Cerut doar când emailul e deja în evidența service-ului (cont importat). */
-    plateNumber?: string;
     consent: boolean;
   }) => request<{ id: string }>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
 
@@ -127,6 +125,10 @@ export const api = {
 
   createVehicle: (data: { vin: string; plateNumber: string; make?: string; model?: string; year?: number }) =>
     request<Vehicle>('/vehicles', { method: 'POST', body: JSON.stringify(data) }),
+
+  /** Activarea unui vehicul cu un cod primit de la service (Blocul 3). */
+  activateVehicle: (token: string) =>
+    request<Vehicle>('/me/vehicles/activate', { method: 'POST', body: JSON.stringify({ token }) }),
 
   vehicleDeadlines: (vehicleId: string) => request<Deadline[]>(`/vehicles/${vehicleId}/deadlines`),
 

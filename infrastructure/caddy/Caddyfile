@@ -1,0 +1,39 @@
+# Caddy — proxy de margine + TLS pentru pilot.
+#
+# Două moduri, controlate prin variabile de mediu (vezi .env.prod):
+#
+#  A) CU DOMENIU (recomandat): setați
+#       CUSTOMER_SITE=companion.exemplu.ro
+#       ADMIN_SITE=admin.companion.exemplu.ro
+#     Caddy provizionează automat certificate Let's Encrypt (HTTPS pe 443).
+#
+#  B) FĂRĂ DOMENIU (doar IP, pentru început): lăsați valorile implicite
+#       CUSTOMER_SITE=:80   ADMIN_SITE=:8081
+#     Se servește HTTP simplu; puneți TLS când aveți domeniu. Pentru HTTPS
+#     self-signed pe IP, folosiți `https://:443 { tls internal … }`.
+#
+# Browserul vorbește DOAR cu frontendul; apelurile /api sunt proxy-ate mai
+# departe către backend de către serverul Next (rewrite din next.config), deci
+# nu e nevoie de CORS și cookie-urile rămân same-origin.
+
+{$CUSTOMER_SITE::80} {
+	encode gzip zstd
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	reverse_proxy customer-web:3000
+}
+
+{$ADMIN_SITE::8081} {
+	encode gzip zstd
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+	reverse_proxy service-admin:3001
+}

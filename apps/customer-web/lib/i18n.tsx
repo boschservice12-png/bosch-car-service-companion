@@ -169,6 +169,16 @@ const HU: Dict = {
 
   // Creare cont
   'Creare cont': 'Fiók létrehozása',
+  'Dacă sunteți deja client al service-ului, cereți service-ului un cod de activare pentru vehicul și introduceți-l după autentificare (pagina Vehicule).':
+    'Ha már a szerviz ügyfele, kérjen a szerviztől aktiválókódot a járműhöz, és adja meg belépés után (Járművek oldal).',
+  'Ai un cod de la service?': 'Van kódja a szerviztől?',
+  'Introduceți codul de activare primit de la service pentru a adăuga vehiculul în contul dumneavoastră.':
+    'Adja meg a szerviztől kapott aktiválókódot, hogy a jármű a fiókjához kerüljön.',
+  'Vehicul activat: {plate}': 'Jármű aktiválva: {plate}',
+  'Cod de activare': 'Aktiválókód',
+  'Cod de activare invalid sau expirat.': 'Érvénytelen vagy lejárt aktiválókód.',
+  'Se activează…': 'Aktiválás…',
+  'Activează vehiculul': 'Jármű aktiválása',
   'Prenume': 'Keresztnév',
   'Nume': 'Vezetéknév',
   'Minim 8 caractere.': 'Legalább 8 karakter.',
@@ -562,6 +572,16 @@ const EN: Dict = {
 
   // Creare cont
   'Creare cont': 'Create account',
+  'Dacă sunteți deja client al service-ului, cereți service-ului un cod de activare pentru vehicul și introduceți-l după autentificare (pagina Vehicule).':
+    'If you are already a customer of the service, ask the service for a vehicle activation code and enter it after signing in (Vehicles page).',
+  'Ai un cod de la service?': 'Have a code from the service?',
+  'Introduceți codul de activare primit de la service pentru a adăuga vehiculul în contul dumneavoastră.':
+    'Enter the activation code received from the service to add the vehicle to your account.',
+  'Vehicul activat: {plate}': 'Vehicle activated: {plate}',
+  'Cod de activare': 'Activation code',
+  'Cod de activare invalid sau expirat.': 'Invalid or expired activation code.',
+  'Se activează…': 'Activating…',
+  'Activează vehiculul': 'Activate vehicle',
   'Prenume': 'First name',
   'Nume': 'Last name',
   'Minim 8 caractere.': 'At least 8 characters.',
