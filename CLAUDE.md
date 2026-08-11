@@ -144,11 +144,27 @@ SQLite builds the schema from mapping. This is the lesson of commit `6da4a4f`.
 installs no module, breaking the backend build entirely. Now pinned to `php:8.3-fpm`. Audit the
 frontend Dockerfiles for the same pattern — unpinned `node:` tags will drift the same way.
 
-**Migrations own the schema, not Messenger.** `MESSENGER_TRANSPORT_DSN` must use `auto_setup=0`.
-With `auto_setup=1` the worker and the backend start simultaneously, the worker creates
-`messenger_messages` first, and the backend's migration then fails on a duplicate table. This is
-a race, so it fails non-deterministically and did not show up in CI. The DSN change is a
-workaround; the proper fix is an ordering dependency so `worker` waits for migrations to finish.
+**Migrations own the schema, not Messenger.** `MESSENGER_TRANSPORT_DSN` uses `auto_setup=0`
+because `Version20260715234015` creates `messenger_messages`. Ordering is now enforced properly:
+a one-shot `migrate` service owns migrations, and `backend` + `worker` both wait on
+`service_completed_successfully`. `auto_setup=0` remains as defence in depth.
+
+**Never use a literal hostname in `fastcgi_pass`.** nginx resolves it once at startup and caches
+it forever. Any deploy that recreates `backend` gives it a new IP, and nginx keeps dialling the
+old one — 502 across all of `/api` while the backend is perfectly healthy, until someone restarts
+`api` by hand. Both frontends keep serving, so nothing looks wrong. `infrastructure/nginx/default.conf`
+now puts the upstream in a variable with a `resolver`, forcing per-request resolution. This bit
+production on 2026-08-11 and would have fired on every automated deploy.
+
+**Bind-mounted files need `restart`, not `up -d`.** Compose only recreates a container when its
+image or spec changes, so editing `infrastructure/nginx/default.conf` or any of the entrypoint
+scripts in `infrastructure/docker/` has no effect until you `restart` that service. `up -d` will
+cheerfully report `Running` and change nothing.
+
+**`postgres:16` ships no CA certificates.** `ca-certificates` is not installed, so anything doing
+HTTPS from that base image (here: `mc` pushing backups off-box) fails with
+`x509: certificate signed by unknown authority`. Invisible against a plain-HTTP MinIO in testing;
+only shows up against a real TLS endpoint. `infrastructure/backup/Dockerfile` installs it.
 
 **The SQLite test database persists between runs** — tests must use unique keys per run.
 
@@ -159,9 +175,14 @@ PostgreSQL, built via migrations, keeps the partial index.
 
 ## 8. Current production state
 
-Verified working: TLS on both hosts, all migrations applied (through
+Verified working (2026-08-11): TLS on both hosts, all migrations applied (through
 `Version20260721120000`), Messenger worker consuming from the `async` transport, and
-`/api/health/ready` returning `ok` across database, migrations, messenger, storage, and secrets.
+`/api/health/ready` returning `ok` across database, migrations, messenger, storage, **scanner**,
+and secrets. Backups run nightly and sync off-box to Lightsail bucket `backup-bcss`
+(eu-central-1, object versioning enabled); restore verified from that bucket.
+
+Production data is currently one admin user, zero vehicles, zero documents — the pilot has not
+been handed to end users. Keep that in mind when a test "passes": most tables are empty.
 
 Admin user `admin@bcss.ro` exists with role `SERVICE_ADMIN`. **2FA must be enrolled at first
 login** — until then `/api/admin` routes are blocked by design.
@@ -176,13 +197,25 @@ keys with no tested code path. Migration later is an env-var change.
 ## 9. Open items
 
 **Operational, before real users:**
-- Backups are written to a volume on the same disk. They must sync **off-box** (S3) — a backup on
-  the machine it protects is not a backup.
-- `app:gdpr:purge` needs a daily cron. It does not run itself, and this system holds customer
-  vehicle records.
-- Restore has never been exercised. Run `infrastructure/backup/restore.sh` in isolation and record
-  actual RTO/RPO.
+- **Nothing runs `healthcheck.sh` on a schedule.** It exists, it works, and it would have caught
+  the 2026-08-11 `/api` outage within a minute. Needs a cron entry plus somewhere for a non-zero
+  exit to actually reach a human.
 - Lightsail automatic snapshots.
+- Re-run the restore drill once real customer data exists. The 2026-08-11 run passed, but
+  production held one user and zero vehicles/documents, so it proves the mechanism, not its
+  behaviour at volume.
+- RPO is 24h by construction (one backup at 03:00 UTC). Fine for now; confirm it is acceptable
+  before real customer records accumulate.
+
+*Closed 2026-08-11 (see `infrastructure/backup/restore.md` for the drill record):* off-box sync
+to Lightsail object storage with read-back verification; `app:gdpr:purge` on a daily schedule via
+the new `scheduler` service; restore exercised end-to-end including the disaster path
+(`fetch-offsite.sh` → `restore.sh` from the bucket alone).
+
+**Backups were empty for seven nights.** Between 2026-08-05 and 2026-08-11 every `db.sql.gz` was
+20 bytes: `pg_dump` rejected the Doctrine DSN, and `pg_dump | gzip > f` returned gzip's exit
+status so the failure was silent — `gzip -t` then certified the empty archive as intact. Fixed in
+`f855587`. If you ever see a suspiciously small `db.sql.gz`, this is why.
 
 **Deployment pipeline (partly built):**
 - `image:` entries pointing at `ghcr.io/boschservice12-png/bcsc-<service>:${IMAGE_TAG:-latest}`
@@ -191,20 +224,27 @@ keys with no tested code path. Migration later is an env-var change.
 - `.github/workflows/deploy.yml` — build matrix pushing to GHCR, then SSH deploy.
 - Repo secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`.
 - Server needs a one-time `docker login ghcr.io` with a `read:packages` PAT.
-- Verify the four Dockerfile paths under `infrastructure/docker/` — only
-  `backend.Dockerfile` has been confirmed.
+- Dockerfile paths confirmed 2026-08-11: there are only **two** under `infrastructure/docker/` —
+  `backend.Dockerfile` (`php:8.3-fpm`) and a shared `frontend.Dockerfile` (`node:20-bookworm-slim`)
+  used by both apps — plus `infrastructure/backup/Dockerfile`. Both bases are pinned, so the
+  unpinned-`node:` concern in §7 is closed.
+- `migrate` and `scheduler` reuse the backend image and need the same `image:` treatment as
+  `worker`.
 
 **Product / code:**
 - No automated notification provider. Everything stops at `MANUAL_ACTION_REQUIRED`; email is
   manual. `NotificationDelivery` is ready for a real implementation in `backend/src/Notification/`.
   Whoever owns the pilot needs to know this is the current state.
-- `S3Storage` untested against live MinIO/AWS.
+- `S3Storage` untested against live AWS. It *is* now exercised against in-stack MinIO on every
+  readiness probe (`checks.storage` does a real write/read/delete), so the adapter works; what
+  remains unproven is real AWS S3.
 - Playwright e2e against the full stack (`e2e/README.md`).
-- ClamAV is **not** part of `/api/health/ready`. If the scanner dies, readiness stays green while
-  document processing silently stalls. Worth adding as a non-critical check.
 - Caddy still publishes port 8081 from the no-domain default configuration. Harmless (the
   firewall blocks it) but dead config.
-- Fix the `worker` ordering dependency properly rather than relying on `auto_setup=0`.
+
+*Closed 2026-08-11:* ClamAV readiness check (`checks.scanner`, non-critical, verified live against
+real ClamAV in production); `worker` ordering now enforced by the one-shot `migrate` service
+rather than relying on `auto_setup=0`.
 
 ---
 

@@ -83,6 +83,7 @@ Restaurarea „a rulat fără eroare" nu înseamnă „datele sunt acolo". Verif
 |---|---|---|---|---|---|
 | 2026-08-04 | local izolat (Docker, Apple Silicon) | 8 KB DB (20 migrații, 2 utilizatori, 2 vehicule, 4 scadențe) + 5 documente / 1 MB | backup < 1 s, restaurare ~1 s | 24 h (vezi mai jos) | **Trecut** — rânduri identice, 20 de migrații păstrate, documente identice pe octeți (`diff -r`), `schema:validate` *in sync* |
 | 2026-08-04 | local izolat — drill de **dezastru** (backupuri locale șterse, recuperare DOAR din bucket) | 8 KB DB + 3 documente / 441 KB | fetch + restaurare ~2 s | 24 h | **Trecut** — `--list` → `--latest` → `restore.sh`; 2 vehicule, 20 de migrații, documente identice pe octeți. Depozitul off-box a fost MinIO local ca substitut S3-compatibil, **nu** Lightsail. |
+| 2026-08-11 | **PRODUCȚIE** (Lightsail eu-central-1) — backup → bucket `backup-bcss` → fetch → restaurare într-o bază izolată pe aceeași instanță | 6923 B DB (1 utilizator, 0 vehicule), 0 documente | ciclu complet sub 1 min | 24 h | **Trecut** — `off-box ellenőrzés rendben (6923 B)`; restaurat DIN copia adusă din Lightsail; `users/vehicles/deadlines/migratii` identice cu producția. Versionarea obiectelor e activă pe bucket. |
 
 ### Ce a găsit primul drill
 
@@ -102,6 +103,24 @@ Combinate, primele două înseamnă că mentințele de producție de dinaintea a
 corecții **trebuie considerate lipsite de bază de date**. Verificați dimensiunea
 arhivelor existente: `ls -lh /backups/*/db.sql.gz` — orice fișier de ~20 de octeți
 este gol.
+
+### Ce a găsit drill-ul de producție
+
+Rulat pe 2026-08-11, a confirmat că toate cele 7 mentințe existente (05–11 august)
+aveau `db.sql.gz` de **20 de octeți** — adică baza de date a producției nu fusese
+niciodată salvată. Documentele erau la fel: bucketul e gol, deci `tar` pica și
+ducea cu el întreaga rulare.
+
+A mai scos la iveală două defecte care apar DOAR pe producție, nu local:
+
+1. **Imaginea de backup nu avea certificate CA.** `postgres:16` nu instalează
+   `ca-certificates`, deci `mc` respingea orice endpoint HTTPS cu
+   `x509: certificate signed by unknown authority`. Invizibil local, unde ținta
+   off-box era MinIO pe `http://`.
+2. **nginx nu re-rezolva upstream-ul.** Recrearea containerului `backend` îi dă
+   un IP nou, dar `fastcgi_pass backend:9000` (nume literal) rămânea pe cel vechi
+   → 502 pe tot `/api`, cu backend-ul sănătos. Vezi comentariul din
+   `infrastructure/nginx/default.conf`.
 
 ### Despre cifre
 
