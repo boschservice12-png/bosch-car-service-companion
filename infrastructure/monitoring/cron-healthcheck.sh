@@ -39,6 +39,11 @@ RC=$?
 
 printf '%s [rc=%s]\n%s\n' "${TS}" "${RC}" "${OUTPUT}" >> "${LOG_FILE}" 2>/dev/null
 
+# Și pe stdout: în cron oricum se redirectează spre /dev/null, dar la o rulare
+# manuală (exact cea din instrucțiunile de instalare) un script complet MUT nu
+# lasă omul să distingă „a trecut" de „nu a rulat deloc".
+printf '%s\n' "${OUTPUT}"
+
 if [ "${RC}" -eq 0 ]; then
   ping_hc "" "${OUTPUT}"
 else
