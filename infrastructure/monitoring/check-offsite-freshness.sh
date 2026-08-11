@@ -15,6 +15,11 @@
 #   LOG_FILE             — implicit /var/log/bcss-offsite-check.log
 set -uo pipefail
 
+# Vezi cron-healthcheck.sh: citim configurația aici ca intrarea de crontab să
+# încapă comod pe o singură linie.
+ENV_FILE="${BCSS_MONITORING_ENV:-/etc/bcss-monitoring.env}"
+if [ -r "${ENV_FILE}" ]; then set -a; . "${ENV_FILE}"; set +a; fi
+
 COMPOSE_DIR="${COMPOSE_DIR:-/opt/bcss}"
 MAX_AGE_H="${OFFSITE_MAX_AGE_H:-26}"
 LOG_FILE="${LOG_FILE:-/var/log/bcss-offsite-check.log}"

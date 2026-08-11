@@ -77,15 +77,27 @@ container, nu doar un `curl`.
    ```
 
 3. Crontab-ul lui `root` (are nevoie de root: citește volumul de backup și
-   vorbește cu Docker):
+   vorbește cu Docker). Ambele scripturi își citesc SINGURE
+   `/etc/bcss-monitoring.env`, deci liniile rămân scurte:
 
    ```cron
-   */5 * * * *  set -a; . /etc/bcss-monitoring.env; set +a; /opt/bcss/infrastructure/monitoring/cron-healthcheck.sh >/dev/null 2>&1
-   0 5 * * *    set -a; . /etc/bcss-monitoring.env; set +a; /opt/bcss/infrastructure/monitoring/check-offsite-freshness.sh >/dev/null 2>&1
+   */5 * * * * /opt/bcss/infrastructure/monitoring/cron-healthcheck.sh >/dev/null 2>&1
+   0 5 * * * /opt/bcss/infrastructure/monitoring/check-offsite-freshness.sh >/dev/null 2>&1
    ```
+
+   O intrare de crontab trebuie să încapă pe o **singură linie fizică**. Varianta
+   cu `set -a; . /etc/…; set +a;` inline depășea 130 de caractere și se rupea la
+   copiere, iar cron o respingea cu `bad minute`. De aici auto-citirea din
+   scripturi. Altă cale de configurare: `BCSS_MONITORING_ENV=/alt/fișier`.
 
    Ora 05:00 pentru a doua e deliberată: după fereastra de backup (03:00), cu
    marjă dacă rularea durează.
+
+   Verificați că s-au instalat ca DOUĂ intrări, nu patru:
+
+   ```bash
+   sudo crontab -l | grep -c 'monitoring/'   # trebuie să dea 2
+   ```
 
 4. Verificați că funcționează **provocând un eșec**, nu doar o reușită:
 

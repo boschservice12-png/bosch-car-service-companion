@@ -18,6 +18,13 @@
 #   LOG_FILE          — implicit /var/log/bcss-healthcheck.log
 set -uo pipefail
 
+# Citim configurația singuri, ca linia de cron să rămână SCURTĂ. Varianta cu
+# `set -a; . /etc/…; set +a;` inline în crontab depășea 130 de caractere, iar o
+# intrare de crontab trebuie să încapă pe o SINGURĂ linie fizică — la copiere se
+# rupea în două și cron o respingea cu „bad minute".
+ENV_FILE="${BCSS_MONITORING_ENV:-/etc/bcss-monitoring.env}"
+if [ -r "${ENV_FILE}" ]; then set -a; . "${ENV_FILE}"; set +a; fi
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="${LOG_FILE:-/var/log/bcss-healthcheck.log}"
 TS="$(date -u +%FT%TZ)"
