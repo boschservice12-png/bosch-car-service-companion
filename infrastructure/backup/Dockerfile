@@ -3,6 +3,17 @@
 FROM minio/mc:latest AS mc
 
 FROM postgres:16
+
+# A postgres:16 image NEM tartalmaz CA-tanúsítványokat (`ca-certificates` nincs
+# telepítve, /etc/ssl/certs/ca-certificates.crt nem létezik). Emiatt az `mc`
+# minden HTTPS-végpontot elutasít:
+#   x509: certificate signed by unknown authority
+# Sima HTTP-s MinIO ellen ez nem látszik — csak valódi, TLS-es off-box tár
+# (Lightsail object storage, AWS S3) ellen jön elő.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=mc /usr/bin/mc /usr/local/bin/mc
 COPY backup-cron.sh /usr/local/bin/backup-cron.sh
 # A restore.sh-nak ITT a helye, a mentés MELLETT: a drillt (és egy éles
