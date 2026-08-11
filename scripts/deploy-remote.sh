@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Pasul de pe SERVER al deploy-ului. Rulat de .github/workflows/deploy.yml prin
-#   ssh … 'IMAGE_TAG=<sha> bash -s' < scripts/deploy-remote.sh
+# Pasul de pe SERVER al deploy-ului. Copiat cu `scp` de workflow și rulat CA
+# FIȘIER:
+#   ssh … "IMAGE_TAG=<sha> bash /tmp/bcss-deploy.sh"
 #
 # Trăiește în repo (nu inline în YAML) ca să poată fi citit, revizuit și rulat
 # manual cu exact aceiași pași:
 #   IMAGE_TAG=<sha> bash scripts/deploy-remote.sh
 #
-# Se transmite prin stdin, deci versiunea care rulează e cea din commit-ul NOU,
-# chiar dacă checkout-ul de pe disc e încă cel vechi.
+# NU se transmite prin stdin (`ssh … 'bash -s' < script`). Așa a fost la prima
+# versiune și a produs cel mai urât eșec posibil: `docker compose run` de la
+# pasul 2 CITEȘTE stdin, adică restul scriptului. Bash a ajuns la EOF și a ieșit
+# cu 0 după pasul 2 — deci pașii 3-6 (pull, up, verificări) nu au rulat NICIODATĂ,
+# iar workflow-ul a raportat „succes" în timp ce producția rula în continuare
+# imaginile vechi. Un deploy care minte e mai rău decât niciun deploy.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/bcss}"
@@ -72,7 +77,9 @@ say "2. backup înainte de deploy"
 # Serviciul `migrate` aplică automat migrațiile la pornire, deci un deploy poate
 # schimba ireversibil schema. Backupul se face ÎNAINTE, nu după.
 export IMAGE_TAG
-"${COMPOSE[@]}" run --rm -e BACKUP_ONESHOT=1 backup
+# `-T` (fără TTY) + stdin din /dev/null: apărare în adâncime, ca acest `run` să
+# nu poată consuma niciodată intrarea standard a scriptului. Vezi antetul.
+"${COMPOSE[@]}" run --rm -T -e BACKUP_ONESHOT=1 backup < /dev/null
 
 # ---------------------------------------------------------------------------
 say "3. descarc imaginile"
@@ -87,7 +94,32 @@ say "4. pornesc"
 "${COMPOSE[@]}" up -d
 
 # ---------------------------------------------------------------------------
-say "5. verific migrațiile"
+say "5. verific că rulează CHIAR imaginile noi"
+# Verificarea asta lipsea la prima versiune, iar absența ei a lăsat un deploy
+# complet nereușit să treacă drept „succes": pașii de pull/up nu rulaseră deloc,
+# containerele vechi mergeau perfect, deci toate verificările de sănătate au
+# trecut. „Site-ul e sus" NU înseamnă „s-a livrat versiunea nouă". Comparăm deci
+# eticheta imaginii fiecărui container cu SHA-ul pe care îl livrăm.
+STALE=""
+for svc in backend worker migrate scheduler customer-web service-admin backup; do
+  CID="$("${COMPOSE[@]}" ps -aq "${svc}" 2>/dev/null | tail -1)"
+  if [ -z "${CID}" ]; then
+    STALE="${STALE} ${svc}(lipsește)"
+    continue
+  fi
+  IMG="$(docker inspect --format '{{.Config.Image}}' "${CID}")"
+  case "${IMG}" in
+    *":${IMAGE_TAG}") echo "  ${svc}: OK (${IMG##*/})" ;;
+    *)                echo "  ${svc}: VECHI -> ${IMG}"; STALE="${STALE} ${svc}" ;;
+  esac
+done
+if [ -n "${STALE}" ]; then
+  echo "EROARE: containere care NU rulează ${IMAGE_TAG}:${STALE}" >&2
+  echo "Deploy-ul nu a fost aplicat, deși pașii anteriori nu au raportat eroare." >&2
+  exit 1
+fi
+
+say "6. verific migrațiile"
 MIGRATE_CID="$("${COMPOSE[@]}" ps -aq migrate | tail -1)"
 if [ -z "${MIGRATE_CID}" ]; then
   echo "EROARE: containerul migrate nu există." >&2; exit 1
@@ -101,7 +133,7 @@ fi
 echo "migrate OK (exit 0)"
 
 # ---------------------------------------------------------------------------
-say "6. verific sănătatea"
+say "7. verific sănătatea"
 # Aceeași definiție a „sănătos" pe care o folosește monitorizarea — o singură
 # sursă de adevăr. Fără BACKUP_DIR: acela cere root, iar deploy-ul rulează ca
 # utilizator obișnuit; prospețimea backupului o verifică oricum cronul.

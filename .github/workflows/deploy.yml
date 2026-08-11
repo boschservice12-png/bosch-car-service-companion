@@ -158,11 +158,25 @@ jobs:
           printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Deploy
+      # Scriptul se COPIAZĂ și se rulează ca fișier. Varianta
+      #   ssh … 'bash -s' < scripts/deploy-remote.sh
+      # a fost un dezastru tăcut: `docker compose run` din script citește stdin —
+      # adică restul scriptului — deci bash ajungea la EOF și ieșea cu 0 după
+      # pasul 2. Pașii de pull/up/verificare nu rulau, iar workflow-ul raporta
+      # succes cu producția neatinsă.
+      - name: Copiez scriptul de deploy
         run: |
-          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+              scripts/deploy-remote.sh \
+              "${{ secrets.DEPLOY_USER || 'ubuntu' }}@${{ secrets.DEPLOY_HOST }}:/tmp/bcss-deploy.sh"
+
+      - name: Deploy
+        # `-n`: ssh nu citește stdin deloc. Scriptul e un fișier pe server, deci
+        # stdin rămâne liber pentru comenzile din interiorul lui.
+        run: |
+          ssh -n -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
               "${{ secrets.DEPLOY_USER || 'ubuntu' }}@${{ secrets.DEPLOY_HOST }}" \
-              "IMAGE_TAG='${{ github.sha }}' bash -s" < scripts/deploy-remote.sh
+              "IMAGE_TAG='${{ github.sha }}' bash /tmp/bcss-deploy.sh; rc=\$?; rm -f /tmp/bcss-deploy.sh; exit \$rc"
 
       - name: Curățare chei
         if: always()
