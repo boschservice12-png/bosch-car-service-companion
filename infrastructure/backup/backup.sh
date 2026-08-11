@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Backup zilnic — bază de date + documentele încărcate (storage local).
-# De rulat prin cron (vezi ../monitoring/monitoring.md); restaurarea se
-# TESTEAZĂ periodic după procedura din restore.md.
+# Daily backup — database + uploaded documents (local storage driver).
 #
-# Variabile:
-#   DATABASE_URL      (obligatoriu) — DSN PostgreSQL pentru pg_dump
-#   STORAGE_DIR       (implicit /app/var/storage) — documentele aplicației
-#   BACKUP_DIR        (implicit /backups) — destinația arhivelor
-#   BACKUP_KEEP_DAYS  (implicit 14) — retenția; arhivele mai vechi se șterg
+# This is the `STORAGE_DRIVER=local` variant, intended to be run from cron on a
+# host. PRODUCTION uses backup-cron.sh instead, which also mirrors the S3/MinIO
+# bucket and pushes an off-box copy. Restores are TESTED periodically following
+# the procedure in restore.md.
+#
+# Variables:
+#   DATABASE_URL      (required) — PostgreSQL DSN for pg_dump
+#   STORAGE_DIR       (default /app/var/storage) — the application's documents
+#   BACKUP_DIR        (default /backups) — archive destination
+#   BACKUP_KEEP_DAYS  (default 14) — retention; older archives are deleted
 set -euo pipefail
 
 TS="$(date +%Y%m%d-%H%M%S)"
@@ -17,40 +20,40 @@ STORAGE="${STORAGE_DIR:-/app/var/storage}"
 KEEP_DAYS="${BACKUP_KEEP_DAYS:-14}"
 mkdir -p "${DEST}"
 
-# DSN-ul Doctrine conține `serverVersion` / `charset`, pe care libpq NU le
-# cunoaște — pg_dump ar ieși cu „invalid URI query parameter". Le eliminăm,
-# păstrând restul parametrilor (ex. sslmode).
+# The Doctrine DSN carries `serverVersion` / `charset`, which libpq does NOT
+# know — pg_dump would exit with "invalid URI query parameter". Strip those,
+# keep every other parameter (e.g. sslmode).
 pg_dsn() {
   printf '%s' "$1" | sed -E 's/([?&])(serverVersion|charset)=[^&]*/\1/g; s/&&+/\&/g; s/[?&]+$//; s/\?&/?/'
 }
 
 echo "[backup] pg_dump -> ${DEST}/db.sql.gz"
-# Pas separat, nu `pg_dump | gzip`: într-un pipeline codul de ieșire e al
-# gzip-ului, deci un pg_dump eșuat ar produce o arhivă GOALĂ dar validă, pe
-# care `gzip -t` o acceptă. (`set -o pipefail` e activ aici, dar scriem explicit
-# ca varianta din backup-cron.sh — care rulează sub `sh` — să arate la fel.)
+# A separate step, not `pg_dump | gzip`: in a pipeline the exit code is gzip's,
+# so a failed pg_dump would produce an EMPTY but valid archive that `gzip -t`
+# accepts. (`set -o pipefail` is active here, but we write it out explicitly so
+# this matches backup-cron.sh, which runs under `sh` and has no pipefail.)
 pg_dump "$(pg_dsn "${DATABASE_URL}")" > "${DEST}/db.sql"
 grep -q "PostgreSQL database dump complete" "${DEST}/db.sql" \
-  || { echo "[backup] EROARE: dump trunchiat (lipsește marcajul de final)" >&2; exit 1; }
+  || { echo "[backup] ERROR: truncated dump (closing marker missing)" >&2; exit 1; }
 grep -qE "^(CREATE TABLE|COPY )" "${DEST}/db.sql" \
-  || { echo "[backup] EROARE: dump fără schemă/date" >&2; exit 1; }
+  || { echo "[backup] ERROR: dump contains no schema or data" >&2; exit 1; }
 gzip -f "${DEST}/db.sql"
-# Verificare de integritate: o arhivă coruptă e mai rea decât una lipsă.
+# Integrity check: a corrupt archive is worse than a missing one.
 gzip -t "${DEST}/db.sql.gz"
 
 if [ -d "${STORAGE}" ]; then
-  echo "[backup] documente -> ${DEST}/storage.tar.gz"
+  echo "[backup] documents -> ${DEST}/storage.tar.gz"
   tar -czf "${DEST}/storage.tar.gz" -C "${STORAGE}" .
   gzip -t "${DEST}/storage.tar.gz"
 else
-  echo "[backup] AVERTISMENT: ${STORAGE} nu există — se salvează doar baza de date." >&2
+  echo "[backup] WARNING: ${STORAGE} does not exist — saving the database only." >&2
 fi
 
-echo "[backup] retenție: se păstrează ${KEEP_DAYS} zile"
+echo "[backup] retention: keeping ${KEEP_DAYS} days"
 find "${ROOT}" -mindepth 1 -maxdepth 1 -type d -mtime "+${KEEP_DAYS}" -exec rm -rf {} +
 
-echo "[backup] gata: ${DEST}"
+echo "[backup] done: ${DEST}"
 ls -lh "${DEST}"
-# La eșec scriptul iese nenul (set -e) — cronul/monitorizarea trebuie să
-# alerteze pe exit code diferit de 0 ȘI pe „ultimul backup mai vechi de 24h"
-# (vezi healthcheck.sh, verificarea de prospețime).
+# On failure the script exits non-zero (set -e). Cron/monitoring must alert on a
+# non-zero exit code AND on "last backup older than 24h" (see healthcheck.sh,
+# the freshness check).

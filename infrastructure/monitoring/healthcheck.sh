@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
-# Verificare de sănătate pentru monitorizare externă (cron / uptime-checker).
-# Iese cu 0 doar dacă TOATE verificările trec; altfel scrie motivul pe stderr
-# și iese nenul — sistemul de alertare se leagă de exit code.
+# Health check for external monitoring (cron / uptime checker).
+# Exits 0 only if ALL checks pass; otherwise it writes the reason to stderr and
+# exits non-zero — the alerting system hooks onto the exit code.
 #
-# Variabile:
-#   BASE_URL          (implicit https://localhost) — rădăcina publică
-#   BACKUP_DIR        (opțional) — dacă e setat, verifică vârsta ultimului backup
-#   BACKUP_MAX_AGE_H  (implicit 26) — alertă dacă ultimul backup e mai vechi
-#   DISK_PATH         (implicit /) — partiția verificată pentru spațiu
-#   DISK_MAX_PCT      (implicit 85) — alertă peste acest procent de ocupare
+# Variables:
+#   BASE_URL              (default https://localhost) — the public root
+#   BACKUP_DIR            (optional) — if set, checks the age and size of the
+#                         most recent backup
+#   BACKUP_MAX_AGE_H      (default 26) — alert if the last backup is older
+#   BACKUP_MIN_DUMP_BYTES (default 1024) — alert if db.sql.gz is smaller
+#   DISK_PATH             (default /) — partition checked for free space
+#   DISK_MAX_PCT          (default 85) — alert above this usage percentage
+#   NONCRITICAL_MODE      (default fail) — `warn` downgrades non-critical
+#                         readiness probes to warnings; used by the deploy gate
 set -uo pipefail
 
 BASE="${BASE_URL:-https://localhost}"
 FAIL=0
 
-check() { # nume, comandă…
+check() { # name, command…
   local name="$1"; shift
   if "$@" > /dev/null 2>&1; then
     echo "[ok]   ${name}"
@@ -24,17 +28,17 @@ check() { # nume, comandă…
   fi
 }
 
-# 1) Aplicația răspunde și dependențele (DB, storage) sunt funcționale.
+# 1) The application responds and its dependencies (DB, storage) work.
 check "liveness  GET /api/health"        curl -fsS --max-time 10 "${BASE}/api/health"
 check "readiness GET /api/health/ready"  curl -fsS --max-time 10 "${BASE}/api/health/ready"
 
-# 1b) Verificările NECRITICE din readiness. Ele întorc 200 chiar și picate — asta
-# e intenționat (instanța rămâne servibilă), dar înseamnă că `curl -fsS` de mai
-# sus NU le vede. Fără bucata asta, un ClamAV mort e complet tăcut: readiness
-# rămâne „verde" pentru monitorizare, în timp ce documentele încărcate nu mai
-# avansează niciodată din coadă.
+# 1b) The NON-CRITICAL readiness probes. They return 200 even when failing — that
+# is intentional (the instance stays servable), but it means the `curl -fsS`
+# above does NOT see them. Without this block a dead ClamAV is completely
+# silent: readiness stays "green" for monitoring while uploaded documents never
+# advance out of the queue.
 READY_JSON="$(curl -fsS --max-time 10 "${BASE}/api/health/ready" 2>/dev/null || true)"
-probe_status() { # json, nume-verificare
+probe_status() { # json, check-name
   printf '%s' "$1" | grep -o "\"$2\":{\"status\":\"[a-z]*\"" | sed 's/.*"\([a-z]*\)"$/\1/'
 }
 if [ -n "${READY_JSON}" ]; then
@@ -43,66 +47,66 @@ if [ -n "${READY_JSON}" ]; then
     if [ "${ST}" = "ok" ]; then
       echo "[ok]   readiness/${probe}"
     elif [ -z "${ST}" ]; then
-      echo "[FAIL] readiness/${probe}: lipsește din răspuns (versiune veche de backend?)" >&2
+      echo "[FAIL] readiness/${probe}: missing from the response (old backend version?)" >&2
       FAIL=1
     elif [ "${NONCRITICAL_MODE:-fail}" = "warn" ]; then
-      # Modul `warn` e pentru gate-ul de deploy. Verificările necritice pot fi
-      # roșii TEMPORAR imediat după un restart — ClamAV, de exemplu, are nevoie
-      # de minute ca să-și încarce bazele de semnături. A pica deploy-ul pentru
-      # asta înseamnă a raporta eșec pentru o livrare reușită. Cronul rulează la
-      # 5 minute și le prinde oricum dacă rămân roșii.
-      echo "[warn] readiness/${probe}: ${ST} (necritic — poate fi doar pornirea)"
+      # `warn` mode is for the deploy gate. Non-critical checks can be red
+      # TEMPORARILY right after a restart — ClamAV, for instance, needs minutes
+      # to load its signature databases. Failing a deploy over that means
+      # reporting failure for a successful delivery. The five-minute cron
+      # catches them anyway if they stay red.
+      echo "[warn] readiness/${probe}: ${ST} (non-critical — may just be start-up)"
     else
-      echo "[FAIL] readiness/${probe}: ${ST} (necritic, dar procesarea e blocată)" >&2
+      echo "[FAIL] readiness/${probe}: ${ST} (non-critical, but processing is stalled)" >&2
       FAIL=1
     fi
   done
 else
-  echo "[FAIL] readiness: răspuns necitibil" >&2
+  echo "[FAIL] readiness: unreadable response" >&2
   FAIL=1
 fi
 
-# 2) Spațiu pe disc — documentele și baza cresc; plin = incident.
+# 2) Disk space — documents and the database grow; full = incident.
 USED_PCT="$(df --output=pcent "${DISK_PATH:-/}" | tail -1 | tr -dc '0-9')"
 if [ "${USED_PCT}" -le "${DISK_MAX_PCT:-85}" ]; then
-  echo "[ok]   disc ${USED_PCT}% folosit"
+  echo "[ok]   disk ${USED_PCT}% used"
 else
-  echo "[FAIL] disc ${USED_PCT}% folosit (> ${DISK_MAX_PCT:-85}%)" >&2
+  echo "[FAIL] disk ${USED_PCT}% used (> ${DISK_MAX_PCT:-85}%)" >&2
   FAIL=1
 fi
 
-# 3) Prospețimea ȘI substanța backupului (dacă BACKUP_DIR e setat).
+# 3) Backup freshness AND substance (when BACKUP_DIR is set).
 if [ -n "${BACKUP_DIR:-}" ]; then
-  # Doar directoarele cu NUME de timestamp (YYYYmmdd-HHMMSS). Altfel `sort |
-  # tail -1` alegea alfabetic, deci `restaurate/` — directorul de lucru al lui
-  # fetch-offsite.sh — trecea drept „ultimul backup", iar prospețimea raportată
-  # era de fapt data ultimei descărcări manuale.
+  # Only directories whose NAME is a timestamp (YYYYmmdd-HHMMSS). Otherwise
+  # `sort | tail -1` picked alphabetically, so `restored/` — fetch-offsite.sh's
+  # working directory — was treated as "the latest backup", and the reported
+  # freshness was actually the date of the last manual download.
   LAST="$(find "${BACKUP_DIR}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
           | grep -E '/[0-9]{8}-[0-9]{6}$' | sort | tail -1)"
 
   if [ -z "${LAST}" ]; then
-    echo "[FAIL] niciun backup în ${BACKUP_DIR}" >&2
+    echo "[FAIL] no backup in ${BACKUP_DIR}" >&2
     FAIL=1
   elif [ -z "$(find "${LAST}" -maxdepth 0 -mmin "-$(( ${BACKUP_MAX_AGE_H:-26} * 60 ))")" ]; then
-    echo "[FAIL] niciun backup în ultimele ${BACKUP_MAX_AGE_H:-26}h (${BACKUP_DIR})" >&2
+    echo "[FAIL] no backup in the last ${BACKUP_MAX_AGE_H:-26}h (${BACKUP_DIR})" >&2
     FAIL=1
   else
-    # „Există un fișier" nu înseamnă „există un backup". Timp de șapte nopți
-    # `db.sql.gz` a avut 20 de octeți — un gzip GOL, dar perfect valid — pentru
-    # că pg_dump pica, iar `gzip -t` accepta rezultatul. Verificăm deci și
-    # DIMENSIUNEA, nu doar prezența și vechimea.
+    # "A file exists" is not the same as "a backup exists". For seven nights
+    # db.sql.gz was 20 bytes — an EMPTY but perfectly valid gzip — because
+    # pg_dump was failing and `gzip -t` accepted the result. So check the SIZE
+    # too, not just presence and age.
     DUMP="${LAST}/db.sql.gz"
     MIN_BYTES="${BACKUP_MIN_DUMP_BYTES:-1024}"
     if [ ! -f "${DUMP}" ]; then
-      echo "[FAIL] backupul ${LAST} nu conține db.sql.gz" >&2
+      echo "[FAIL] backup ${LAST} contains no db.sql.gz" >&2
       FAIL=1
     else
       SIZE="$(wc -c < "${DUMP}" | tr -d ' ')"
       if [ "${SIZE}" -lt "${MIN_BYTES}" ]; then
-        echo "[FAIL] db.sql.gz din ${LAST} are doar ${SIZE}B (< ${MIN_BYTES}B) — dump gol?" >&2
+        echo "[FAIL] db.sql.gz in ${LAST} is only ${SIZE}B (< ${MIN_BYTES}B) — empty dump?" >&2
         FAIL=1
       else
-        echo "[ok]   backup recent: $(basename "${LAST}") (db.sql.gz ${SIZE}B)"
+        echo "[ok]   recent backup: $(basename "${LAST}") (db.sql.gz ${SIZE}B)"
       fi
     fi
   fi
