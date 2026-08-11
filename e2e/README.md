@@ -1,56 +1,58 @@
-# E2E de browser (CLIENT + ADMIN)
+# Browser end-to-end tests (CUSTOMER + ADMIN)
 
-Teste Playwright care conduc fluxul real prin UI, din **două sesiuni** (client și
-service), împotriva datelor demo. Complementare testelor funcționale din backend
-(`backend/tests/Functional`), care rulează deja în CI.
+Playwright tests that drive the real flow through the UI from **two sessions**
+(customer and workshop), against demo data. They complement the backend
+functional tests in `backend/tests/Functional`, which already run in CI.
 
-> Aceste teste **nu** fac parte (încă) din CI — necesită stiva completă pornită.
-> Rulați-le local înainte de un demo, sau adăugați-le într-un workflow dedicat.
+> These tests are **not** part of CI — they need the full stack running. Run them
+> locally before a demo, or add them to a dedicated workflow. Getting them into
+> CI is on the [roadmap](../docs/ROADMAP.md).
 
-## Precondiții
+## Prerequisites
 
-Stiva pornită și datele demo încărcate (vezi `docs/DEMO.md`). Rețetă rapidă,
-fără Docker (PostgreSQL local + PHP built-in server):
+The stack running with demo data loaded (see [`../docs/DEMO.md`](../docs/DEMO.md)).
+A quick recipe without Docker (local PostgreSQL + the PHP built-in server):
 
 ```bash
-# 1) Baza de date: backend/.env.local cu DATABASE_URL către PostgreSQL-ul local, apoi:
+# 1) Database: backend/.env.local with DATABASE_URL pointing at local PostgreSQL, then:
 cd backend
 php bin/console doctrine:migrations:migrate -n
 php bin/console app:demo:seed          # idempotent
 php -S 127.0.0.1:8080 -t public public/index.php &
 
-# 2) Aplicațiile (build o singură dată, apoi start):
+# 2) The applications (build once, then start):
 cd ../apps/customer-web  && npx next build && npx next start -p 3000 &
 cd ../service-admin      && npx next build && npx next start -p 3001 &
 ```
 
-## Rulare
+## Running
 
 ```bash
 cd e2e
 npm install
 npx playwright test
-# sau, cu URL-uri personalizate:
+# or with custom URLs:
 CLIENT_URL=http://localhost:3000 ADMIN_URL=http://localhost:3001 npx playwright test
 ```
 
-- Pe mașini cu un Chromium deja instalat (altă versiune decât cea cerută de
-  Playwright), NU rulați `playwright install` — indicați executabilul:
+- On machines that already have a Chromium of a different version than Playwright
+  expects, do NOT run `playwright install` — point at the executable instead:
   `CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test`.
-- `npx playwright test --list` listează testele fără a porni browserul.
+- `npx playwright test --list` lists the tests without starting a browser.
 
-## Ce acoperă (P1-08)
+## What they cover (P1-08)
 
-- **client-admin** — fluxul demo: CLIENT vede vehiculele (`MS01POP`), scadențele,
-  istoricul publicat și conversația demo; ADMIN vede vehiculele clienților,
-  conversațiile și cererea de ofertă din inbox-ul de oferte.
-- **client-flows** — cap-coadă pe cont NOU: înregistrare liberă → vehicul propriu →
-  taxă → plată parțială declarativă (fără fișiere) → comutatorul de limbă RO→HU
-  (aplicat imediat + persistat la reîncărcare). Plus mesageria în ambele sensuri:
-  clientul scrie, adminul răspunde, clientul vede răspunsul (două contexte de
-  browser separate).
-- **admin-flows** — căutarea din panoul principal pe 3 câmpuri (nume / număr /
-  VIN, normalizate, combinate cu ȘI) și navigarea modulelor (taxe, securitate).
-- **two-factor** — P0-06 prin interfața reală: înrolare 2FA (parolă → secret →
-  cod TOTP calculat în test conform RFC 6238 → coduri de rezervă), re-login cu
-  provocare OTP (cod greșit respins), dezactivare la final (stare curată).
+- **client-admin** — the demo flow: the CUSTOMER sees their vehicles (`MS01POP`),
+  deadlines, published history and the demo conversation; the ADMIN sees customer
+  vehicles, conversations, and the quote request in the quotes inbox.
+- **client-flows** — end to end on a NEW account: open registration → own vehicle
+  → tax → declarative partial payment (no files) → the RO→HU language switch
+  (applied immediately and persisted across a reload). Plus messaging in both
+  directions: the customer writes, the admin replies, the customer sees the reply
+  (two separate browser contexts).
+- **admin-flows** — the dashboard's three-field search (name / plate / VIN,
+  normalised and combined with AND) and module navigation (taxes, security).
+- **two-factor** — P0-06 through the real interface: 2FA enrolment (password →
+  secret → a TOTP code computed in the test per RFC 6238 → backup codes),
+  re-login with the OTP challenge (a wrong code is rejected), and disabling it at
+  the end so the state stays clean.

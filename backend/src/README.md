@@ -1,74 +1,94 @@
-# Module de domeniu (modular monolith)
+# Domain modules (modular monolith)
 
-Fiecare modul are straturi: `Domain/`, `Application/`, `Infrastructure/`,
-`Presentation/`. Comunicarea între module se face **doar prin contracte/interfețe
-publice** (fără acces la clasele interne ale altui modul). Nu există folder `Utils`.
+Every module has the layers `Domain/`, `Application/`, `Infrastructure/`,
+`Presentation/`. Modules communicate **only through public contracts and
+interfaces** — never by reaching into another module's internal classes. There
+is no `Utils` folder.
 
-| Modul | Responsabilitate | Stadiu scaffold |
-|---|---|---|
-| `Identity` | Autentificare email+parolă, sesiuni, înregistrare, 2FA admin (pregătit) | **Sprint 1 implementat** ✅ |
-| `Customer` | Profil client | **Sprint 1 implementat** ✅ |
-| `Vehicle` | Vehicule, VIN, proprietari, autorizare la nivel de obiect | **Sprint 1 implementat** ✅ |
-| `Communication` | Conversații, mesaje, atașamente & cereri de ofertă (stări) | **Sprint 3 implementat** ✅ |
-| `Deadline` | Scadențe ITP/RCA/taxă de drum/roadside, calcul stare, notificări pe praguri | **Sprint 1 implementat** ✅ |
-| `ServiceHistory` | Istoric service, corecții, documente | **Sprint 2 implementat** ✅ |
-| `QuoteRequest` | Mașină de stare (`Domain/QuoteRequestStatus.php`) — cererile de ofertă sunt livrate în `Communication` | mașină de stare ✅ |
-| `RoadsideAssistance` | Solicitări asistență rutieră (forwarding = intern + telefon) | planificat (S5) |
-| `Mobility` | Solicitări mobilitate | planificat (S5) |
-| `DamageClaim` | Dosar de daună (colectare date) | planificat (S6) |
-| `Tax` | Taxe & impozite anuale | planificat (S6) |
-| `Document` | Upload sigur, validare MIME+extensie+dimensiune, scanare malware, storage privat, URL semnat temporar | **Sprint 1 implementat** ✅ |
-| `Notification` | Notificări multi-canal (Messenger async) + entitate `Notification` | **Sprint 1 implementat** ✅ |
-| `Audit` | Jurnal de audit before/after (`AuditRecorder`) | **Sprint 1 implementat** ✅ |
-| `Settings` | `application_settings` (praguri, texte, WhatsApp, limite upload) | **Sprint 1 implementat** ✅ |
-| `Shared` | Eroare standard + listener excepții + CORS | **Sprint 1 implementat** ✅ |
-| `System` | Health endpoints (`/api/health`, `/api/health/ready`) | **implementat** ✅ |
+See [ADR 0001](../../docs/architecture/adr/0001-modular-monolith.md) for the
+reasoning and [Architecture §2](../../docs/ARCHITECTURE.md) for how this fits
+the wider system.
 
-## Sprint 1 — API disponibil
+| Module | Responsibility |
+|---|---|
+| `Identity` | Email + password authentication, sessions, registration, TOTP 2FA for staff |
+| `Customer` | Customer profile, consents, GDPR rights and retention |
+| `Vehicle` | Vehicles, VIN, ownership, activation tokens, object-level authorisation |
+| `Communication` | Conversations, messages, attachments |
+| `Deadline` | Roadworthiness/insurance/road-tax/roadside deadlines, status calculation, threshold notifications |
+| `ServiceHistory` | Service history, corrections, documents |
+| `QuoteRequest` | Quote requests and workshop responses, with a state machine |
+| `Roadside` | Roadside assistance requests (forwarding = internal + telephone) |
+| `Mobility` | Replacement-vehicle requests |
+| `DamageClaim` | Damage claim files (data collection) |
+| `Tax` | Annual taxes and duties (declarative records) |
+| `Document` | Secure upload, MIME + extension + size validation, malware scanning, private storage, signed temporary URLs |
+| `Notification` | Notification entity and the delivery contract (Messenger async) |
+| `Audit` | Before/after audit log (`AuditRecorder`) |
+| `Settings` | `application_settings` (thresholds, texts, WhatsApp, upload limits), demo seed |
+| `Shared` | Standard error shape, exception listener, CORS, CSRF, rate limiting |
+| `System` | Health endpoints (`/api/health`, `/api/health/ready`) |
 
-| Metodă & rută | Descriere | Acces |
-|---|---|---|
-| `POST /api/auth/register` | Înregistrare client (email+parolă+consimțământ) | public |
-| `POST /api/auth/login` | Autentificare (json_login) | public |
-| `POST /api/auth/logout` | Deconectare | autentificat |
-| `GET /api/me` | Utilizatorul curent | autentificat |
-| `GET /api/vehicles` | Vehiculele proprii | client |
-| `POST /api/vehicles` | Adaugă vehicul (VIN validat) | client |
-| `GET /api/vehicles/{id}` | Detalii (autorizare la nivel de obiect) | proprietar/admin |
-| `PATCH /api/vehicles/{id}` | Actualizează | proprietar/admin |
-| `GET /api/health` · `GET /api/health/ready` | Liveness / readiness | public |
+`Controller/`, `Entity/` and `Repository/` at the top level are empty leftovers
+from the Symfony skeleton. Nothing lives there; do not add to them.
 
-| `POST /api/documents` | Upload document (multipart) | autentificat |
-| `GET /api/documents/{id}/download-url` | URL temporar semnat | proprietar/admin |
-| `GET /api/documents/{id}/raw` | Servire conținut (semnătură+autorizare+CLEAN) | proprietar/admin |
-| `GET /api/settings` | Setări publice (WhatsApp, versiune informare) | public |
-| `PATCH /api/admin/settings/{key}` | Actualizează o setare | admin |
+## API surface
 
-## Rulare și verificare
+The full contract is in [`docs/api/openapi.yaml`](../../docs/api/openapi.yaml),
+which is kept in sync with the router and enforced by `OpenApiSyncTest`. Route
+groups:
+
+| Prefix | Purpose |
+|---|---|
+| `/api/auth/*` | Registration, login, logout |
+| `/api/me`, `/api/me/export`, `/api/me/delete` | Current user, GDPR export and erasure |
+| `/api/vehicles/*` | Customer's vehicles |
+| `/api/deadlines/*` | Deadlines and their status |
+| `/api/documents/*` | Upload, signed download URL, raw serving |
+| `/api/service-records/*` | Published service history |
+| `/api/conversations/*` | Messages |
+| `/api/quote-requests/*` | Quote requests |
+| `/api/roadside-requests/*` | Roadside assistance |
+| `/api/mobility-requests/*` | Mobility requests |
+| `/api/taxes/*` | Taxes and duties |
+| `/api/settings` | Public settings |
+| `/api/csrf` | CSRF token issuance |
+| `/api/health`, `/api/health/ready` | Liveness and readiness |
+| `/api/admin/*` | Workshop portal (16 route groups; requires SERVICE_ADMIN **and** enrolled 2FA in production) |
+
+## Running and verification
 
 ```bash
-# Dependențe
+# Dependencies
 composer install
 
-# Bază de date + schemă (PostgreSQL)
+# Database + schema (PostgreSQL)
 php bin/console doctrine:migrations:migrate --no-interaction
 
-# Date demo (idempotent): admin@bcsc.ro / client@bcsc.ro, parola Demo1234!
+# Demo data (idempotent): admin@bcsc.ro / client@bcsc.ro, password Demo1234!
 php bin/console app:demo:seed
 
-# Utilizatori individuali
-php bin/console app:user:create client@example.ro Parola123          # client
-php bin/console app:user:create admin@example.ro Parola123 --admin   # admin
+# Individual users
+php bin/console app:user:create client@example.ro Password123          # customer
+php bin/console app:user:create admin@example.ro Password123 --admin   # admin
 
-# Teste (mediul de test folosește SQLite implicit — vezi .env.test)
+# Tests (the test environment uses SQLite by default — see .env.test)
 php bin/console doctrine:schema:create --env=test
 vendor/bin/phpunit
 
-# Validări
+# Validation
 php bin/console lint:container
 php bin/console doctrine:schema:validate
 ```
 
-Codul de domeniu deja livrat este **pur PHP** (fără dependențe de framework) și
-este acoperit de teste unitare în `tests/Unit/` (calcul scadențe, tranziții de
-stare, validare VIN) — verificate să treacă.
+Two testing caveats worth knowing before trusting a green run:
+
+- **The SQLite test database persists between runs** — tests must use unique keys
+  per run.
+- **`schema:create` on SQLite degrades partial unique indexes into full ones**,
+  and SQLite builds the schema from the mapping rather than from migrations. Some
+  schema mistakes are therefore only visible against PostgreSQL. See
+  [Troubleshooting §10](../../docs/TROUBLESHOOTING.md).
+
+The domain code is **pure PHP** with no framework dependencies, covered by unit
+tests in `tests/Unit/` (deadline calculation, state transitions, VIN validation).

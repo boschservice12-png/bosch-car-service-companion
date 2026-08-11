@@ -1,58 +1,80 @@
-# Rulează demo-ul cu o singură comandă (Docker)
+# Run the demo with a single command (Docker)
 
-Pornește **întreaga aplicație** (bază de date + backend + ambele frontend-uri) local,
-cu date demo deja încărcate. Singura cerință: **Docker Desktop** (sau Docker Engine +
-plugin `compose`). Nu ai nevoie de PHP, Node sau PostgreSQL instalate separat.
+Starts the **entire application** (database + backend + both frontends) locally,
+with demo data already loaded. The only requirement is **Docker Desktop** (or
+Docker Engine plus the `compose` plugin). PHP, Node and PostgreSQL do not need to
+be installed.
 
-## Pornire
+## Start
 
-Din rădăcina proiectului:
+From the project root:
 
 ```bash
 docker compose -f compose.demo.yaml up --build
 ```
 
-Prima pornire durează câteva minute (construiește imaginea backend, instalează
-dependențele frontend). La final ai:
+The first start takes a few minutes (it builds the backend image and installs the
+frontend dependencies). When it finishes:
 
-| Aplicație | URL | Descriere |
+| Application | URL | Description |
 |---|---|---|
-| **Client** (PWA) | http://localhost:3000 | aplicația clientului |
-| **Service / admin** | http://localhost:3001 | portalul service-ului |
-| Backend API | http://localhost:8080/api/health | (opțional, pentru verificare) |
+| **Customer** (PWA) | http://localhost:3000 | the customer application |
+| **Service / admin** | http://localhost:3001 | the workshop portal |
+| Backend API | http://localhost:8080/api/health | optional, for checking |
 
-> **Sfat:** deschide clientul și adminul în **două profile de browser** diferite
-> (sau unul normal + unul incognito), ca sesiunile să nu se suprascrie.
+> **Tip:** open the customer and admin apps in **two different browser profiles**
+> (or one normal and one incognito) so the sessions do not overwrite each other.
 
-## Conturi demo
+## Demo accounts
 
-| Rol | Email | Parolă |
+| Role | Email | Password |
 |---|---|---|
 | Service (admin) | `admin@bcsc.ro` | `Demo1234!` |
-| Client | `client@bcsc.ro` | `Demo1234!` |
+| Customer | `client@bcsc.ro` | `Demo1234!` |
 
-După login, ambele interfețe sunt deja populate (scadențe, istoric service, oferte,
-asistență rutieră, mobilitate, dosar de daună, taxe). Scenariul pas cu pas: `docs/DEMO.md`.
+After logging in, both interfaces are already populated (deadlines, service
+history, quotes, roadside assistance, mobility, damage claim, taxes). The
+step-by-step scenario is in [`../docs/DEMO.md`](../docs/DEMO.md).
 
-## Oprire / repornire
+## Stop / restart
 
 ```bash
-# Oprire (păstrează datele):            Ctrl+C, apoi
+# Stop (keeps the data):        Ctrl+C, then
 docker compose -f compose.demo.yaml down
 
-# Ștergere completă (inclusiv baza de date, pentru un start curat):
+# Full removal (including the database, for a clean start):
 docker compose -f compose.demo.yaml down -v
 ```
 
-Datele demo se recreează automat la pornire (comanda `app:demo:seed` este idempotentă).
+Demo data is recreated automatically at start-up (`app:demo:seed` is idempotent).
 
-## Ce pornește
+## What starts
 
 - **db** — PostgreSQL 16.
-- **backend** — Symfony (server built-in pe `:8080`); la pornire aplică migrațiile și
-  rulează `app:demo:seed`.
-- **customer-web** — Next.js dev pe `:3000`, proxy `/api` → `backend:8080`.
-- **service-admin** — Next.js dev pe `:3001`, proxy `/api` → `backend:8080`.
+- **backend** — Symfony (built-in server on `:8080`); at start-up it applies
+  migrations and runs `app:demo:seed`.
+- **worker** — the Messenger consumer for the `async` transport. Without it,
+  documents would stay `PENDING` forever.
+- **customer-web** — Next.js dev on `:3000`, proxying `/api` → `backend:8080`.
+- **service-admin** — Next.js dev on `:3001`, proxying `/api` → `backend:8080`.
 
-Scanarea antimalware a documentelor este asincronă; pentru demo, adapterul din mediul
-non-prod marchează fișierele ca fiind curate, deci descărcarea funcționează imediat.
+Antimalware scanning of documents is asynchronous. In the demo the non-production
+adapter marks files as clean, so downloads work immediately. Production uses
+ClamAV and is fail-closed — see
+[Architecture §7](../docs/ARCHITECTURE.md).
+
+## Differences from production
+
+This stack is **not** a production replica:
+
+| | Demo | Production |
+|---|---|---|
+| `APP_ENV` | `dev` | `prod` |
+| Storage | local disk | MinIO (S3) |
+| Antimalware | permissive stub | ClamAV, fail-closed |
+| TLS | none | Caddy + Let's Encrypt |
+| Migrations | backend entrypoint | one-shot `migrate` service |
+| Frontends | `next dev` | `next build` + `next start` |
+
+Run it periodically anyway — drift between host and container has already caused
+one production-only failure.
