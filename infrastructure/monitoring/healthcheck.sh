@@ -64,14 +64,40 @@ else
   FAIL=1
 fi
 
-# 3) Prospețimea backupului (dacă BACKUP_DIR e setat).
+# 3) Prospețimea ȘI substanța backupului (dacă BACKUP_DIR e setat).
 if [ -n "${BACKUP_DIR:-}" ]; then
-  LAST="$(find "${BACKUP_DIR}" -mindepth 1 -maxdepth 1 -type d | sort | tail -1)"
-  if [ -n "${LAST}" ] && [ -n "$(find "${LAST}" -maxdepth 0 -mmin "-$(( ${BACKUP_MAX_AGE_H:-26} * 60 ))")" ]; then
-    echo "[ok]   backup recent: ${LAST}"
-  else
+  # Doar directoarele cu NUME de timestamp (YYYYmmdd-HHMMSS). Altfel `sort |
+  # tail -1` alegea alfabetic, deci `restaurate/` — directorul de lucru al lui
+  # fetch-offsite.sh — trecea drept „ultimul backup", iar prospețimea raportată
+  # era de fapt data ultimei descărcări manuale.
+  LAST="$(find "${BACKUP_DIR}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
+          | grep -E '/[0-9]{8}-[0-9]{6}$' | sort | tail -1)"
+
+  if [ -z "${LAST}" ]; then
+    echo "[FAIL] niciun backup în ${BACKUP_DIR}" >&2
+    FAIL=1
+  elif [ -z "$(find "${LAST}" -maxdepth 0 -mmin "-$(( ${BACKUP_MAX_AGE_H:-26} * 60 ))")" ]; then
     echo "[FAIL] niciun backup în ultimele ${BACKUP_MAX_AGE_H:-26}h (${BACKUP_DIR})" >&2
     FAIL=1
+  else
+    # „Există un fișier" nu înseamnă „există un backup". Timp de șapte nopți
+    # `db.sql.gz` a avut 20 de octeți — un gzip GOL, dar perfect valid — pentru
+    # că pg_dump pica, iar `gzip -t` accepta rezultatul. Verificăm deci și
+    # DIMENSIUNEA, nu doar prezența și vechimea.
+    DUMP="${LAST}/db.sql.gz"
+    MIN_BYTES="${BACKUP_MIN_DUMP_BYTES:-1024}"
+    if [ ! -f "${DUMP}" ]; then
+      echo "[FAIL] backupul ${LAST} nu conține db.sql.gz" >&2
+      FAIL=1
+    else
+      SIZE="$(wc -c < "${DUMP}" | tr -d ' ')"
+      if [ "${SIZE}" -lt "${MIN_BYTES}" ]; then
+        echo "[FAIL] db.sql.gz din ${LAST} are doar ${SIZE}B (< ${MIN_BYTES}B) — dump gol?" >&2
+        FAIL=1
+      else
+        echo "[ok]   backup recent: $(basename "${LAST}") (db.sql.gz ${SIZE}B)"
+      fi
+    fi
   fi
 fi
 
