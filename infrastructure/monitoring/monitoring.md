@@ -21,18 +21,85 @@ infrastructure/monitoring/healthcheck.sh
 Exit code `0` = totul în regulă; orice altceva = alertă. Se leagă de orice
 uptime-checker (cron + mail, Uptime Kuma, healthchecks.io etc.).
 
-## Cron recomandat (pe gazdă)
+## Ce rulează deja în stivă (NU puneți în cron)
 
-```cron
-# Backup zilnic la 02:30 (DB + documente, retenție 14 zile)
-30 2 * * *  DATABASE_URL=postgresql://… STORAGE_DIR=/app/var/storage BACKUP_DIR=/backups  /opt/bcsc/infrastructure/backup/backup.sh >> /var/log/bcsc-backup.log 2>&1
+Backupul și purjarea GDPR sunt servicii în `compose.prod.yaml`, nu joburi de
+gazdă. Nu le dublați în crontab:
 
-# Verificare de sănătate la 5 minute; alertează pe exit code nenul
-*/5 * * * *  BASE_URL=https://service.example.ro BACKUP_DIR=/backups  /opt/bcsc/infrastructure/monitoring/healthcheck.sh || <comanda-de-alertare>
+| Job | Serviciu | Program |
+|---|---|---|
+| Backup DB + documente, local + off-box | `backup` | zilnic 03:00 UTC (`BACKUP_HOUR`) |
+| `app:gdpr:purge` | `scheduler` | zilnic 04:00 UTC (`GDPR_PURGE_HOUR`) |
 
-# Purjare GDPR zilnică la 03:15 (după backup) — vezi docs/security/politica-retentie.md
-15 3 * * *  /usr/bin/php /opt/bcsc/backend/bin/console app:gdpr:purge >> /var/log/bcsc-gdpr.log 2>&1
-```
+## Monitorizare: „dead-man's switch"
+
+Problema de fond: **un monitor care rulează pe mașina monitorizată nu poate
+raporta niciodată că mașina a murit.** Dacă instanța se oprește, un cron local
+care „alertează la eșec" nu alertează — pur și simplu tace, la fel ca atunci
+când totul e în regulă.
+
+De aceea inversăm semnalul. La fiecare rulare REUȘITĂ trimitem un ping către un
+serviciu extern (healthchecks.io). Serviciul alertează când pingul ÎNCETEAZĂ —
+verificare picată, cron oprit, disc plin sau instanță dispărută. Tăcerea devine
+alarma.
+
+Două verificări, cu programe și costuri diferite:
+
+| Script | Frecvență | Ce acoperă |
+|---|---|---|
+| `cron-healthcheck.sh` | 5 min | liveness, readiness (inclusiv `scanner`/`messenger`), disc, vârsta backupului LOCAL |
+| `check-offsite-freshness.sh` | zilnic 05:00 UTC | există un backup recent ÎN BUCKET |
+
+A doua nu e un lux. `healthcheck.sh` se uită doar la backupurile locale: dacă
+cheile Lightsail expiră sau sunt rotite, mentințele locale continuă să reușească,
+prospețimea locală rămâne verde, iar copia off-box se oprește în tăcere — exact
+scenariul pentru care există. Rulează o dată pe zi pentru că pornește un
+container, nu doar un `curl`.
+
+### Instalare (o singură dată, pe server)
+
+1. Creați **două** verificări în healthchecks.io — una „BCSS health" (period 5m,
+   grace 5m), una „BCSS off-box backup" (period 1 day, grace 6h). Copiați cele
+   două URL-uri de ping.
+
+2. Puneți configurația într-un fișier cu drepturi restrânse. **URL-urile de ping
+   sunt secrete** — oricine le are poate falsifica „sunt sănătos":
+
+   ```bash
+   sudo tee /etc/bcss-monitoring.env >/dev/null <<'EOF'
+   BASE_URL=https://app.bcss.ro
+   BACKUP_DIR=/var/lib/docker/volumes/bcsc-prod_backups/_data
+   COMPOSE_DIR=/opt/bcss
+   HC_PING_URL=https://hc-ping.com/<uuid-health>
+   HC_PING_URL_OFFSITE=https://hc-ping.com/<uuid-offsite>
+   EOF
+   sudo chmod 600 /etc/bcss-monitoring.env
+   ```
+
+3. Crontab-ul lui `root` (are nevoie de root: citește volumul de backup și
+   vorbește cu Docker):
+
+   ```cron
+   */5 * * * *  set -a; . /etc/bcss-monitoring.env; set +a; /opt/bcss/infrastructure/monitoring/cron-healthcheck.sh >/dev/null 2>&1
+   0 5 * * *    set -a; . /etc/bcss-monitoring.env; set +a; /opt/bcss/infrastructure/monitoring/check-offsite-freshness.sh >/dev/null 2>&1
+   ```
+
+   Ora 05:00 pentru a doua e deliberată: după fereastra de backup (03:00), cu
+   marjă dacă rularea durează.
+
+4. Verificați că funcționează **provocând un eșec**, nu doar o reușită:
+
+   ```bash
+   # trebuie să apară ca „down" în healthchecks.io în câteva minute
+   sudo docker compose --env-file /opt/bcss/.env.prod -f /opt/bcss/compose.prod.yaml stop api
+   # …apoi reporniți și confirmați revenirea
+   sudo docker compose --env-file /opt/bcss/.env.prod -f /opt/bcss/compose.prod.yaml start api
+   ```
+
+   O alertă netestată e o presupunere. Asta e singurul mod de a ști că lanțul
+   întreg — cron → script → ping → notificare — chiar ajunge la un om.
+
+Loguri locale: `/var/log/bcss-healthcheck.log`, `/var/log/bcss-offsite-check.log`.
 
 ## Ce mai merită urmărit (din logurile aplicației)
 
