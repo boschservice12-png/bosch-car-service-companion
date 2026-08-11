@@ -1,44 +1,49 @@
-# Pilot readiness — ghid de operare
+# Feature behaviour and pilot hardening
 
-Acest document descrie stabilizarea pentru un **pilot intern controlat**: cele
-șase blocuri de întărire, variabilele de mediu, comportamentul la runtime și
-procedurile de operare. Nu introduce module de business noi — doar aduce
-sistemul într-o stare în care poate fi pornit și rulat previzibil.
+This document describes the six hardening blocks delivered to stabilise the
+system for a controlled internal pilot: the runtime behaviour and the reasoning
+behind it. It introduces no new business modules — it brings the system to a
+state where it can be started and run predictably.
 
-> Rezumat pentru operatori: nimic nu rămâne blocat „în tăcere". Documentele se
-> scanează printr-un worker, notificările spun adevărul despre livrare, accesul
-> la vehicul se dă doar cu un cod emis de service, 2FA nu poate fi reluat, iar
-> readiness devine roșu când o dependență critică pică.
+For architecture see [Architecture](ARCHITECTURE.md); for operating it see
+[Operations](OPERATIONS.md).
+
+> Summary for operators: nothing stays blocked *silently*. Documents are scanned
+> by a worker, notifications tell the truth about delivery, vehicle access is
+> granted only with a code issued by the workshop, a TOTP code cannot be
+> replayed, and readiness turns red when a critical dependency fails.
 
 ---
 
-## Variabile de mediu (nou / relevant pentru pilot)
+## Environment variables relevant to these behaviours
 
-| Variabilă | Implicit | Rol |
+| Variable | Default | Role |
 |---|---|---|
-| `STORAGE_DRIVER` | `local` | `local` = disc privat (dev/demo, cu volum persistent); `s3` = bucket S3-compatibil (MinIO / AWS) în producție. |
-| `S3_ENDPOINT` | `http://minio:9000` | Endpoint-ul S3/MinIO (folosit când `STORAGE_DRIVER=s3`). |
-| `S3_BUCKET` | `bcsc-documents` | Bucketul privat pentru documente. |
-| `S3_KEY` / `S3_SECRET` | *(gol)* | Credențiale de acces S3/MinIO. |
-| `S3_REGION` | `us-east-1` | Regiunea folosită la semnătura SigV4 (MinIO acceptă orice valoare). |
-| `MESSENGER_TRANSPORT_DSN` | `doctrine://default?auto_setup=1` (demo) / `auto_setup=0` (prod) | Transportul async consumat de worker. În producție `auto_setup=0`: migrațiile dețin schema (`messenger_messages` e creată de `Version20260715234015`). Ordinea de pornire e garantată de serviciul one-shot `migrate`. |
-| `LEGACY_PLATE_CLAIM_ENABLED` | `false` | Revendicarea contului doar cu numărul de înmatriculare — **dezactivată** (vezi Blocul 3). Nu activați în pilot/producție. |
-| `APP_SECRET` | *(setați!)* | Readiness pică dacă e gol sau conține `change` / `dev-secret`. |
+| `STORAGE_DRIVER` | `local` | `local` = private disk (dev/demo, persistent volume); `s3` = S3-compatible bucket (MinIO / AWS) in production |
+| `S3_ENDPOINT` | `http://minio:9000` | S3/MinIO endpoint, used when `STORAGE_DRIVER=s3` |
+| `S3_BUCKET` | `bcsc-documents` | The private document bucket |
+| `S3_KEY` / `S3_SECRET` | *(empty)* | S3/MinIO access credentials |
+| `S3_REGION` | `us-east-1` | Region used for the SigV4 signature (MinIO accepts any value) |
+| `MESSENGER_TRANSPORT_DSN` | `auto_setup=1` (demo) / `auto_setup=0` (prod) | The async transport consumed by the worker. In production `auto_setup=0`: migrations own the schema (`messenger_messages` is created by `Version20260715234015`). Start-up ordering is guaranteed separately by the one-shot `migrate` service |
+| `LEGACY_PLATE_CLAIM_ENABLED` | `false` | Claiming an account with only a registration plate — **disabled**, see Block 3. Do not enable |
+| `APP_SECRET` | *(set it!)* | Readiness fails if it is empty or contains `change` / `dev-secret` |
+
+The full list is in [`.env.prod.example`](../.env.prod.example).
 
 ---
 
-## Blocul 1 — Worker Messenger (demo)
+## Block 1 — The Messenger worker
 
-Scanarea antimalware a documentelor și trimiterea notificărilor sunt joburi
-**asincrone**: se pun pe transportul `async` și trebuie consumate de un worker.
-Fără worker, un document încărcat ar rămâne veșnic `PENDING` (neservibil).
+Antimalware scanning and notification sending are **asynchronous** jobs: they go
+onto the `async` transport and must be consumed by a worker. Without one, an
+uploaded document stays `PENDING` forever and is never servable.
 
-- `compose.demo.yaml` are un serviciu `worker` care rulează
-  `messenger:consume async` cu `--time-limit` / `--memory-limit` și
-  `restart: unless-stopped` (procesul iese periodic, compose îl repornește — nu
-  „moare în tăcere").
-- Mesajele care eșuează de `max_retries` ori ajung pe transportul `failed`
-  (`doctrine://default?queue_name=failed`), inspectabil, nu se pierd.
+- `compose.demo.yaml` has a `worker` service running `messenger:consume async`
+  with `--time-limit` / `--memory-limit` and `restart: unless-stopped` — the
+  process exits periodically and compose restarts it, so it never "dies quietly".
+- Messages that fail `max_retries` times land on the `failed` transport
+  (`doctrine://default?queue_name=failed`), where they can be inspected. They are
+  not lost.
 
 ```bash
 docker compose -f compose.demo.yaml logs -f worker
@@ -46,149 +51,158 @@ docker compose -f compose.demo.yaml exec backend php bin/console messenger:stats
 docker compose -f compose.demo.yaml exec backend php bin/console messenger:failed:show
 ```
 
----
-
-## Blocul 2 — Integritatea verificării scadențelor
-
-O scadență are o **proveniență** (`source` + `verifiedAt` / `verifiedBy`).
-
-- Când un **client** modifică `validFrom`, `expiresAt` sau documentul unei
-  scadențe, `source` devine `CLIENT` și verificarea se resetează
-  (`verifiedAt` / `verifiedBy` → null) — **chiar dacă rândul era `SERVICE`
-  neverificat**. O valoare atinsă de client nu poate rămâne marcată „verificat
-  de service".
-- Editarea **doar a notei** nu resetează verificarea.
-- Modificările de **admin** nu verifică automat — verificarea se setează doar la
-  o acțiune explicită `verify: true`.
-- Fiecare tranziție e auditată cu vechea și noua valoare + motivul resetării.
+In production, ordering is enforced by the one-shot `migrate` service — see
+[Architecture §6](ARCHITECTURE.md).
 
 ---
 
-## Blocul 3 — Activare sigură a vehiculului
+## Block 2 — Integrity of deadline verification
 
-Numărul de înmatriculare și VIN-ul **nu sunt secrete** → nu mai acordă singure
-acces la un vehicul importat. În loc de asta:
+A deadline carries a **provenance** (`source` plus `verifiedAt` / `verifiedBy`).
 
-1. Service-ul emite un **cod de activare** pentru un vehicul
-   (`POST /api/admin/vehicles/{id}/activation-token`). Codul apare **o singură
-   dată** în panoul admin.
-2. Codul este: aleator (128 biți), stocat doar ca **hash** (SHA-256), cu
-   **expirare** (7 zile), **o singură utilizare** și cu **limită de încercări**
-   (rate limit pe `activation`).
-3. Clientul îl folosește la `POST /api/me/vehicles/activate`. Codul corect leagă
-   vehiculul de profilul clientului.
-4. La **transfer de proprietate**, rândul de proprietate activ este reatribuit
-   noului proprietar (accesul vechiului proprietar se închide). Conflictele →
-   `409`.
-5. Un cod greșit / expirat / folosit → `422` cu mesaj generic (nu divulgă starea).
-6. Totul e auditat (`vehicle.activation_issued`, `vehicle.activation_used`).
-
-Revendicarea legacy prin număr rămâne în cod, dar **dezactivată** în spatele
-`LEGACY_PLATE_CLAIM_ENABLED=false`. Nu o activați în pilot.
+- When a **customer** changes `validFrom`, `expiresAt` or the deadline's
+  document, `source` becomes `CLIENT` and the verification resets
+  (`verifiedAt` / `verifiedBy` → null) — **even if the row was `SERVICE` but
+  unverified**. A value touched by the customer cannot remain marked "verified by
+  the workshop".
+- Editing **only the note** does not reset verification.
+- **Admin** changes do not verify automatically — verification is set only by an
+  explicit `verify: true` action.
+- Every transition is audited with the old and new values plus the reason for the
+  reset.
 
 ---
 
-## Blocul 4 — Stare realistă a notificărilor
+## Block 3 — Secure vehicle activation
 
-Model de stare: `PENDING → PROCESSING → { SENT | FAILED | MANUAL_ACTION_REQUIRED | SKIPPED }`.
+A registration plate and a VIN **are not secrets**, so they no longer grant
+access to an imported vehicle on their own. Instead:
 
-- `SENT` **doar** la un succes real de la un furnizor automat **sau** la o
-  confirmare manuală explicită de admin. Fără furnizor configurat, o notificare
-  **nu** ajunge niciodată `SENT` „orb" — devine `MANUAL_ACTION_REQUIRED`
-  (sau `SKIPPED` pentru adresele interne `@clienti.local` / `@anonim.local`).
-- Livrarea trece printr-un adaptor `NotificationDelivery`. În pilot,
-  implementarea implicită (`ManualNotificationDelivery`) nu trimite nimic
-  automat — se înlocuiește cu un furnizor real când e configurat.
-- **Idempotență / dedup**: notificările poartă un `dedupKey`; o stare terminală
-  scurtcircuitează reprocesarea. Retry-ul se face doar pentru furnizori
-  automați și eșecuri retriabile.
-- Admin poate marca manual ca trimisă
-  (`POST /api/admin/notifications/{id}/manually-sent`) cu `sentBy` / `sentAt` /
-  canal / notă — auditat.
+1. The workshop issues an **activation code** for a vehicle
+   (`POST /api/admin/vehicles/{id}/activation-token`). The code is shown **once**
+   in the admin panel.
+2. The code is random (128 bits), stored only as a **hash** (SHA-256), with an
+   **expiry** (7 days), **single use**, and an **attempt limit** (a rate limit on
+   `activation`).
+3. The customer uses it at `POST /api/me/vehicles/activate`. A correct code links
+   the vehicle to the customer's profile.
+4. On an **ownership transfer**, the active ownership row is reassigned to the new
+   owner and the previous owner's access is closed. Conflicts return `409`.
+5. A wrong, expired or already-used code returns `422` with a generic message that
+   does not disclose which of those it was.
+6. Everything is audited (`vehicle.activation_issued`, `vehicle.activation_used`).
 
-Lista notificărilor: `GET /api/admin/notifications` (rol service-admin).
-
----
-
-## Blocul 5 — Protecție anti-replay TOTP
-
-- Ultimul pas TOTP acceptat se **persistă** per utilizator (`users.last_totp_step`).
-- Un cod cu **același pas sau mai vechi** este respins — un cod interceptat nu
-  poate fi reutilizat în fereastra lui de valabilitate.
-- Consumul este **concurrency-safe**: un `UPDATE ... WHERE last_totp_step IS NULL
-  OR last_totp_step < :step` condiționat, atomic — două cereri paralele cu
-  același cod nu pot trece amândouă.
-- Codurile de rezervă sunt **o singură utilizare** și stocate hash-uit.
-- Un replay respins este auditat (`identity.2fa_replay_rejected`) cu mesaj
-  generic către client.
+Legacy plate-only claiming remains in the code but is **disabled** behind
+`LEGACY_PLATE_CLAIM_ENABLED=false`. Do not enable it.
 
 ---
 
-## Blocul 6 — Stocare durabilă + readiness profund
+## Block 4 — Honest notification state
 
-### Stocare
-- `STORAGE_DRIVER` comută la runtime între `local` și `s3` (vezi tabelul de mai
-  sus). `S3Storage` implementează semnătura AWS SigV4 direct (fără SDK), cu
-  adresare path-style pentru compatibilitate MinIO; bucketul e privat, servirea
-  trece prin URL-uri semnate + verificare de autorizare, la fel ca varianta
-  locală.
-- În `compose.demo.yaml`, documentele stau pe volumul persistent `storage_data`,
-  partajat de `backend` și `worker` — supraviețuiesc unui `up --build` / restart.
+State model: `PENDING → PROCESSING → { SENT | FAILED | MANUAL_ACTION_REQUIRED | SKIPPED }`.
 
-### Liveness vs. readiness (separate)
-- `GET /api/health` (**liveness**): procesul trăiește. **Nu** atinge dependențe
-  externe → un outage de bază nu declanșează restart-uri în lanț. Mereu `200`.
-- `GET /api/health/ready` (**readiness**): aplicația poate SERVI în siguranță.
-  Verifică dependențele **critice** — bază de date, stare migrații, storage
-  (probă scriere/citire/ștergere), secrete aplicație — plus `messenger` și
-  `scanner` (necritice). O dependență critică picată → `503`. Statusuri per
-  verificare: `ok` / `degraded` / `failed`; overall `ok` / `degraded` / `failed`.
-- **Nu se arată niciodată readiness verde cu o dependență critică jos** — de ex.
-  `APP_SECRET` implicit sau migrații neaplicate → `503`.
-- `scanner` sondează daemonul ClamAV cu `PING`/`PONG` (timeout scurt, 2s, fără
-  transfer de fișier). E **necritic** deliberat: scanerul e fail-closed, deci
-  dacă moare, documentele încărcate rămân în așteptare, dar restul API-ului
-  (citiri, deadline-uri, istoric) rămâne servibil — instanța nu trebuie scoasă
-  din rotație. Fără verificarea asta eșecul era complet tăcut: readiness rămânea
-  verde în timp ce procesarea documentelor sta pe loc. Un ClamAV picat arată deci
-  `200` cu `"status":"degraded"` și `checks.scanner.status = "failed"` — asta e
-  semnalul de urmărit în monitorizare, nu doar codul HTTP.
+- `SENT` **only** on a real success from an automated provider, **or** on an
+  explicit manual confirmation by an admin. With no provider configured, a
+  notification never becomes a blind `SENT` — it becomes
+  `MANUAL_ACTION_REQUIRED` (or `SKIPPED` for internal addresses
+  `@clienti.local` / `@anonim.local`).
+- Delivery goes through a `NotificationDelivery` adapter. In the pilot the
+  default implementation (`ManualNotificationDelivery`) sends nothing
+  automatically; it is replaced when a real provider is configured.
+- **Idempotency and deduplication**: notifications carry a `dedupKey`, and a
+  terminal state short-circuits reprocessing. Retries happen only for automated
+  providers and retriable failures.
+- An admin can mark one as manually sent
+  (`POST /api/admin/notifications/{id}/manually-sent`) with `sentBy` / `sentAt` /
+  channel / note — audited.
+
+Listing: `GET /api/admin/notifications` (service-admin role).
+
+**This is the current state of notifications in production.** See
+[Roadmap](ROADMAP.md) — it is the largest gap before real users.
+
+---
+
+## Block 5 — TOTP anti-replay protection
+
+- The last accepted TOTP step is **persisted** per user (`users.last_totp_step`).
+- A code with the **same step or older** is rejected — an intercepted code cannot
+  be reused inside its validity window.
+- Consumption is **concurrency-safe**: a conditional, atomic
+  `UPDATE … WHERE last_totp_step IS NULL OR last_totp_step < :step`, so two
+  parallel requests with the same code cannot both succeed.
+- Backup codes are **single use** and stored hashed.
+- A rejected replay is audited (`identity.2fa_replay_rejected`) while the customer
+  sees a generic message.
+
+---
+
+## Block 6 — Durable storage and deep readiness
+
+### Storage
+
+- `STORAGE_DRIVER` switches between `local` and `s3` at runtime. `S3Storage`
+  implements the AWS SigV4 signature directly (no SDK), with path-style
+  addressing for MinIO compatibility. The bucket is private and serving goes
+  through signed URLs plus an authorisation check, exactly as in the local
+  variant.
+- In `compose.demo.yaml`, documents live on the persistent `storage_data` volume
+  shared by `backend` and `worker`, so they survive `up --build` and restarts.
+
+### Liveness vs readiness — deliberately separate
+
+- `GET /api/health` (**liveness**): the process is alive. It does **not** touch
+  external dependencies, so a database outage does not trigger cascading
+  restarts. Always `200`.
+- `GET /api/health/ready` (**readiness**): the application can safely SERVE.
+  It checks the **critical** dependencies — database, migration state, storage
+  (a real write/read/delete probe), application secrets — plus `messenger` and
+  `scanner`, which are non-critical. A failed critical dependency returns `503`.
+  Per-check statuses: `ok` / `degraded` / `failed`.
+- **Readiness is never green with a critical dependency down** — a default
+  `APP_SECRET` or unapplied migrations produce `503`.
+- `scanner` probes the ClamAV daemon with `PING`/`PONG` (a short 2s timeout, no
+  file transfer). It is **non-critical** deliberately: the scanner is fail-closed,
+  so if it dies, uploaded documents wait, but the rest of the API (reads,
+  deadlines, history) stays servable and the instance should not leave rotation.
+  Without this check the failure was completely silent. A dead ClamAV therefore
+  shows `200` with `"status":"degraded"` and `checks.scanner.status = "failed"` —
+  **that** is the signal to watch in monitoring, not the HTTP code.
 
 ```bash
-curl -s http://localhost:8080/api/health          # {"status":"ok"}
-curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8080/api/health/ready
+curl -s https://app.bcss.ro/api/health          # {"status":"ok"}
+curl -s https://app.bcss.ro/api/health/ready | python3 -m json.tool
 ```
 
-### Backup / restore
-- `infrastructure/backup/backup.sh` — `pg_dump` + arhiva documentelor, cu
-  verificare de integritate (`gzip -t`) și retenție.
-- `infrastructure/backup/restore.sh` — restaurare scriptată (verifică
-  integritatea arhivelor înainte de a scrie ținta). Procedura completă de drill
-  (lunar, mediu izolat, RTO/RPO consemnate): `infrastructure/backup/restore.md`.
-- `infrastructure/monitoring/healthcheck.sh` verifică liveness + readiness +
-  spațiu pe disc + prospețimea backupului.
+### Backup and restore
+
+Now covered in full by [Backup and restore](BACKUP_AND_RESTORE.md). In short: a
+nightly backup with an off-box copy to Lightsail, verified by reading the upload
+back, plus an automated monthly restore drill.
 
 ---
 
-## Rularea suitei de regresie
+## Running the regression suite
 
 ```bash
 ./scripts/regression.sh
 ```
 
-Rulează: teste backend (PHPUnit), lint container (prod + test), lint YAML,
-typecheck/lint/build pentru ambele frontend-uri și validarea celor două fișiere
-docker compose. Testele Playwright e2e sunt separate (cer stiva pornită) —
-vezi `e2e/README.md`.
+Runs: backend tests (PHPUnit), container lint (prod + test), YAML lint,
+typecheck/lint/build for both frontends, and validation of all three docker
+compose files. The Playwright e2e tests are separate — they need the stack
+running; see [`../e2e/README.md`](../e2e/README.md).
 
 ---
 
-## Limitări cunoscute (pilot)
+## Known limitations
 
-- **Fără furnizor de notificări automat** în pilot: notificările ajung
-  `MANUAL_ACTION_REQUIRED`, nu `SENT`, până când se configurează un furnizor
-  real. E o alegere deliberată (Blocul 4), nu un bug.
-- **`S3Storage` nu a fost verificat la runtime** în acest mediu (fără MinIO /
-  rețea în sandbox). Driverul implicit `local` este testat integral; comutarea
-  la `s3` trebuie validată în stagiu înainte de producție.
-- E-mailul rămâne un pas manual (decizie de produs), nu automat.
+- **No automated notification provider.** Notifications reach
+  `MANUAL_ACTION_REQUIRED`, not `SENT`, until a real provider is configured. A
+  deliberate choice (Block 4), not a bug. See [Roadmap](ROADMAP.md).
+- **`S3Storage` has not been validated against real AWS S3.** It *is* exercised
+  against in-stack MinIO on every readiness probe, which performs a real
+  write/read/delete — so the adapter works. What remains untested is AWS itself.
+  *(An earlier version of this document said the driver had never been exercised
+  at runtime at all; that is no longer accurate.)*
+- **Email remains a manual step**, by product decision rather than omission.

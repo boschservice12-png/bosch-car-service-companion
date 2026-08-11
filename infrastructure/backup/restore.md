@@ -1,194 +1,128 @@
-# Procedură de restaurare (testată periodic)
+# Restore — drill register and history
 
-> Un backup fără restaurare testată nu este un backup. Rulați acest drill lunar
-> pe un mediu izolat și consemnați rezultatul în tabelul de la final.
+> A backup without a tested restore is not a backup.
 
-## Rulare rapidă
+**Procedures now live in [`docs/BACKUP_AND_RESTORE.md`](../../docs/BACKUP_AND_RESTORE.md)** —
+how to back up, how to restore over production, how to recover when the instance
+is gone. This file is the *record*: which drills were run, what they found, and
+what the measured numbers actually mean.
 
-`restore.sh` este livrat ÎN imaginea de backup, lângă `pg_dump`/`psql`/`mc` —
-deci restaurarea se face din același container care a produs mentința, fără
-unelte separate:
-
-Pentru restaurarea PESTE producție săriți direct la secțiunea următoare — acolo
-e o singură comandă. Ce urmează aici e restaurarea într-o țintă separată (drill,
-inspecție, mediu paralel).
-
-```bash
-# 1) țintă IZOLATĂ (niciodată baza de producție!)
-docker compose --env-file .env.prod -f compose.prod.yaml exec db \
-  psql -U bcsc -d postgres -c 'CREATE DATABASE restore_drill OWNER bcsc;'
-
-# 2) restaurare (bază + documente în bucket)
-docker compose --env-file .env.prod -f compose.prod.yaml run --rm \
-  -e DATABASE_URL_RESTORE="postgresql://bcsc:<parola>@db:5432/restore_drill" \
-  -e S3_ENDPOINT_RESTORE=http://minio:9000 \
-  -e S3_BUCKET_RESTORE=bcsc-documents-restored \
-  -e S3_KEY_RESTORE=<cheie> -e S3_SECRET_RESTORE=<secret> \
-  --entrypoint restore.sh backup /backups/<timestamp>
-```
-
-Fără variabilele `S3_*_RESTORE`, documentele se extrag pe disc local în
-`STORAGE_DIR` (pentru `STORAGE_DRIVER=local`). Scriptul acceptă ambele layout-uri
-de arhivă: `documents.tar.gz` (producție, din bucket) și `storage.tar.gz` (disc local).
-
-## Restaurare PESTE producție (distructivă)
-
-Când baza de producție trebuie înlocuită cu conținutul unui backup — corupție,
-ștergere accidentală, migrație greșită.
-
-**O singură comandă.** Aduce cea mai recentă copie din depozitul off-box și o
-restaurează peste producție:
-
-```bash
-cd /opt/bcss
-CONFIRM=RESTAUREZ-PRODUCTIA ./scripts/restore-production.sh --latest
-```
-
-Pentru un backup anume, în loc de `--latest` dați calea:
-`./scripts/restore-production.sh /backups/restaurate/<timestamp>`.
-
-Nu există pași manuali: golirea schemei, oprirea scriitorilor, repornirea și
-verificarea sunt toate în script.
-
-**De ce două scripturi, și nu doar `restore.sh`:** `restore.sh` rulează ÎN
-containerul de backup, care nu are acces la Docker, deci nu poate opri
-`backend`/`worker`/`scheduler`. Iar schema nu se schimbă sub o aplicație pornită.
-Oprirea scriitorilor trebuie făcută de pe gazdă — asta e tot ce adaugă
-`restore-production.sh`. `restore.sh` își golește singur schema țintei și
-refuză o bază cu conexiuni active, arătând exact comanda de mai sus.
-
-Ce face, în ordine:
-
-| Pas | Ce | De ce |
-|---|---|---|
-| 0 | validează arhiva sursă | ca să nu golim producția și abia apoi să descoperim un dump gol |
-| 1 | **backup al stării curente** | dacă restaurați din greșeală backupul greșit, ăsta e singurul drum înapoi. Merge într-un prefix separat, `<prefix>-pre-restore`: un instantaneu al unei stări stricate nu trebuie să devină „cel mai recent backup" |
-| 2 | oprește `backend`, `worker`, `scheduler` | fără scriitori activi în timpul înlocuirii schemei |
-| 3 | închide conexiunile rămase | `restore.sh` refuză să golească o bază cu conexiuni active |
-| 4 | restaurează | |
-| 5 | repornește, verifică migrațiile + readiness | |
-
-Garduri: fără `CONFIRM=RESTAUREZ-PRODUCTIA` nu pornește; cu un backup invalid se
-oprește **înainte** de a atinge producția; dacă restaurarea eșuează, scriitorii
-rămân opriți deliberat (mai bine indisponibil decât pornit pe o schemă parțială).
-
-**Documentele nu se ating implicit** — doar baza de date. Pentru a restaura și
-bucketul: `RESTORE_DOCUMENTS=1 CONFIRM=… ./scripts/restore-production.sh …`.
-Rețineți că `mc mirror` suprascrie și adaugă, dar **nu șterge** obiectele care
-există live și lipsesc din backup; nu e o oglindire exactă.
-
-Verificat pe 2026-08-11 pe o bază populată, cu `--latest` (adus din bucket):
-cele patru scadențe șterse au revenit, `doctrine:schema:validate` raportează
-*in sync*, scriitorii au repornit, iar backupul stării stricate a rămas în
-`/backups`. Testate și gardurile: fără `CONFIRM`, cu `CONFIRM` greșit și cu un
-backup inexistent — toate refuză fără să atingă producția.
-
-## Dezastru: instanța nu mai există
-
-Scenariul pentru care există copia off-box. Volumul `backups` s-a pierdut odată
-cu mașina, deci întâi aducem mentința din bucket, apoi restaurăm din ea. Pe o
-mașină nouă e suficient checkout-ul repo-ului + `.env.prod` cu variabilele
-`OFFSITE_*`:
-
-```bash
-# 1) ce există la distanță?
-docker compose --env-file .env.prod -f compose.prod.yaml run --rm \
-  --entrypoint fetch-offsite.sh backup --list
-
-# 2) aducem cea mai recentă (verifică integritatea la descărcare)
-docker compose --env-file .env.prod -f compose.prod.yaml run --rm \
-  --entrypoint fetch-offsite.sh backup --latest
-
-# 3) restaurăm din ce am adus
-docker compose --env-file .env.prod -f compose.prod.yaml run --rm \
-  -e DATABASE_URL_RESTORE=… -e S3_ENDPOINT_RESTORE=… …\
-  --entrypoint restore.sh backup /backups/restaurate/<timestamp>
-```
-
-`fetch-offsite.sh` verifică arhivele imediat după descărcare (gzip + marcajul de
-final al dumpului), ca o coruperea în tranzit să fie prinsă înainte de restaurare,
-nu în mijlocul ei.
-
-## Verificări post-restaurare (obligatorii)
-
-Restaurarea „a rulat fără eroare" nu înseamnă „datele sunt acolo". Verificați:
-
-1. **Număr de rânduri**, sursă vs. restaurat, pe tabelele care contează
-   (`users`, `vehicles`, `documents`, `vehicle_deadlines`).
-2. **Istoricul migrațiilor** — `SELECT count(*) FROM doctrine_migration_versions;`
-   Fără el, următorul deploy reaplică migrații deja aplicate.
-3. **Schema se potrivește cu maparea** — `doctrine:schema:validate` → *in sync*.
-4. **Integritatea documentelor la nivel de octeți** — `diff -r` între bucketul
-   sursă și cel restaurat, nu doar numărul de obiecte.
-5. **Readiness** — `GET /api/health/ready` = 200 pe un backend legat la baza
-   restaurată.
-6. Un client de test își vede vehiculele și descarcă un document.
-
-## Alerte obligatorii
-- backup eșuat (cod de ieșire nenul din `backup.sh` / serviciul `backup`);
-- **sincronizare off-box eșuată** — codul de ieșire e nenul și când copia locală
-  a reușit, dar cea la distanță nu (vezi `OFFSITE_*` în `.env.prod.example`);
-- niciun backup în ultimele 26h (`healthcheck.sh` cu `BACKUP_DIR`);
-- storage indisponibil / disc peste prag (`healthcheck.sh`).
+The drill is automated (`scripts/restore-drill.sh`, monthly on the 1st at 06:00
+UTC), so this register grows on its own. Add a row whenever a drill is run by
+hand or an automated one is worth commenting on.
 
 ---
 
-## Registrul drill-urilor
+## Scripts in this directory
 
-| Data | Mediu | Volum | RTO măsurat | RPO | Rezultat |
+| Script | Purpose |
+|---|---|
+| `backup-cron.sh` | The production scheduler: nightly dump + document mirror + off-box copy + retention |
+| `backup.sh` | The `STORAGE_DRIVER=local` variant, for a host cron |
+| `restore.sh` | Restores a backup into an explicitly named target; clears the target schema itself |
+| `fetch-offsite.sh` | Brings a backup back from the off-box bucket (`--list`, `--latest`, or a timestamp) |
+
+All four ship inside the backup image, so a restore runs in the same container
+that produced the backup — the same `pg_dump`/`psql` and `mc` versions, with no
+separate tooling.
+
+---
+
+## Mandatory alerts
+
+- Backup failed (non-zero exit from the `backup` service).
+- **Off-box sync failed** — the exit code is non-zero even when the local copy
+  succeeded.
+- No backup in the last 26 hours (`healthcheck.sh` with `BACKUP_DIR`).
+- Storage unavailable or disk above threshold (`healthcheck.sh`).
+
+All of these are wired: see [`docs/MONITORING.md`](../../docs/MONITORING.md).
+
+---
+
+## Drill register
+
+| Date | Environment | Volume | Measured RTO | RPO | Result |
 |---|---|---|---|---|---|
-| 2026-08-04 | local izolat (Docker, Apple Silicon) | 8 KB DB (20 migrații, 2 utilizatori, 2 vehicule, 4 scadențe) + 5 documente / 1 MB | backup < 1 s, restaurare ~1 s | 24 h (vezi mai jos) | **Trecut** — rânduri identice, 20 de migrații păstrate, documente identice pe octeți (`diff -r`), `schema:validate` *in sync* |
-| 2026-08-04 | local izolat — drill de **dezastru** (backupuri locale șterse, recuperare DOAR din bucket) | 8 KB DB + 3 documente / 441 KB | fetch + restaurare ~2 s | 24 h | **Trecut** — `--list` → `--latest` → `restore.sh`; 2 vehicule, 20 de migrații, documente identice pe octeți. Depozitul off-box a fost MinIO local ca substitut S3-compatibil, **nu** Lightsail. |
-| 2026-08-11 | **PRODUCȚIE** (Lightsail eu-central-1) — backup → bucket `backup-bcss` → fetch → restaurare într-o bază izolată pe aceeași instanță | 6923 B DB (1 utilizator, 0 vehicule), 0 documente | ciclu complet sub 1 min | 24 h | **Trecut** — `off-box ellenőrzés rendben (6923 B)`; restaurat DIN copia adusă din Lightsail; `users/vehicles/deadlines/migratii` identice cu producția. Versionarea obiectelor e activă pe bucket. |
+| 2026-08-04 | Local isolated (Docker, Apple Silicon) | 8 KB DB (20 migrations, 2 users, 2 vehicles, 4 deadlines) + 5 documents / 1 MB | backup < 1s, restore ~1s | 24h | **Passed** — identical row counts, 20 migrations preserved, documents byte-identical (`diff -r`), `schema:validate` in sync |
+| 2026-08-04 | Local isolated — **disaster** drill (local backups deleted, recovery from the bucket only) | 8 KB DB + 3 documents / 441 KB | fetch + restore ~2s | 24h | **Passed** — `--list` → `--latest` → `restore.sh`; 2 vehicles, 20 migrations, byte-identical documents. The off-box store was local MinIO as an S3-compatible stand-in, **not** Lightsail |
+| 2026-08-11 | **PRODUCTION** (Lightsail eu-central-1) — backup → bucket `backup-bcss` → fetch → restore into an isolated database on the same instance | 6923 B DB (1 user, 0 vehicles), 0 documents | full cycle under 1 min | 24h | **Passed** — `off-box verification OK (6923 B)`; restored FROM the copy fetched out of Lightsail; `users`/`vehicles`/`deadlines`/`migrations` identical to production. Object versioning enabled on the bucket |
+| 2026-08-11 | Local isolated — **restore over a populated database** | 8 KB DB, 4 deadlines deliberately deleted first | ~2s | n/a | **Passed** — the four deleted deadlines returned, `schema:validate` in sync, writers restarted, and the pre-restore safety backup was preserved. All three guards verified to refuse without touching production |
 
-### Ce a găsit primul drill
+---
 
-Procedura nu mai fusese niciodată executată. A scos la iveală trei defecte reale,
-toate corectate în același commit:
+## What the first drill found
 
-1. **`pg_dump` nu accepta DSN-ul din `.env.prod.example`.** `serverVersion` și
-   `charset` sunt parametri Doctrine, nu libpq → `invalid URI query parameter`.
-2. **Eșecul era invizibil.** `pg_dump … | gzip > f` întoarce codul de ieșire al
-   *gzip*-ului, deci un dump eșuat producea o arhivă goală de 20 de octeți, pe
-   care `gzip -t` o valida. Backupul raporta succes cu baza de date lipsă.
-3. **Restaurarea pierdea toate documentele.** `backup-cron.sh` scrie
-   `documents.tar.gz`; `restore.sh` căuta `storage.tar.gz`, nu îl găsea, afișa un
-   avertisment și ieșea cu **0** — restaurând doar baza.
+The procedure had never been executed. Running it uncovered three real defects,
+all fixed in the same commit:
 
-Combinate, primele două înseamnă că mentințele de producție de dinaintea acestei
-corecții **trebuie considerate lipsite de bază de date**. Verificați dimensiunea
-arhivelor existente: `ls -lh /backups/*/db.sql.gz` — orice fișier de ~20 de octeți
-este gol.
+1. **`pg_dump` did not accept the DSN from `.env.prod.example`.** `serverVersion`
+   and `charset` are Doctrine parameters, not libpq ones →
+   `invalid URI query parameter`.
+2. **The failure was invisible.** `pg_dump … | gzip > f` returns *gzip's* exit
+   status, so a failed dump produced an empty 20-byte archive that `gzip -t`
+   validated. The backup reported success with no database in it.
+3. **The restore lost every document.** `backup-cron.sh` writes
+   `documents.tar.gz`; `restore.sh` looked for `storage.tar.gz`, did not find it,
+   printed a warning and exited **0** — restoring only the database.
 
-### Ce a găsit drill-ul de producție
+Together, the first two mean production backups taken before this fix **must be
+treated as having no database**. Check the size of any existing archive:
+`ls -lh /backups/*/db.sql.gz` — anything around 20 bytes is empty.
 
-Rulat pe 2026-08-11, a confirmat că toate cele 7 mentințe existente (05–11 august)
-aveau `db.sql.gz` de **20 de octeți** — adică baza de date a producției nu fusese
-niciodată salvată. Documentele erau la fel: bucketul e gol, deci `tar` pica și
-ducea cu el întreaga rulare.
+## What the production drill found
 
-A mai scos la iveală două defecte care apar DOAR pe producție, nu local:
+Run on 2026-08-11, it confirmed that all seven existing backups (5-11 August) had
+a 20-byte `db.sql.gz` — production's database had never actually been backed up.
+Documents were the same story: the bucket was empty, so `tar` failed and took the
+whole run with it.
 
-1. **Imaginea de backup nu avea certificate CA.** `postgres:16` nu instalează
-   `ca-certificates`, deci `mc` respingea orice endpoint HTTPS cu
-   `x509: certificate signed by unknown authority`. Invizibil local, unde ținta
-   off-box era MinIO pe `http://`.
-2. **nginx nu re-rezolva upstream-ul.** Recrearea containerului `backend` îi dă
-   un IP nou, dar `fastcgi_pass backend:9000` (nume literal) rămânea pe cel vechi
-   → 502 pe tot `/api`, cu backend-ul sănătos. Vezi comentariul din
-   `infrastructure/nginx/default.conf`.
+It also surfaced two defects that appear **only** in production, not locally:
 
-### Despre cifre
+1. **The backup image had no CA certificates.** `postgres:16` does not install
+   `ca-certificates`, so `mc` rejected every HTTPS endpoint with
+   `x509: certificate signed by unknown authority`. Invisible locally, where the
+   off-box target was MinIO over plain `http://`.
+2. **nginx did not re-resolve its upstream.** Recreating the `backend` container
+   gives it a new IP, but `fastcgi_pass backend:9000` (a literal name) kept the
+   old one → 502 across all of `/api` with a perfectly healthy backend. See the
+   comment in `infrastructure/nginx/default.conf`.
 
-**RTO-ul măsurat este un prag inferior, nu o promisiune.** A fost obținut pe un
-set de date minuscul, pe un laptop, cu baza și bucketul în aceeași rețea Docker.
-Ce demonstrează este că *procedura* funcționează cap-coadă și că verificările
-prind regresiile. RTO-ul real pe producție scalează cu volumul de documente
-(`mc mirror` domină) și trebuie remăsurat pe server, cu date reale, înainte de a
-promite ceva unui client.
+## What the drill caught in its own tooling
 
-**RPO = 24 h**, structural: serviciul `backup` rulează o dată pe zi, la
-`BACKUP_HOUR` (implicit 03:00 UTC). Nu e o măsurătoare, e o consecință a
-programului. Pentru evidențe de vehicule ale unor persoane fizice, o pierdere de
-până la o zi de muncă e o decizie de produs care merită confirmată explicit; dacă
-nu e acceptabilă, opțiunile sunt backup mai des sau WAL archiving continuu.
+On 2026-08-11 the automated drill failed with:
+
+```
+[FAIL] vehicle_deadlines: production=4 but restored=0 — empty backup?
+```
+
+Not a false alarm. The pre-restore safety backup taken by
+`restore-production.sh` had captured the **broken** state and pushed it into the
+normal off-box rotation, making a known-bad snapshot the newest backup — exactly
+what a later `--latest` would pick up. The safety copy now goes to a separate
+`<prefix>-pre-restore` path.
+
+Worth recording because it is the system working as intended: an automated check
+found a defect in a script that had just been written and reviewed.
+
+---
+
+## About the numbers
+
+**The measured RTO is a lower bound, not a promise.** It was obtained on a tiny
+dataset, on a laptop or a near-empty production database, with the database and
+bucket on the same network. What it demonstrates is that the *procedure* works
+end to end and that the checks catch regressions. Real RTO scales with document
+volume (`mc mirror` dominates) and must be re-measured on the server with real
+data before promising anything to a customer.
+
+**RPO is 24 hours**, structurally: the `backup` service runs once a day at
+`BACKUP_HOUR` (default 03:00 UTC). That is not a measurement, it is a consequence
+of the schedule. For vehicle records belonging to private individuals, losing up
+to a day of work is a product decision worth confirming explicitly; if it is not
+acceptable, the options are more frequent backups or continuous WAL archiving.
+
+**The current drill's data assertions are weak**, because production holds one
+user and no vehicles or documents. The table-set and migration-count checks are
+meaningful; the row-count comparison is not, yet. It strengthens automatically as
+real data accumulates.
