@@ -27,6 +27,47 @@ Fără variabilele `S3_*_RESTORE`, documentele se extrag pe disc local în
 `STORAGE_DIR` (pentru `STORAGE_DRIVER=local`). Scriptul acceptă ambele layout-uri
 de arhivă: `documents.tar.gz` (producție, din bucket) și `storage.tar.gz` (disc local).
 
+## Restaurare PESTE producție (distructivă)
+
+Când baza de producție trebuie înlocuită cu conținutul unui backup — corupție,
+ștergere accidentală, migrație greșită.
+
+```bash
+cd /opt/bcss
+CONFIRM=RESTAUREZ-PRODUCTIA ./scripts/restore-production.sh /backups/<timestamp>
+```
+
+**Nu rulați `restore.sh` direct peste producție.** Nu merge, și e bine că nu
+merge: dumpul conține `CREATE TABLE` fără `DROP`, deci psql se oprește la
+`relation "application_settings" already exists`. Cu `ON_ERROR_STOP=on` se
+oprește la prima instrucțiune, deci nu lasă baza pe jumătate — dar nici nu
+restaurează nimic. Schema trebuie golită explicit înainte, iar asta face
+`restore-production.sh`.
+
+Ce face, în ordine:
+
+| Pas | Ce | De ce |
+|---|---|---|
+| 0 | validează arhiva sursă | ca să nu golim producția și abia apoi să descoperim un dump gol |
+| 1 | **backup al stării curente** | dacă restaurați din greșeală backupul greșit, ăsta e singurul drum înapoi |
+| 2 | oprește `backend`, `worker`, `scheduler` | fără scriitori activi în timpul înlocuirii schemei |
+| 3 | închide conexiunile, `DROP SCHEMA public CASCADE` | vezi mai sus |
+| 4 | restaurează | |
+| 5 | repornește, verifică migrațiile + readiness | |
+
+Garduri: fără `CONFIRM=RESTAUREZ-PRODUCTIA` nu pornește; cu un backup invalid se
+oprește **înainte** de a atinge producția; dacă restaurarea eșuează, scriitorii
+rămân opriți deliberat (mai bine indisponibil decât pornit pe o schemă parțială).
+
+**Documentele nu se ating implicit** — doar baza de date. Pentru a restaura și
+bucketul: `RESTORE_DOCUMENTS=1 CONFIRM=… ./scripts/restore-production.sh …`.
+Rețineți că `mc mirror` suprascrie și adaugă, dar **nu șterge** obiectele care
+există live și lipsesc din backup; nu e o oglindire exactă.
+
+Verificat pe 2026-08-11 pe o bază populată: cele patru scadențe șterse au revenit,
+`doctrine:schema:validate` raportează *in sync*, iar backupul stării stricate a
+rămas în `/backups`.
+
 ## Dezastru: instanța nu mai există
 
 Scenariul pentru care există copia off-box. Volumul `backups` s-a pierdut odată
