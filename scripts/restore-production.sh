@@ -28,7 +28,7 @@ say() { echo; echo "── $* ──"; }
 die() { echo "EROARE: $*" >&2; exit 1; }
 
 # --- Garduri -----------------------------------------------------------------
-[ -n "${SRC}" ] || die "Utilizare: CONFIRM=RESTAUREZ-PRODUCTIA $0 <director-backup>"
+[ -n "${SRC}" ] || die "Utilizare: CONFIRM=RESTAUREZ-PRODUCTIA $0 <director-backup>|--latest"
 [ "${CONFIRM:-}" = "RESTAUREZ-PRODUCTIA" ] || cat >&2 <<EOF
 EROARE: confirmare lipsă.
 
@@ -48,6 +48,18 @@ PGUSER_="${POSTGRES_USER:-bcsc}"
 
 psql_() { "${COMPOSE[@]}" exec -T db psql -U "${PGUSER_}" "$@"; }
 
+# `--latest` = adu singur cea mai recentă copie din depozitul off-box, apoi
+# restaureaz-o. Ăsta e cazul real de urgență: instanța e stricată, iar cel care
+# repară nu trebuie să caute manual timestamp-uri în bucket.
+if [ "${SRC}" = "--latest" ]; then
+  say "aduc cel mai recent backup din depozitul off-box"
+  FETCH_OUT="$("${COMPOSE[@]}" run --rm --no-deps -T --entrypoint fetch-offsite.sh backup --latest < /dev/null 2>&1)" \
+    || { echo "${FETCH_OUT}" >&2; die "nu am putut aduce backupul off-box"; }
+  SRC="$(printf '%s' "${FETCH_OUT}" | grep -oE '/backups/restaurate/[0-9]{8}-[0-9]{6}' | tail -1)"
+  [ -n "${SRC}" ] || die "nu am putut determina directorul adus din bucket"
+  echo "adus: ${SRC}"
+fi
+
 # Backupul indicat trebuie să existe ȘI să conțină un dump real. Fără asta am
 # putea goli producția și abia apoi descoperi că arhiva e goală.
 "${COMPOSE[@]}" run --rm --no-deps -T --entrypoint sh backup -c "
@@ -64,8 +76,20 @@ echo "ținta: baza '${PROD_DB}' din producție"
 # --- 1. plasa de siguranță ----------------------------------------------------
 say "1. backup al stării CURENTE (înainte de a o distruge)"
 # Dacă se restaurează din greșeală backupul greșit, ăsta e singurul drum înapoi.
-"${COMPOSE[@]}" run --rm -T -e BACKUP_ONESHOT=1 backup < /dev/null \
+#
+# Merge într-un PREFIX SEPARAT în bucket, nu în rotația normală. E o copie a unei
+# stări despre care știm că e stricată — de-aia o restaurăm peste. Dacă ar ateriza
+# în rotația obișnuită, ar deveni „cel mai recent backup", adică exact ce ar lua
+# un `--latest` ulterior sau drill-ul lunar. (Prins de propriul drill pe
+# 2026-08-11: după o restaurare, drill-ul a raportat corect
+# `vehicle_deadlines: producție=4 dar restaurat=0`, pentru că cel mai recent
+# backup off-box era instantaneul stării stricate.)
+"${COMPOSE[@]}" run --rm -T \
+  -e BACKUP_ONESHOT=1 \
+  -e OFFSITE_PREFIX="${OFFSITE_PREFIX:-bcss}-pre-restore" \
+  backup < /dev/null \
   || die "backupul de siguranță a eșuat — refuz să continui fără el"
+echo "(copia off-box a stării dinaintea restaurării: prefix '${OFFSITE_PREFIX:-bcss}-pre-restore')"
 
 # --- 2. oprim scriitorii ------------------------------------------------------
 say "2. opresc scriitorii: ${WRITERS[*]}"
@@ -75,14 +99,14 @@ say "2. opresc scriitorii: ${WRITERS[*]}"
 "${COMPOSE[@]}" stop "${WRITERS[@]}"
 
 # --- 3. golim schema ----------------------------------------------------------
-say "3. închid conexiunile rămase și golesc schema"
-# `restore.sh` NU poate scrie peste o schemă existentă: dumpul conține CREATE
-# TABLE fără DROP, deci psql se oprește la „relation already exists" (verificat).
-# De aceea schema trebuie golită explicit. Se oprește la prima eroare.
+say "3. închid conexiunile rămase"
+# Golirea schemei o face `restore.sh` singur. Aici doar ne asigurăm că nu mai e
+# nimeni conectat: restore.sh REFUZĂ să golească o bază cu conexiuni active
+# (protecția lui împotriva ștergerii schemei sub o aplicație pornită), iar un
+# `stop` de container poate lăsa o conexiune muribundă în urmă.
 psql_ -d postgres -c \
   "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${PROD_DB}' AND pid <> pg_backend_pid();" >/dev/null
-psql_ -v ON_ERROR_STOP=1 -d "${PROD_DB}" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" >/dev/null
-echo "schema golită"
+echo "conexiuni închise"
 
 # --- 4. restaurăm -------------------------------------------------------------
 say "4. restaurez din ${SRC}"

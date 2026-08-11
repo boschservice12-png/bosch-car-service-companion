@@ -86,8 +86,38 @@ else
 fi
 
 # 2) Baza de date.
+TARGET_DSN="$(pg_dsn "${DATABASE_URL_RESTORE}")"
+
+# Golim schema țintei ÎNAINTE de restaurare. Dumpul conține `CREATE TABLE` fără
+# `DROP`, deci pe o bază care are deja schema, psql se oprea la
+#   ERROR: relation "application_settings" already exists
+# Cu ON_ERROR_STOP asta e un eșec CURAT (nu lasă baza pe jumătate), dar înseamnă
+# că restaurarea peste o bază existentă pur și simplu nu funcționa, iar
+# operatorul trebuia să știe să ruleze un DROP SCHEMA manual înainte — exact
+# genul de pas care se uită la 3 dimineața. Acum scriptul îl face singur.
+#
+# Ținta e ÎNTOTDEAUNA explicită (DATABASE_URL_RESTORE e obligatoriu, scriptul
+# refuză să ghicească), deci golim doar ce ni s-a cerut explicit să rescriem.
+# RESTORE_KEEP_SCHEMA=1 sare peste, pentru o țintă despre care știți că e goală.
+if [ "${RESTORE_KEEP_SCHEMA:-0}" != "1" ]; then
+  # Dacă altcineva e conectat la țintă, e aproape sigur o bază VIE cu scriitori
+  # activi. Nu golim schema sub picioarele unei aplicații care rulează.
+  OTHERS="$(psql -tAX "${TARGET_DSN}" -c \
+    "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid();" 2>/dev/null || echo 0)"
+  if [ "${OTHERS:-0}" -gt 0 ]; then
+    echo "[restore] EROARE: ținta are ${OTHERS} conexiuni active — pare o bază VIE." >&2
+    echo "[restore] Nu golesc schema sub o aplicație pornită. Pentru producție folosiți:" >&2
+    echo "[restore]   CONFIRM=RESTAUREZ-PRODUCTIA ./scripts/restore-production.sh <backup>" >&2
+    echo "[restore] (oprește întâi backend/worker/scheduler). Ținta NU a fost atinsă." >&2
+    exit 1
+  fi
+  echo "[restore] golesc schema țintei…"
+  psql --quiet --set ON_ERROR_STOP=on "${TARGET_DSN}" \
+    -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+fi
+
 echo "[restore] restaurez baza de date -> DATABASE_URL_RESTORE"
-gunzip -c "${DB_ARCHIVE}" | psql --quiet --set ON_ERROR_STOP=on "$(pg_dsn "${DATABASE_URL_RESTORE}")"
+gunzip -c "${DB_ARCHIVE}" | psql --quiet --set ON_ERROR_STOP=on "${TARGET_DSN}"
 
 # 3) Documentele — pe disc local sau înapoi în bucket, după cum e configurat.
 if [ -n "${DOC_ARCHIVE}" ]; then

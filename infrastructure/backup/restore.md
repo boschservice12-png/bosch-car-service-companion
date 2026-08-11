@@ -9,6 +9,10 @@
 deci restaurarea se face din același container care a produs mentința, fără
 unelte separate:
 
+Pentru restaurarea PESTE producție săriți direct la secțiunea următoare — acolo
+e o singură comandă. Ce urmează aici e restaurarea într-o țintă separată (drill,
+inspecție, mediu paralel).
+
 ```bash
 # 1) țintă IZOLATĂ (niciodată baza de producție!)
 docker compose --env-file .env.prod -f compose.prod.yaml exec db \
@@ -32,17 +36,26 @@ de arhivă: `documents.tar.gz` (producție, din bucket) și `storage.tar.gz` (di
 Când baza de producție trebuie înlocuită cu conținutul unui backup — corupție,
 ștergere accidentală, migrație greșită.
 
+**O singură comandă.** Aduce cea mai recentă copie din depozitul off-box și o
+restaurează peste producție:
+
 ```bash
 cd /opt/bcss
-CONFIRM=RESTAUREZ-PRODUCTIA ./scripts/restore-production.sh /backups/<timestamp>
+CONFIRM=RESTAUREZ-PRODUCTIA ./scripts/restore-production.sh --latest
 ```
 
-**Nu rulați `restore.sh` direct peste producție.** Nu merge, și e bine că nu
-merge: dumpul conține `CREATE TABLE` fără `DROP`, deci psql se oprește la
-`relation "application_settings" already exists`. Cu `ON_ERROR_STOP=on` se
-oprește la prima instrucțiune, deci nu lasă baza pe jumătate — dar nici nu
-restaurează nimic. Schema trebuie golită explicit înainte, iar asta face
-`restore-production.sh`.
+Pentru un backup anume, în loc de `--latest` dați calea:
+`./scripts/restore-production.sh /backups/restaurate/<timestamp>`.
+
+Nu există pași manuali: golirea schemei, oprirea scriitorilor, repornirea și
+verificarea sunt toate în script.
+
+**De ce două scripturi, și nu doar `restore.sh`:** `restore.sh` rulează ÎN
+containerul de backup, care nu are acces la Docker, deci nu poate opri
+`backend`/`worker`/`scheduler`. Iar schema nu se schimbă sub o aplicație pornită.
+Oprirea scriitorilor trebuie făcută de pe gazdă — asta e tot ce adaugă
+`restore-production.sh`. `restore.sh` își golește singur schema țintei și
+refuză o bază cu conexiuni active, arătând exact comanda de mai sus.
 
 Ce face, în ordine:
 
@@ -51,7 +64,7 @@ Ce face, în ordine:
 | 0 | validează arhiva sursă | ca să nu golim producția și abia apoi să descoperim un dump gol |
 | 1 | **backup al stării curente** | dacă restaurați din greșeală backupul greșit, ăsta e singurul drum înapoi |
 | 2 | oprește `backend`, `worker`, `scheduler` | fără scriitori activi în timpul înlocuirii schemei |
-| 3 | închide conexiunile, `DROP SCHEMA public CASCADE` | vezi mai sus |
+| 3 | închide conexiunile rămase | `restore.sh` refuză să golească o bază cu conexiuni active |
 | 4 | restaurează | |
 | 5 | repornește, verifică migrațiile + readiness | |
 
@@ -64,9 +77,11 @@ bucketul: `RESTORE_DOCUMENTS=1 CONFIRM=… ./scripts/restore-production.sh …`.
 Rețineți că `mc mirror` suprascrie și adaugă, dar **nu șterge** obiectele care
 există live și lipsesc din backup; nu e o oglindire exactă.
 
-Verificat pe 2026-08-11 pe o bază populată: cele patru scadențe șterse au revenit,
-`doctrine:schema:validate` raportează *in sync*, iar backupul stării stricate a
-rămas în `/backups`.
+Verificat pe 2026-08-11 pe o bază populată, cu `--latest` (adus din bucket):
+cele patru scadențe șterse au revenit, `doctrine:schema:validate` raportează
+*in sync*, scriitorii au repornit, iar backupul stării stricate a rămas în
+`/backups`. Testate și gardurile: fără `CONFIRM`, cu `CONFIRM` greșit și cu un
+backup inexistent — toate refuză fără să atingă producția.
 
 ## Dezastru: instanța nu mai există
 
