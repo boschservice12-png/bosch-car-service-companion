@@ -110,6 +110,65 @@ secrets, messenger}}` — kritikus függőség hibája **503**-at ad (szándéko
 
 ## 6. Frissítés (új verzió kihúzása)
 
+### 6.a Automatikus deploy (alapértelmezett)
+
+Push a `main`-re elindítja a `.github/workflows/deploy.yml`-t: lefuttatja a
+backend teszteket, megépíti a négy image-et a GitHub runnerein, feltölti őket a
+GHCR-be a commit SHA-jával címkézve, majd SSH-val lefuttatja a szerveren a
+`scripts/deploy-remote.sh`-t (mentés → pull → `up -d` → ellenőrzés).
+
+**Image soha nem épül a produkciós gépen.** Két Next.js fordítás és a PHP
+kiterjesztések ~15 percig lefoglalják mindkét vCPU-t, ugyanazon a gépen, amelyik
+a pilotot szolgálja ki.
+
+Egyszeri beállítás:
+
+1. **Repo secretek** (Settings → Secrets and variables → Actions):
+
+   | Secret | Érték |
+   |---|---|
+   | `DEPLOY_HOST` | `54.93.39.7` |
+   | `DEPLOY_USER` | `ubuntu` (opcionális, ez az alapértelmezés) |
+   | `DEPLOY_SSH_KEY` | egy **erre a célra** generált privát kulcs (lásd lent) |
+   | `DEPLOY_KNOWN_HOSTS` | `ssh-keyscan -H 54.93.39.7` kimenete |
+
+   A deploy kulcsot külön generáljuk, nem a személyes kulcsot használjuk:
+
+   ```bash
+   ssh-keygen -t ed25519 -f ~/bcss-deploy -C "github-actions-deploy" -N ""
+   ssh-copy-id -i ~/bcss-deploy.pub ubuntu@54.93.39.7
+   cat ~/bcss-deploy          # ez megy a DEPLOY_SSH_KEY secretbe
+   ssh-keyscan -H 54.93.39.7  # ez megy a DEPLOY_KNOWN_HOSTS secretbe
+   rm ~/bcss-deploy           # a szerveren és a secretben már megvan
+   ```
+
+   A `DEPLOY_KNOWN_HOSTS`-ot szándékosan secretként tároljuk, nem `ssh-keyscan`-nel
+   szerezzük deploy közben: ha bármilyen felkínált kulcsot elfogadunk, a
+   host-ellenőrzésnek nincs értelme.
+
+2. **A szerver bejelentkezése a GHCR-be** (egyszer, `read:packages` jogú PAT-tal):
+
+   ```bash
+   echo <PAT> | docker login ghcr.io -u <github-felhasznalo> --password-stdin
+   ```
+
+   Enélkül a `docker compose pull` 401-gyel elhasal, a deploy pedig — helyesen —
+   megáll, mielőtt bármit elindítana.
+
+3. Az **`production` environment** a repo beállításaiban: itt lehet kötelező
+   jóváhagyást kérni deploy előtt, ha szeretnétek.
+
+### 6.b Kézi deploy (vagy ha a CI nem elérhető)
+
+Ugyanaz a szkript, ugyanazok a lépések:
+
+```bash
+cd /opt/bcss
+IMAGE_TAG=<sha> bash scripts/deploy-remote.sh
+```
+
+Vagy a régi, teljesen kézi út (image-ek helyben épülnek — **lassú, kerülendő**):
+
 ```bash
 git pull
 docker compose --env-file .env.prod -f compose.prod.yaml up -d --build

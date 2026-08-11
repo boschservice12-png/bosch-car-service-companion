@@ -107,30 +107,40 @@ there is no other source of truth for the generated credentials.
 
 ## 6. Deploying
 
-Manual:
+**Push to `main` deploys to production.** `.github/workflows/deploy.yml` runs the backend tests,
+builds the four images on GitHub runners, pushes them to GHCR tagged with the commit SHA, then
+SSHes to the server and runs `scripts/deploy-remote.sh`.
 
-```bash
-cd /opt/bcss
-git pull
-IMAGE_TAG=<sha> docker compose --env-file .env.prod -f compose.prod.yaml pull
-docker compose --env-file .env.prod -f compose.prod.yaml up -d
-```
+The four images are `bcsc-backend`, `bcsc-customer-web`, `bcsc-service-admin`, `bcsc-backup`
+under `ghcr.io/boschservice12-png`. `worker`, `migrate`, and `scheduler` all reuse the backend
+image. All four are rebuilt on every deploy even when only one changed — otherwise the current
+SHA tag would not exist for the unchanged services and `docker compose pull` would fail on the
+server. GHA layer caching keeps the unchanged ones cheap.
 
-Automated (in progress — see §9): push to `main` triggers GitHub Actions, which builds the four
-images on GitHub runners, pushes them to GHCR tagged with the commit SHA, then SSHes to the
-server to pull, run a one-shot backup, and restart.
+The server-side steps live in `scripts/deploy-remote.sh` rather than inline YAML so they can be
+read, reviewed, and run by hand identically: `IMAGE_TAG=<sha> bash scripts/deploy-remote.sh`.
+It refuses to run on a dirty working tree, backs up **before** deploying, pulls explicitly before
+`up -d`, checks that `migrate` exited 0, and finishes by running `healthcheck.sh` — the same
+definition of "healthy" the monitoring uses.
 
 **Never build on the production box.** Two Next.js compiles plus the PHP extension build peg
-both vCPUs for roughly 15 minutes while the same machine serves the pilot.
+both vCPUs for roughly 15 minutes while the same machine serves the pilot. This is why the deploy
+script pulls explicitly with `set -e` before `up -d`: the services still carry a `build:` section,
+so an `up` that cannot find an image would quietly start compiling on the server.
 
 Rollback (code only, not schema):
 
 ```bash
+cd /opt/bcss
+git reset --hard <previous-sha>
 IMAGE_TAG=<previous-sha> docker compose --env-file .env.prod -f compose.prod.yaml up -d
 ```
 
-Schema problems require a restore from backup instead — the backend entrypoint runs
-`doctrine:migrations:migrate` on every start, so a bad migration is applied automatically.
+A failed deploy prints exactly this, with the real previous SHA filled in.
+
+Schema problems require a restore from backup instead — the `migrate` service applies migrations
+on every deploy, so a bad migration lands automatically. The deploy takes a backup immediately
+before that happens; see `infrastructure/backup/restore.md`.
 
 ---
 
@@ -217,19 +227,26 @@ the new `scheduler` service; restore exercised end-to-end including the disaster
 status so the failure was silent — `gzip -t` then certified the empty archive as intact. Fixed in
 `f855587`. If you ever see a suspiciously small `db.sql.gz`, this is why.
 
-**Deployment pipeline (partly built):**
-- `image:` entries pointing at `ghcr.io/boschservice12-png/bcsc-<service>:${IMAGE_TAG:-latest}`
-  need adding to the four built services in `compose.prod.yaml`, alongside the existing `build:`.
-  `worker` reuses the backend image.
-- `.github/workflows/deploy.yml` — build matrix pushing to GHCR, then SSH deploy.
-- Repo secrets: `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`.
-- Server needs a one-time `docker login ghcr.io` with a `read:packages` PAT.
-- Dockerfile paths confirmed 2026-08-11: there are only **two** under `infrastructure/docker/` —
-  `backend.Dockerfile` (`php:8.3-fpm`) and a shared `frontend.Dockerfile` (`node:20-bookworm-slim`)
-  used by both apps — plus `infrastructure/backup/Dockerfile`. Both bases are pinned, so the
-  unpinned-`node:` concern in §7 is closed.
-- `migrate` and `scheduler` reuse the backend image and need the same `image:` treatment as
-  `worker`.
+**Deployment pipeline — built 2026-08-11, NOT yet exercised.** The workflow, the GHCR image
+refs, and `scripts/deploy-remote.sh` are in place and the four images build with the exact
+context/Dockerfile pairs the workflow uses. What has *not* happened is a real run: no push has
+gone through it, the server has never pulled from GHCR, and the SSH path is untested. Before
+relying on it, complete the one-time setup in `docs/DEPLOY_PILOT.md` §6.a — repo secrets and
+`docker login ghcr.io` on the server — then watch the first deploy rather than assuming it works.
+
+*Remaining one-time setup (see `docs/DEPLOY_PILOT.md` §6.a for the commands):*
+- Repo secrets: `DEPLOY_HOST`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (and optionally
+  `DEPLOY_USER`, default `ubuntu`). Generate a dedicated deploy key, not a personal one.
+- Server needs a one-time `docker login ghcr.io` with a `read:packages` PAT. Without it
+  `docker compose pull` returns 401 and the deploy stops — correctly — before starting anything.
+- Optional: a `production` environment in repo settings if you want manual approval on deploys.
+
+*Already done:* GHCR `image:` refs on all four built services (`migrate`, `scheduler`, and
+`worker` share the backend image); `.github/workflows/deploy.yml`; `scripts/deploy-remote.sh`.
+Dockerfile paths confirmed — only **two** under `infrastructure/docker/`, `backend.Dockerfile`
+(`php:8.3-fpm`) and a shared `frontend.Dockerfile` (`node:20-bookworm-slim`) used by both apps,
+plus `infrastructure/backup/Dockerfile`. All bases pinned, so the unpinned-`node:` concern in §7
+is closed.
 
 **Product / code:**
 - No automated notification provider. Everything stops at `MANUAL_ACTION_REQUIRED`; email is

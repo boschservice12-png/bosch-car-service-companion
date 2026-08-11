@@ -1,0 +1,169 @@
+name: Deploy (producție)
+
+# Push pe `main` => construiește cele patru imagini pe runnerii GitHub, le
+# publică în GHCR etichetate cu SHA-ul commit-ului, apoi face SSH pe server ca
+# să facă backup, să tragă imaginile și să repornească.
+#
+# Imaginile NU se construiesc niciodată pe mașina de producție: două compilări
+# Next.js plus extensiile PHP ocupă ambele vCPU-uri ~15 minute, pe aceeași
+# mașină care servește pilotul.
+on:
+  push:
+    branches: [ "main" ]
+  # Permite reluarea manuală a unui deploy (sau deploy-ul unui commit anume).
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit/branch de publicat (implicit: main)"
+        required: false
+        default: "main"
+
+concurrency:
+  group: deploy-production
+  # NU anulăm un deploy în curs: oprit între `migrate` și `up -d`, ar lăsa
+  # stiva pe jumătate migrată.
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Poartă. `backend-ci.yml` are filtre pe căi, deci NU rulează la fiecare push
+  # pe main — un deploy nu se poate baza pe el. Frontendurile sunt acoperite
+  # implicit: `next build` rulează în interiorul imaginii, deci un frontend rupt
+  # oprește construcția.
+  test:
+    name: Teste backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pdo_sqlite, intl, ctype, iconv, mbstring
+          coverage: none
+          tools: composer:v2
+
+      - name: Instalare dependențe
+        working-directory: backend
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Lint container (prod + test)
+        working-directory: backend
+        env:
+          APP_SECRET: ci-lint
+          CLAMAV_HOST: clamav
+          CLAMAV_PORT: "3310"
+          DATABASE_URL: "postgresql://u:p@db:5432/d?serverVersion=16&charset=utf8"
+          MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=0"
+          STORAGE_DRIVER: s3
+          S3_ENDPOINT: http://minio:9000
+          S3_BUCKET: b
+          S3_KEY: k
+          S3_SECRET: s
+          S3_REGION: eu-central-1
+          CORS_ALLOW_ORIGIN: https://app.bcss.ro
+          APP_TIMEZONE: Europe/Bucharest
+        run: |
+          php bin/console lint:container --env=prod
+          php bin/console lint:container --env=test
+          php bin/console lint:yaml config --parse-tags
+
+      - name: PHPUnit
+        working-directory: backend
+        env:
+          APP_ENV: test
+        run: |
+          php bin/console doctrine:schema:create --env=test
+          vendor/bin/phpunit
+
+  # --------------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.name }}
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # `worker`, `migrate` și `scheduler` refolosesc imaginea backend-ului.
+          - name: backend
+            context: ./backend
+            file: infrastructure/docker/backend.Dockerfile
+          - name: customer-web
+            context: ./apps/customer-web
+            file: infrastructure/docker/frontend.Dockerfile
+          - name: service-admin
+            context: ./apps/service-admin
+            file: infrastructure/docker/frontend.Dockerfile
+          - name: backup
+            context: ./infrastructure/backup
+            file: infrastructure/backup/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Construim TOATE cele patru de fiecare dată, chiar dacă s-a schimbat doar
+      # una. Altfel eticheta cu SHA-ul curent ar lipsi pentru serviciile
+      # nemodificate, iar `docker compose pull` ar pica pe server. Cache-ul GHA
+      # face rebuild-urile nemodificate ieftine.
+      - name: Build & push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/bcsc-${{ matrix.name }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/bcsc-${{ matrix.name }}:latest
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  # --------------------------------------------------------------------------
+  deploy:
+    name: Deploy pe server
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
+
+      - name: Configurare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Amprenta gazdei vine dintr-un secret, NU din `ssh-keyscan` la runtime:
+          # a accepta orice cheie prezentată în momentul deploy-ului anulează
+          # rostul verificării.
+          printf '%s\n' "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+              "${{ secrets.DEPLOY_USER || 'ubuntu' }}@${{ secrets.DEPLOY_HOST }}" \
+              "IMAGE_TAG='${{ github.sha }}' bash -s" < scripts/deploy-remote.sh
+
+      - name: Curățare chei
+        if: always()
+        run: rm -f ~/.ssh/deploy_key ~/.ssh/known_hosts
