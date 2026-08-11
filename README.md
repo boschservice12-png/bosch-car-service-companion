@@ -90,6 +90,29 @@ cd e2e && npm install && npx playwright test
 | Teste e2e de browser | `e2e/README.md` |
 | Decizii de arhitectură | `docs/architecture/` (inclusiv `adr/`) |
 
+## În curs — notificări automate (NU sunt implementate)
+
+**Sistemul nu trimite nicio notificare automată.** Nu există furnizor de e-mail,
+push sau WhatsApp configurat. Fiecare notificare — inclusiv avertismentele de
+scadență (ITP, RCA, rovinietă), care sunt motivul principal pentru care un client
+folosește aplicația — se oprește în starea `MANUAL_ACTION_REQUIRED` și așteaptă
+ca **un om să trimită mesajul**.
+
+Ce există deja:
+
+- `NotificationDelivery` (`backend/src/Notification/`) e contractul, pregătit
+  pentru o implementare reală;
+- `ManualNotificationDelivery` e implementarea curentă: marchează
+  `MANUAL_ACTION_REQUIRED` / `SKIPPED`, niciodată `SENT` „orb";
+- `app:deadlines:scan` calculează corect ce ar trebui trimis și când.
+
+Ce lipsește: un furnizor real (SMTP/SES/Postmark pentru e-mail, provider push
+pentru PWA) și o decizie de cost/GDPR privind canalul.
+
+**Cine preia pilotul trebuie să știe asta înainte de primii utilizatori reali.**
+Un client care se așteaptă la o alertă de expirare a ITP-ului nu o va primi
+automat. Fără acest pas, promisiunea centrală a produsului e servită manual.
+
 ## Atenție — demo-ul vechi
 
 `archive/legacy-demo/` conține prototipul inițial (Vite/TanStack, date stocate

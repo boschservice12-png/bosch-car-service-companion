@@ -1,6 +1,10 @@
 # Backup ütemező kép: PostgreSQL kliens (pg_dump) + MinIO kliens (mc).
 # A `mc` binárist a hivatalos minio/mc képből másoljuk (nincs runtime letöltés).
-FROM minio/mc:latest AS mc
+# Rögzített verzió: a `:latest` ugyanaz a csapda, mint a php:8-fpm elsodródása
+# (lásd CLAUDE.md 7. szakasz). Az `mc` végzi a mentések off-box másolását, tehát
+# egy néma verzióváltás pont a mentési útvonalat érintené. Ugyanez a verzió
+# szerepel a compose.prod.yaml `minio-setup` szolgáltatásánál — együtt frissítsd.
+FROM minio/mc:RELEASE.2025-08-13T08-35-41Z AS mc
 
 FROM postgres:16
 
