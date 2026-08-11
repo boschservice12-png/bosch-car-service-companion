@@ -46,5 +46,28 @@ step "Docker Compose — validare configurație"
 docker compose -f compose.demo.yaml config -q
 docker compose -f infrastructure/docker/docker-compose.yml config -q
 
+# compose.prod.yaml — fișierul care descrie PRODUCȚIA — nu era validat de nimic.
+# Motivul: serviciile au `env_file: [.env.prod]`, iar acel fișier e gitignorat și
+# lipsește din repo, deci `config` pica. `--env-file` NU ajută: el controlează
+# doar substituția variabilelor, nu directiva `env_file` per serviciu. Deci avem
+# nevoie de un `.env.prod` REAL pe disc, fie cel existent, fie unul temporar
+# construit din exemplu.
+if [ -f .env.prod ]; then
+  # Pe un server cu configurație reală: o folosim, nu o atingem.
+  docker compose --env-file .env.prod -f compose.prod.yaml config -q \
+    || { echo "compose.prod.yaml INVALID" >&2; exit 1; }
+else
+  # Pe o mașină de dezvoltare / în CI: fabricăm unul temporar și îl ștergem.
+  # Ștergerea e în trap, ca să nu rămână un `.env.prod` fals dacă scriptul pică
+  # la mijloc — un fișier fantomă acolo ar deruta următorul deploy.
+  sed -e 's|<[^>]*>|placeholder|g' .env.prod.example > .env.prod
+  trap 'rm -f "${ROOT}/.env.prod"' EXIT
+  docker compose --env-file .env.prod -f compose.prod.yaml config -q \
+    || { echo "compose.prod.yaml INVALID" >&2; exit 1; }
+  rm -f .env.prod
+  trap - EXIT
+fi
+echo "compose.prod.yaml OK"
+
 echo
 echo "==== Suită de regresie: TOATE verificările au trecut ===="

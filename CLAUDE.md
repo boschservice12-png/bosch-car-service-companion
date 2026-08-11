@@ -207,20 +207,27 @@ keys with no tested code path. Migration later is an env-var change.
 ## 9. Open items
 
 **Operational, before real users:**
-- **Nothing runs `healthcheck.sh` on a schedule.** It exists, it works, and it would have caught
-  the 2026-08-11 `/api` outage within a minute. Needs a cron entry plus somewhere for a non-zero
-  exit to actually reach a human.
-- Lightsail automatic snapshots.
-- Re-run the restore drill once real customer data exists. The 2026-08-11 run passed, but
-  production held one user and zero vehicles/documents, so it proves the mechanism, not its
-  behaviour at volume.
+- **Lightsail automatic snapshots** — not configured. Backups protect data; snapshots protect the
+  machine. Rebuilding the instance is still a manual exercise.
+- **`minio/minio` and `minio/mc` carry no tag**, so they resolve to `:latest`. The deploy no
+  longer pulls third-party images, so they will not drift underneath you during a deploy, but an
+  explicit pull would still surprise you. Pin them against whatever is currently running.
+- **The alerting break test.** The dead-man's switch has only ever reported success. Until a
+  failure has actually reached a human inbox, the alerting half is an assumption. Ten minutes:
+  `docker compose stop api`, wait, confirm the email, start it again.
 - RPO is 24h by construction (one backup at 03:00 UTC). Fine for now; confirm it is acceptable
   before real customer records accumulate.
+- The restore drill passes, but production holds one user and no vehicles or documents, so it
+  proves mechanism rather than behaviour at volume. The monthly drill re-checks this
+  automatically as data grows.
 
 *Closed 2026-08-11 (see `infrastructure/backup/restore.md` for the drill record):* off-box sync
 to Lightsail object storage with read-back verification; `app:gdpr:purge` on a daily schedule via
 the new `scheduler` service; restore exercised end-to-end including the disaster path
-(`fetch-offsite.sh` → `restore.sh` from the bucket alone).
+(`fetch-offsite.sh` → `restore.sh` from the bucket alone); dead-man's-switch monitoring on a
+5-minute cron; **an automated monthly restore drill** (`scripts/restore-drill.sh`) so "restore
+works" stays true instead of expiring the day after someone checked; `compose.prod.yaml` now
+validated by `regression.sh`; the dead Caddy 8081 publish removed.
 
 **Backups were empty for seven nights.** Between 2026-08-05 and 2026-08-11 every `db.sql.gz` was
 20 bytes: `pg_dump` rejected the Doctrine DSN, and `pg_dump | gzip > f` returned gzip's exit

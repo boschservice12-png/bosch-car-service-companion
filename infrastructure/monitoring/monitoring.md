@@ -43,12 +43,20 @@ serviciu extern (healthchecks.io). Serviciul alertează când pingul ÎNCETEAZĂ
 verificare picată, cron oprit, disc plin sau instanță dispărută. Tăcerea devine
 alarma.
 
-Două verificări, cu programe și costuri diferite:
+Trei verificări, cu programe și costuri diferite:
 
 | Script | Frecvență | Ce acoperă |
 |---|---|---|
-| `cron-healthcheck.sh` | 5 min | liveness, readiness (inclusiv `scanner`/`messenger`), disc, vârsta backupului LOCAL |
+| `cron-healthcheck.sh` | 5 min | liveness, readiness (inclusiv `scanner`/`messenger`), disc, vârsta ȘI dimensiunea backupului LOCAL |
 | `check-offsite-freshness.sh` | zilnic 05:00 UTC | există un backup recent ÎN BUCKET |
+| `../../scripts/restore-drill.sh` | lunar, ziua 1, 06:00 UTC | backupul off-box chiar se **restaurează** și conține date |
+
+A treia e cea care contează pe termen lung. „Restaurarea a fost testată" e
+adevărat exact în ziua în care cineva a testat-o; peste trei luni e din nou o
+presupunere. Drill-ul aduce cel mai recent backup DIN bucket, îl restaurează
+într-o bază de unică folosință, compară setul de tabele, numărul de migrații și
+rândurile față de producție, apoi șterge baza. Producția nu e atinsă, iar baza
+temporară se curăță și dacă drill-ul pică.
 
 A doua nu e un lux. `healthcheck.sh` se uită doar la backupurile locale: dacă
 cheile Lightsail expiră sau sunt rotite, mentințele locale continuă să reușească,
@@ -58,9 +66,13 @@ container, nu doar un `curl`.
 
 ### Instalare (o singură dată, pe server)
 
-1. Creați **două** verificări în healthchecks.io — una „BCSS health" (period 5m,
-   grace 5m), una „BCSS off-box backup" (period 1 day, grace 6h). Copiați cele
-   două URL-uri de ping.
+1. Creați **trei** verificări în healthchecks.io și copiați URL-urile de ping:
+
+   | Verificare | Period | Grace |
+   |---|---|---|
+   | BCSS health | 5 minute | 5 minute |
+   | BCSS off-box backup | 1 day | 6 hours |
+   | BCSS restore drill | 31 days | 2 days |
 
 2. Puneți configurația într-un fișier cu drepturi restrânse. **URL-urile de ping
    sunt secrete** — oricine le are poate falsifica „sunt sănătos":
@@ -72,6 +84,7 @@ container, nu doar un `curl`.
    COMPOSE_DIR=/opt/bcss
    HC_PING_URL=https://hc-ping.com/<uuid-health>
    HC_PING_URL_OFFSITE=https://hc-ping.com/<uuid-offsite>
+   HC_PING_URL_DRILL=https://hc-ping.com/<uuid-drill>
    EOF
    sudo chmod 600 /etc/bcss-monitoring.env
    ```
@@ -83,6 +96,7 @@ container, nu doar un `curl`.
    ```cron
    */5 * * * * /opt/bcss/infrastructure/monitoring/cron-healthcheck.sh >/dev/null 2>&1
    0 5 * * * /opt/bcss/infrastructure/monitoring/check-offsite-freshness.sh >/dev/null 2>&1
+   0 6 1 * * /opt/bcss/scripts/restore-drill.sh >/dev/null 2>&1
    ```
 
    O intrare de crontab trebuie să încapă pe o **singură linie fizică**. Varianta
@@ -93,10 +107,11 @@ container, nu doar un `curl`.
    Ora 05:00 pentru a doua e deliberată: după fereastra de backup (03:00), cu
    marjă dacă rularea durează.
 
-   Verificați că s-au instalat ca DOUĂ intrări, nu patru:
+   Verificați că s-au instalat ca TREI intrări, nu șase (o intrare de crontab
+   ruptă în două e respinsă cu `bad minute`):
 
    ```bash
-   sudo crontab -l | grep -c 'monitoring/'   # trebuie să dea 2
+   sudo crontab -l | grep -cE 'monitoring/|restore-drill'   # trebuie să dea 3
    ```
 
 4. Verificați că funcționează **provocând un eșec**, nu doar o reușită:
@@ -111,7 +126,8 @@ container, nu doar un `curl`.
    O alertă netestată e o presupunere. Asta e singurul mod de a ști că lanțul
    întreg — cron → script → ping → notificare — chiar ajunge la un om.
 
-Loguri locale: `/var/log/bcss-healthcheck.log`, `/var/log/bcss-offsite-check.log`.
+Loguri locale: `/var/log/bcss-healthcheck.log`, `/var/log/bcss-offsite-check.log`,
+`/var/log/bcss-restore-drill.log`.
 
 ## Ce mai merită urmărit (din logurile aplicației)
 
