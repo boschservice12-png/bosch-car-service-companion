@@ -1,33 +1,35 @@
-# Backup ütemező kép: PostgreSQL kliens (pg_dump) + MinIO kliens (mc).
-# A `mc` binárist a hivatalos minio/mc képből másoljuk (nincs runtime letöltés).
-# Rögzített verzió: a `:latest` ugyanaz a csapda, mint a php:8-fpm elsodródása
-# (lásd CLAUDE.md 7. szakasz). Az `mc` végzi a mentések off-box másolását, tehát
-# egy néma verzióváltás pont a mentési útvonalat érintené. Ugyanez a verzió
-# szerepel a compose.prod.yaml `minio-setup` szolgáltatásánál — együtt frissítsd.
+# Backup scheduler image: PostgreSQL client (pg_dump) + MinIO client (mc).
+#
+# The `mc` binary is copied from the official minio/mc image (no runtime
+# download). Pinned version: `:latest` is the same trap as the php:8-fpm drift
+# documented in docs/TROUBLESHOOTING.md. `mc` performs the off-box copy of the
+# backups, so a silent version change would land squarely on the backup path.
+# The same version appears in compose.prod.yaml's `minio-setup` service —
+# update them together.
 FROM minio/mc:RELEASE.2025-08-13T08-35-41Z AS mc
 
 FROM postgres:16
 
-# A postgres:16 image NEM tartalmaz CA-tanúsítványokat (`ca-certificates` nincs
-# telepítve, /etc/ssl/certs/ca-certificates.crt nem létezik). Emiatt az `mc`
-# minden HTTPS-végpontot elutasít:
+# The postgres:16 image ships NO CA certificates (`ca-certificates` is not
+# installed and /etc/ssl/certs/ca-certificates.crt does not exist). Without them
+# `mc` rejects every HTTPS endpoint:
 #   x509: certificate signed by unknown authority
-# Sima HTTP-s MinIO ellen ez nem látszik — csak valódi, TLS-es off-box tár
-# (Lightsail object storage, AWS S3) ellen jön elő.
+# This is invisible against a plain-HTTP MinIO and only appears against a real
+# TLS off-box store (Lightsail object storage, AWS S3).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=mc /usr/bin/mc /usr/local/bin/mc
 COPY backup-cron.sh /usr/local/bin/backup-cron.sh
-# A restore.sh-nak ITT a helye, a mentés MELLETT: a drillt (és egy éles
-# visszaállítást) ugyanabban a konténerben kell tudni futtatni, ami a mentést
-# készítette — ugyanaz a pg_dump/psql és mc verzió, külön eszközök nélkül.
+# restore.sh belongs HERE, next to the backup: the drill (and a real recovery)
+# must be runnable in the same container that produced the backup — the same
+# pg_dump/psql and mc versions, with no separate tooling.
 #   docker compose … run --rm --entrypoint restore.sh backup /backups/<ts>
 COPY restore.sh /usr/local/bin/restore.sh
 COPY backup.sh /usr/local/bin/backup.sh
-# A katasztrófa-forgatókönyv eszköze: ezzel lehet visszahozni egy mentést a
-# bucketből, ha maga az instance (és vele a `backups` volume) elveszett.
+# The disaster-scenario tool: brings a backup back from the bucket when the
+# instance itself (and with it the `backups` volume) has been lost.
 COPY fetch-offsite.sh /usr/local/bin/fetch-offsite.sh
 RUN chmod +x /usr/local/bin/backup-cron.sh /usr/local/bin/restore.sh \
              /usr/local/bin/backup.sh /usr/local/bin/fetch-offsite.sh

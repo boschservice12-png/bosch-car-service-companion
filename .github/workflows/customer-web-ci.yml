@@ -1,7 +1,8 @@
 name: Customer Web CI
 
-# PWA client (Next.js) — rulează doar pentru apps/customer-web; nu atinge
-# frontend-ul din rădăcină.
+# Customer PWA (Next.js) — runs for apps/customer-web only.
+# Path-filtered, so it does not run on every push to main; the deploy workflow
+# builds this app's image regardless, which catches a broken build.
 on:
   push:
     branches: [ "claude/**", "main" ]

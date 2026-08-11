@@ -1,11 +1,16 @@
-# Compose de PRODUCȚIE pentru pilot — stivă completă, neutră față de hosting.
-# Rulare:
-#   cp .env.prod.example .env.prod   # completați secretele!
-#   docker compose --env-file .env.prod -f compose.prod.yaml up -d --build
+# PRODUCTION compose for the pilot — the complete stack, hosting-neutral.
 #
-# Frontendurile sunt BUILD-uite (next build + next start), storage-ul e S3/MinIO,
-# scanarea antimalware e ClamAv (activă în APP_ENV=prod), iar Caddy termină TLS.
-# Vezi docs/DEPLOY_PILOT.md pentru procedura completă.
+# Run:
+#   cp .env.prod.example .env.prod   # fill in the secrets!
+#   docker compose --env-file .env.prod -f compose.prod.yaml up -d
+#
+# The frontends are BUILT (next build + next start), storage is S3/MinIO,
+# antimalware scanning is ClamAV (active when APP_ENV=prod), and Caddy
+# terminates TLS. See docs/DEPLOYMENT.md for the full procedure.
+#
+# Images are normally pulled from GHCR by the deploy pipeline rather than built
+# here; the `build:` sections exist for local work and emergencies. Never build
+# on the production box — see docs/DEPLOYMENT.md.
 name: bcsc-prod
 
 services:
@@ -14,7 +19,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-bcsc}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?setați POSTGRES_PASSWORD în .env.prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
       POSTGRES_DB: ${POSTGRES_DB:-bcsc}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -32,25 +37,25 @@ services:
       - redisdata:/data
 
   minio:
-    # Fixat pe versiunea rulată și verificată în producție (2026-08-11).
-    # `minio/minio` fără etichetă înseamnă `:latest` — exact capcana din §7 a
-    # CLAUDE.md, care a spart deja o dată build-ul backendului (php:8-fpm ->
-    # PHP 8.5). Pentru stocarea documentelor clienților, un upgrade neplanificat
-    # de server de obiecte nu e ceva ce vrei să descoperi la un restart.
+    # Pinned to the release running and verified in production (2026-08-11).
+    # `minio/minio` without a tag means `:latest` — exactly the trap described in
+    # docs/TROUBLESHOOTING.md, which already broke the backend build once
+    # (php:8-fpm drifting to PHP 8.5). For the object store holding customer
+    # documents, an unplanned upgrade is not something to discover at a restart.
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?setați MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?setați MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
     volumes:
       - miniodata:/data
 
-  # Creează bucketul privat o singură dată, apoi iese. Backend-ul așteaptă
-  # finalizarea lui cu succes înainte de pornire.
+  # Creates the private bucket once, then exits. The backend waits for it to
+  # complete successfully before starting.
   minio-setup:
-    # Fixat, din același motiv ca serverul MinIO de mai sus. Aceeași versiune e
-    # folosită și în infrastructure/backup/Dockerfile — schimbați-le împreună.
+    # Pinned for the same reason as the MinIO server above. The same version is
+    # used in infrastructure/backup/Dockerfile — change them together.
     image: minio/mc:RELEASE.2025-08-13T08-35-41Z
     depends_on:
       minio:
@@ -61,10 +66,10 @@ services:
       S3_BUCKET: ${S3_BUCKET:-bcsc-documents}
     entrypoint: >
       /bin/sh -c "
-      until mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do echo 'aștept minio…'; sleep 2; done;
+      until mc alias set local http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do echo 'waiting for minio…'; sleep 2; done;
       mc mb -p local/$$S3_BUCKET || true;
       mc anonymous set none local/$$S3_BUCKET;
-      echo 'bucket pregătit (privat).'
+      echo 'bucket ready (private).'
       "
 
   clamav:
@@ -78,11 +83,11 @@ services:
       timeout: 10s
       retries: 10
 
-  # Migrații — serviciu ONE-SHOT, proprietarul unic al schemei. Rulează, iese cu 0,
-  # iar `backend` și `worker` pornesc abia după aceea. Bariera trebuie să fie
-  # explicită: `service_started` pe backend se declanșa la pornirea containerului,
-  # nu după terminarea migrațiilor, ceea ce lăsa workerul să concureze pe crearea
-  # tabelei `messenger_messages`. Folosește imaginea construită de `backend`.
+  # Migrations — a ONE-SHOT service and the single owner of the schema. It runs,
+  # exits 0, and only then do `backend` and `worker` start. The barrier has to be
+  # explicit: `service_started` on the backend fired the moment the container
+  # started, not when migrations finished, which let the worker race the creation
+  # of the `messenger_messages` table. Uses the image built by `backend`.
   migrate:
     image: ${BCSS_REGISTRY:-ghcr.io/boschservice12-png}/bcsc-backend:${IMAGE_TAG:-latest}
     restart: "no"
@@ -97,8 +102,8 @@ services:
       db:
         condition: service_healthy
 
-  # Backend PHP-FPM. NU rulează migrații (vezi serviciul `migrate`) — doar
-  # încălzește cache-ul și servește prin FastCGI către nginx-ul `api`.
+  # PHP-FPM backend. It does NOT run migrations (see the `migrate` service) —
+  # it only warms the cache and serves over FastCGI to the `api` nginx.
   backend:
     build:
       context: ./backend
@@ -120,7 +125,9 @@ services:
       minio-setup:
         condition: service_completed_successfully
 
-  # Nginx pentru backend (FastCGI). Punctul de intrare intern al API-ului: `http://api`.
+  # Nginx in front of the backend (FastCGI). The API's internal entry point:
+  # `http://api`. Its config must re-resolve the backend hostname at runtime —
+  # see infrastructure/nginx/default.conf for why.
   api:
     image: nginx:1.27
     restart: unless-stopped
@@ -129,12 +136,12 @@ services:
     depends_on:
       - backend
 
-  # Worker Messenger: scanare antimalware documente + notificări. NU rulează
-  # migrații. Restart automat la time-limit/eroare.
+  # Messenger worker: document antimalware scanning + notifications. Does NOT
+  # run migrations. Restarts automatically on time-limit or error.
   #
-  # Depinde de `migrate`, nu de `backend`: workerul are nevoie de SCHEMĂ, nu de
-  # php-fpm. Așa pornește în paralel cu backend-ul, dar niciodată înaintea
-  # migrațiilor.
+  # It depends on `migrate`, not on `backend`: the worker needs the SCHEMA, not
+  # php-fpm. That way it starts in parallel with the backend, but never before
+  # the migrations.
   worker:
     image: ${BCSS_REGISTRY:-ghcr.io/boschservice12-png}/bcsc-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -175,8 +182,9 @@ services:
     depends_on:
       - api
 
-  # Backup automat zilnic: pg_dump + oglindirea bucketului MinIO (mc mirror),
-  # cu verificare de integritate și retenție. Mentiunea în docs/DEPLOY_PILOT.md.
+  # Automatic daily backup: pg_dump + mirroring the MinIO bucket (mc mirror),
+  # with integrity checks, an off-box copy and retention.
+  # See docs/BACKUP_AND_RESTORE.md.
   backup:
     build:
       context: ./infrastructure/backup
@@ -197,9 +205,9 @@ services:
       minio:
         condition: service_started
 
-  # Sarcini periodice ale aplicației (azi: `app:gdpr:purge`). Rulează pe imaginea
-  # backend-ului, pentru că are nevoie de `bin/console`. Depinde de `migrate`:
-  # purjarea scrie în schemă, deci nu are ce căuta înaintea migrațiilor.
+  # The application's periodic tasks (today: `app:gdpr:purge`). Runs on the
+  # backend image because it needs `bin/console`. Depends on `migrate`: the
+  # purge writes to the schema, so it has no business running before migrations.
   scheduler:
     image: ${BCSS_REGISTRY:-ghcr.io/boschservice12-png}/bcsc-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -207,7 +215,8 @@ services:
     environment:
       APP_ENV: prod
       APP_DEBUG: "0"
-      # Deliberat DUPĂ ora backupului (3): întâi salvăm, apoi ștergem ireversibil.
+      # Deliberately AFTER the backup hour (3): save first, then delete
+      # irreversibly.
       GDPR_PURGE_HOUR: "4"
     volumes:
       - ./infrastructure/docker/scheduler-entrypoint.sh:/usr/local/bin/scheduler-entrypoint.sh:ro
@@ -218,7 +227,8 @@ services:
       migrate:
         condition: service_completed_successfully
 
-  # Proxy de margine + TLS. Cu domeniu → Let's Encrypt automat pe 443.
+  # Edge proxy + TLS. With domains configured, Caddy provisions Let's Encrypt
+  # certificates automatically on 443.
   caddy:
     image: caddy:2
     restart: unless-stopped
@@ -228,11 +238,11 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      # 8081 NU se mai publică. Era rămășița configurației fără domeniu, în care
-      # adminul se servea pe `http://<IP>:8081`. Pilotul rulează pe domenii cu
-      # TLS (admin.app.bcss.ro), firewallul blochează oricum portul, deci era
-      # doar suprafață moartă. Dacă reveniți vreodată la varianta fără domeniu,
-      # adăugați aici `- "8081:8081"` odată cu ADMIN_SITE=:8081.
+      # 8081 is no longer published. It was a leftover of the no-domain setup,
+      # where the admin portal was served on `http://<IP>:8081`. The pilot runs
+      # on domains with TLS (admin.app.bcss.ro) and the firewall blocked the
+      # port anyway, so it was dead surface. If you ever go back to the
+      # no-domain variant, add `- "8081:8081"` here together with ADMIN_SITE=:8081.
     volumes:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddydata:/data

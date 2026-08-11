@@ -1,7 +1,10 @@
-# Demo „one-command" — întreaga stivă (bază de date + backend + ambele frontend-uri).
-# Rulare:   docker compose -f compose.demo.yaml up --build
-# Apoi:     Client  http://localhost:3000   ·   Admin http://localhost:3001
-# Conturi:  admin@bcsc.ro / client@bcsc.ro  (parola Demo1234!)
+# One-command demo — the whole stack (database + backend + both frontends).
+# Run:    docker compose -f compose.demo.yaml up --build
+# Then:   Customer  http://localhost:3000   ·   Admin http://localhost:3001
+# Logins: admin@bcsc.ro / client@bcsc.ro    (password Demo1234!)
+#
+# This is a DEVELOPMENT stack: APP_ENV=dev, local disk storage, no antimalware
+# scanning, no TLS. Production is compose.prod.yaml — see docs/DEPLOYMENT.md.
 name: bcsc-demo
 
 services:
@@ -19,7 +22,8 @@ services:
       timeout: 3s
       retries: 30
 
-  # Backend Symfony: la pornire rulează migrațiile + seed-ul demo, apoi servește pe :8080.
+  # Symfony backend: runs migrations and the demo seed at start-up, then serves
+  # on :8080.
   backend:
     build:
       context: .
@@ -32,8 +36,8 @@ services:
       MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
       CORS_ALLOW_ORIGIN: "http://localhost:3000,http://localhost:3001"
       STORAGE_DRIVER: "local"
-    # Blocul 6: documentele scanate/încărcate stau pe un volum PERSISTENT, nu în
-    # stratul efemer al containerului — supraviețuiesc unui `up --build`/restart.
+    # Uploaded and scanned documents live on a PERSISTENT volume, not in the
+    # container's ephemeral layer — they survive `up --build` and restarts.
     volumes:
       - storage_data:/app/var/storage
     depends_on:
@@ -42,11 +46,12 @@ services:
     ports:
       - "8080:8080"
 
-  # Worker Messenger: consumă transportul „async" (scanare documente antimalware,
-  # notificări). Fără el, documentele ar rămâne veșnic PENDING. Folosește ACEEAȘI
-  # imagine ca backend-ul (construită de serviciul `backend`), dar cu un entrypoint
-  # dedicat. Restart automat: la --time-limit / eroare procesul iese, iar compose
-  # îl repornește (nu „moare în tăcere"). Un SINGUR worker în demo — nu scalăm.
+  # Messenger worker: consumes the "async" transport (antimalware document
+  # scanning, notifications). Without it, documents would stay PENDING forever.
+  # Uses the SAME image as the backend (built by the `backend` service) but with
+  # a dedicated entrypoint. Automatic restart: on --time-limit or error the
+  # process exits and compose restarts it — it never "dies quietly". A SINGLE
+  # worker in the demo — we do not scale here.
   worker:
     image: bcsc-demo-backend
     command: ["/usr/local/bin/worker-entrypoint.sh"]
@@ -57,8 +62,8 @@ services:
       MESSENGER_TRANSPORT_DSN: "doctrine://default?auto_setup=1"
       STORAGE_DRIVER: "local"
     restart: unless-stopped
-    # Worker-ul scrie documentele scanate în ACELAȘI volum ca backend-ul, altfel
-    # fișierele produse de scanare n-ar fi vizibile la descărcare.
+    # The worker writes scanned documents to the SAME volume as the backend,
+    # otherwise files produced by scanning would not be visible for download.
     volumes:
       - storage_data:/app/var/storage
     depends_on:
@@ -67,7 +72,8 @@ services:
       backend:
         condition: service_started
 
-  # Frontend client (PWA). Proxy /api -> http://backend:8080 (server-side, prin next.config).
+  # Customer frontend (PWA). Proxies /api -> http://backend:8080 server-side,
+  # via the rewrite in next.config.
   customer-web:
     image: node:20-bookworm-slim
     working_dir: /app
@@ -84,7 +90,7 @@ services:
     ports:
       - "3000:3000"
 
-  # Frontend admin (portal service).
+  # Admin frontend (service portal).
   service-admin:
     image: node:20-bookworm-slim
     working_dir: /app

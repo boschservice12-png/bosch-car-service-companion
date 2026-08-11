@@ -2,10 +2,10 @@ parameters:
     app.timezone: '%env(APP_TIMEZONE)%'
     app.cors_allow_origin: '%env(CORS_ALLOW_ORIGIN)%'
     app.storage_dir: '%kernel.project_dir%/var/storage'
-    # P0-06: în producție conturile admin fără 2FA nu pot folosi /api/admin
-    # (vezi when@prod mai jos + TwoFactorGuardListener).
+    # P0-06: in production, admin accounts without 2FA cannot use /api/admin
+    # (see when@prod below + TwoFactorGuardListener).
     admin_2fa_enforce_enrollment: false
-    # P0-05: valoare implicită dacă variabila de mediu lipsește.
+    # P0-05: default value when the environment variable is absent.
     env(CSRF_TRUSTED_ORIGINS): ''
 
 services:
@@ -17,11 +17,11 @@ services:
         resource: '../src/'
         exclude:
             - '../src/Kernel.php'
-            - '../src/**/Domain/'          # entități + value objects (nu sunt servicii)
-            - '../src/**/Presentation/Dto/' # DTO-uri de request
-            - '../src/**/Application/Message/' # mesaje Messenger
+            - '../src/**/Domain/'          # entities + value objects (not services)
+            - '../src/**/Presentation/Dto/' # request DTOs
+            - '../src/**/Application/Message/' # Messenger messages
 
-    # ---- Contracte de domeniu -> implementări din Infrastructure ----
+    # ---- Domain contracts -> Infrastructure implementations ----
     App\Vehicle\Domain\VehicleRepository:
         alias: App\Vehicle\Infrastructure\DoctrineVehicleRepository
 
@@ -58,19 +58,20 @@ services:
     App\Notification\Domain\NotificationRepository:
         alias: App\Notification\Infrastructure\DoctrineNotificationRepository
 
-    # Livrarea notificărilor: în pilot nu există furnizor automat (fără mailer/
-    # push/API WhatsApp plătit) → MANUAL_ACTION_REQUIRED / SKIPPED, niciodată
-    # SENT „orb". Se înlocuiește cu un furnizor real când e configurat.
+    # Notification delivery: the pilot has NO automated provider (no mailer, no
+    # push, no paid WhatsApp API) -> MANUAL_ACTION_REQUIRED / SKIPPED, never a
+    # blind SENT. Replace with a real provider once one is configured. This is
+    # the single largest gap before real users — see the README.
     App\Notification\Domain\NotificationDelivery:
         alias: App\Notification\Infrastructure\ManualNotificationDelivery
 
-    # Calculator de stare — value object fără dependențe, aflat în Domain/
-    # (exclus din auto-înregistrare), deci îl declarăm explicit ca serviciu.
+    # Status calculator — a dependency-free value object living in Domain/
+    # (excluded from auto-registration), so we declare it explicitly.
     App\Deadline\Domain\DeadlineStatusCalculator: ~
 
-    # ---- Storage privat documente (local în dev/demo; S3/MinIO în prod) ----
-    # Comutare la runtime prin STORAGE_DRIVER=local|s3 (Blocul 6). Ambele
-    # implementări sunt construibile mereu; fabrica alege una la cerere.
+    # ---- Private document storage (local in dev/demo; S3/MinIO in prod) ----
+    # Switched at runtime via STORAGE_DRIVER=local|s3. Both implementations are
+    # always constructible; the factory picks one on demand.
     App\Document\Infrastructure\LocalFilesystemStorage:
         arguments:
             $rootDir: '%app.storage_dir%'
@@ -87,15 +88,15 @@ services:
     App\Document\Domain\StorageAdapter:
         factory: ['@App\Document\Infrastructure\StorageFactory', 'create']
 
-    # ---- Readiness (Blocul 6): verificare profundă a dependențelor critice ----
+    # ---- Readiness: deep verification of the critical dependencies ----
     App\System\Application\ReadinessChecker:
         arguments:
             $migrations: '@doctrine.migrations.dependency_factory'
             $appSecret: '%env(APP_SECRET)%'
 
-    # ---- Scaner antimalware: dev = permisiv (marchează CLEAN + avertisment) ----
-    # ClamAvScanner e mereu constructibil (argumente scalare), dar devine
-    # implementarea activă doar în producție (vezi when@prod mai jos).
+    # ---- Antimalware scanner: dev = permissive (marks CLEAN + warns) ----
+    # ClamAvScanner is always constructible (scalar arguments) but only becomes
+    # the active implementation in production (see when@prod below).
     App\Document\Infrastructure\ClamAvScanner:
         arguments:
             $host: '%env(CLAMAV_HOST)%'
@@ -103,12 +104,12 @@ services:
     App\Document\Domain\MalwareScanner:
         alias: App\Document\Infrastructure\PermissiveDevScanner
 
-    # ---- URL-uri temporare semnate ----
+    # ---- Signed, time-limited URLs ----
     App\Document\Application\SignedUrlGenerator:
         arguments:
             $secret: '%env(APP_SECRET)%'
 
-    # ---- Listeners transversale ----
+    # ---- Cross-cutting listeners ----
     App\Shared\Presentation\CorsListener:
         arguments:
             $allowedOrigins: '%app.cors_allow_origin%'
@@ -120,12 +121,12 @@ services:
         tags:
             - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
 
-    # P0-05: allowlist opțional de origini pentru cererile modificatoare.
+    # P0-05: optional origin allowlist for state-changing requests.
     App\Shared\Security\CsrfProtectionSubscriber:
         arguments:
             $trustedOrigins: '%env(CSRF_TRUSTED_ORIGINS)%'
 
-# În producție: ClamAV (fail-closed) + înrolare 2FA obligatorie pentru admini.
+# In production: ClamAV (fail-closed) + mandatory 2FA enrolment for admins.
 when@prod:
     parameters:
         admin_2fa_enforce_enrollment: true
