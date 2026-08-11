@@ -8,8 +8,9 @@ framework:
         cookie_secure: auto
         cookie_samesite: lax
         cookie_httponly: true
-        # PWA: clientul rămâne autentificat 30 de zile (cookie + gc pe server);
-        # logout-ul invalidează sesiunea imediat (P1-06/P0-07 rămân valabile).
+        # PWA: the customer stays authenticated for 30 days (cookie + server-side
+        # gc); logout invalidates the session immediately, and disabled accounts
+        # lose access immediately (P0-07).
         cookie_lifetime: 2592000
         gc_maxlifetime: 2592000
         storage_factory_id: session.storage.factory.native
@@ -30,19 +31,19 @@ framework:
             policy: sliding_window
             limit: 30
             interval: '1 minute'
-        # Înregistrarea poartă dovada revendicării (numărul de înmatriculare) —
-        # fără limită ar putea fi ghicit prin forță brută. Cheia e emailul țintă.
+        # Registration carries the claim evidence (the registration plate) —
+        # without a limit it could be brute-forced. The key is the target email.
         register:
             policy: sliding_window
             limit: 5
             interval: '15 minutes'
-        # Codurile TOTP au doar 6 cifre — fără limită ar putea fi ghicite.
-        # La reușită contorul se resetează (utilizatorul legitim nu acumulează).
+        # TOTP codes are only 6 digits — without a limit they could be guessed.
+        # The counter resets on success, so a legitimate user does not accumulate.
         twofa:
             policy: sliding_window
             limit: 5
             interval: '15 minutes'
-        # Activarea vehiculului cu cod — anti forță-brută pe cod (per utilizator + IP).
+        # Vehicle activation by code — anti brute-force on the code (per user + IP).
         activation:
             policy: sliding_window
             limit: 10

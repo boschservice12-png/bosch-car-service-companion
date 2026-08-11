@@ -1,5 +1,8 @@
-# CORS restrictiv — doar originile aplicațiilor client/admin.
-# Implementat prin listener propriu (App\Shared\Presentation\CorsListener)
-# pentru a evita o dependență suplimentară; originile din CORS_ALLOW_ORIGIN.
+# Restrictive CORS — only the customer and admin application origins.
+# Implemented with our own listener (App\Shared\Presentation\CorsListener) to
+# avoid an extra dependency; the origins come from CORS_ALLOW_ORIGIN.
+#
+# In practice CORS is rarely exercised: the browser talks to the Next.js server,
+# which proxies /api server-side, so calls are same-origin.
 parameters:
     app.cors_allow_origin: '%env(CORS_ALLOW_ORIGIN)%'
