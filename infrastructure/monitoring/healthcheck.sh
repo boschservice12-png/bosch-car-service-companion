@@ -45,6 +45,13 @@ if [ -n "${READY_JSON}" ]; then
     elif [ -z "${ST}" ]; then
       echo "[FAIL] readiness/${probe}: lipsește din răspuns (versiune veche de backend?)" >&2
       FAIL=1
+    elif [ "${NONCRITICAL_MODE:-fail}" = "warn" ]; then
+      # Modul `warn` e pentru gate-ul de deploy. Verificările necritice pot fi
+      # roșii TEMPORAR imediat după un restart — ClamAV, de exemplu, are nevoie
+      # de minute ca să-și încarce bazele de semnături. A pica deploy-ul pentru
+      # asta înseamnă a raporta eșec pentru o livrare reușită. Cronul rulează la
+      # 5 minute și le prinde oricum dacă rămân roșii.
+      echo "[warn] readiness/${probe}: ${ST} (necritic — poate fi doar pornirea)"
     else
       echo "[FAIL] readiness/${probe}: ${ST} (necritic, dar procesarea e blocată)" >&2
       FAIL=1

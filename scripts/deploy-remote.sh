@@ -17,6 +17,9 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/bcss}"
 COMPOSE=(docker compose --env-file .env.prod -f compose.prod.yaml)
+# Serviciile construite de noi — singurele pe care un deploy are voie să le
+# actualizeze. db/redis/clamav/minio/nginx/caddy se ating doar deliberat.
+APP_SERVICES=(backend worker migrate scheduler customer-web service-admin backup)
 : "${IMAGE_TAG:?IMAGE_TAG lipsește (SHA-ul commit-ului din care s-au construit imaginile)}"
 
 cd "${APP_DIR}"
@@ -87,7 +90,15 @@ say "3. descarc imaginile"
 # care nu găsește imaginea ar începe să CONSTRUIASCĂ pe serverul de producție —
 # două compilări Next.js care ocupă ambele vCPU-uri ~15 minute în timp ce
 # aceeași mașină servește pilotul. Un pull eșuat trebuie să oprească deploy-ul.
-"${COMPOSE[@]}" pull
+#
+# DOAR serviciile NOASTRE. Un `pull` fără argumente le trage pe toate, inclusiv
+# postgres:16, redis:7, clamav:stable, minio — etichete flotante. Digest nou =>
+# compose RECREEAZĂ containerul. Adică fiecare deploy făcea pe furiș upgrade la
+# baza de date și la antivirus. Prima dată s-a văzut pe 2026-08-11: ClamAV a
+# fost recreat, iar reîncărcarea bazelor de semnături durează minute, deci
+# verificarea de sănătate a picat imediat după un deploy altfel reușit.
+# Upgrade-ul componentelor terțe trebuie să fie o decizie separată, deliberată.
+"${COMPOSE[@]}" pull "${APP_SERVICES[@]}"
 
 # ---------------------------------------------------------------------------
 say "4. pornesc"
@@ -151,7 +162,10 @@ for attempt in $(seq 1 24); do
   sleep 5
 done
 
-BASE_URL="${BASE_URL}" bash infrastructure/monitoring/healthcheck.sh
+# NONCRITICAL_MODE=warn: un deploy pică doar pe dependențe CRITICE. Verificările
+# necritice pot fi roșii temporar la pornire; monitorizarea de la 5 minute le
+# prinde dacă rămân așa. Vezi comentariul din healthcheck.sh.
+BASE_URL="${BASE_URL}" NONCRITICAL_MODE=warn bash infrastructure/monitoring/healthcheck.sh
 
 trap - ERR
 say "deploy reușit: ${PREVIOUS_TAG} -> ${IMAGE_TAG}"
