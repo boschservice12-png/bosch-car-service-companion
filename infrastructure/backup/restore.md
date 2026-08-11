@@ -62,7 +62,7 @@ Ce face, în ordine:
 | Pas | Ce | De ce |
 |---|---|---|
 | 0 | validează arhiva sursă | ca să nu golim producția și abia apoi să descoperim un dump gol |
-| 1 | **backup al stării curente** | dacă restaurați din greșeală backupul greșit, ăsta e singurul drum înapoi |
+| 1 | **backup al stării curente** | dacă restaurați din greșeală backupul greșit, ăsta e singurul drum înapoi. Merge într-un prefix separat, `<prefix>-pre-restore`: un instantaneu al unei stări stricate nu trebuie să devină „cel mai recent backup" |
 | 2 | oprește `backend`, `worker`, `scheduler` | fără scriitori activi în timpul înlocuirii schemei |
 | 3 | închide conexiunile rămase | `restore.sh` refuză să golească o bază cu conexiuni active |
 | 4 | restaurează | |
