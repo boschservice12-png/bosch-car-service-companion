@@ -1,19 +1,25 @@
-# ADR 0001 — Modular monolith (nu microservicii)
+# ADR 0001 — Modular monolith (not microservices)
 
-- **Status:** Acceptat
-- **Context:** Un singur service (single-tenant), echipă mică, cerință de livrare
-  rapidă și operare simplă. Domeniul are ~15 module clar delimitate.
-- **Decizie:** Backend-ul este un **modular monolith** Symfony. Fiecare domeniu
-  este un modul separat sub `backend/src/<Modul>/`, cu straturi:
-  `Domain` (entități, value objects, servicii de domeniu, contracte),
-  `Application` (use-cases, DTO, handlers Messenger),
-  `Infrastructure` (repository Doctrine, adaptoare),
-  `Presentation` (controllere/API).
-  Modulele comunică **doar prin contracte/interfețe publice**, nu prin acces
-  direct la clasele interne ale altui modul. Interzis folderul generic `Utils`.
-- **Consecințe:**
-  - (+) Deploy simplu, tranzacții ACID, refactorizare ușoară.
-  - (+) Granițe de modul verificabile (linter de dependențe pe namespace-uri).
-  - (−) Necesită disciplină pentru a nu crea cuplaje ascunse.
-- **Respins:** microservicii (overhead operațional nejustificat pentru un
-  single-tenant), `tenant_id` / multi-tenant (explicit în afara perimetrului).
+- **Status:** Accepted
+- **Context:** A single workshop (single-tenant), a small team, a requirement to
+  ship quickly and operate simply. The domain has roughly 15 clearly separated
+  modules.
+- **Decision:** The backend is a Symfony **modular monolith**. Each domain is a
+  separate module under `backend/src/<Module>/`, with layers:
+  `Domain` (entities, value objects, domain services, contracts),
+  `Application` (use cases, DTOs, Messenger handlers),
+  `Infrastructure` (Doctrine repositories, adapters),
+  `Presentation` (controllers/API).
+  Modules communicate **only through public contracts and interfaces**, never by
+  reaching into another module's internal classes. A generic `Utils` folder is
+  forbidden.
+- **Consequences:**
+  - (+) Simple deployment, ACID transactions, easy refactoring.
+  - (+) Module boundaries are checkable (a namespace dependency lint).
+  - (−) Requires discipline to avoid hidden coupling.
+- **Rejected:** microservices (operational overhead unjustified for a
+  single-tenant system), and `tenant_id` / multi-tenancy (explicitly
+  [out of scope](../../legal-separation/scope.md)).
+
+**Current state (2026-08):** honoured. The module layout is as described; see
+[Architecture §2](../../ARCHITECTURE.md) for the module list.

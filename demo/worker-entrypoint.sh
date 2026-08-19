@@ -1,29 +1,31 @@
 #!/bin/sh
-# Worker Messenger pentru demo: consumă transportul „async" (scanare documente,
-# notificări). Rulează în container separat de backend. Fail-fast: orice eroare
-# de pornire oprește procesul, iar politica de restart din compose îl repornește
-# — nu „moare în tăcere".
+# Messenger worker for the demo: consumes the "async" transport (document
+# scanning, notifications). Runs in a container separate from the backend.
+# Fail-fast: any start-up error stops the process and compose's restart policy
+# brings it back — it never "dies quietly".
 set -e
 
-echo "→ [worker] Aștept baza de date (db:5432)..."
+echo "→ [worker] Waiting for the database (db:5432)..."
 until php -r '$f=@fsockopen("db",5432); exit($f?0:1);' 2>/dev/null; do
     sleep 2
 done
 
-# Migrațiile și crearea tabelei de mesaje (auto_setup) le face backend-ul la
-# pornire. Așteptăm ca backend-ul să fie sus înainte de a consuma, ca să nu
-# concurăm pe auto_setup-ul transportului doctrine.
-echo "→ [worker] Aștept backend-ul (backend:8080)..."
+# In the demo, migrations and the creation of the messages table (auto_setup)
+# are done by the backend at start-up. We wait for the backend to be listening
+# before consuming, so we do not race the doctrine transport's auto_setup.
+# (Production solves this properly with the one-shot `migrate` service; see
+# infrastructure/docker/migrate-entrypoint.sh.)
+echo "→ [worker] Waiting for the backend (backend:8080)..."
 until php -r '$f=@fsockopen("backend",8080); exit($f?0:1);' 2>/dev/null; do
     sleep 2
 done
 
-echo "→ [worker] Pornesc consumatorul Messenger (transport: async)"
-# --time-limit: procesul se reia periodic (memorie proaspătă); restart-ul din
-# compose îl repornește. --memory-limit: oprire controlată la prag. -vv: fiecare
-# mesaj procesat/eșuat apare în log. Un mesaj care eșuează de max_retries ori
-# ajunge în transportul „failed" (vezi messenger.yaml), inspectabil cu
-# `php bin/console messenger:failed:show`.
+echo "→ [worker] Starting the Messenger consumer (transport: async)"
+# --time-limit: the process restarts periodically with fresh memory; compose
+# brings it back. --memory-limit: controlled stop at the threshold. -vv: every
+# processed or failed message appears in the log. A message that fails
+# max_retries times ends up in the "failed" transport (see messenger.yaml),
+# inspectable with `php bin/console messenger:failed:show`.
 exec php bin/console messenger:consume async \
     --time-limit=3600 \
     --memory-limit=256M \

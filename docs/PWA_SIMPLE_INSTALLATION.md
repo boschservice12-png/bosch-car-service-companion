@@ -1,98 +1,96 @@
-# PWA – instalare simplă pe telefon (customer-web)
+# PWA — simple phone installation (customer-web)
 
-Aplicația clientului (`apps/customer-web`, Next.js 15 App Router) se instalează
-de pe ecranul principal al telefonului ca aplicație de sine stătătoare —
-FĂRĂ aplicație nativă, fără App Store/Google Play, fără push și fără cache
-de date.
+The customer application (`apps/customer-web`, Next.js 15 App Router) installs to
+the phone's home screen as a standalone app — with **no** native app, no App
+Store or Google Play, no push, and no data caching.
 
-## Ce s-a modificat
+The customer-facing version of this guide, in Romanian, is
+[`GHID_INSTALARE_COMPANION_RO.md`](GHID_INSTALARE_COMPANION_RO.md).
 
-| Fișier | Ce face |
+## What was changed
+
+| File | What it does |
 |---|---|
-| `public/manifest.webmanifest` | completat: `short_name: Companion`, `scope: /`, iconițe `any` + `maskable` |
-| `public/icons/icon-192.png`, `icon-512.png` | iconițele existente (glifă roată dințată pe fondul temei) |
-| `public/icons/icon-maskable-512.png` **(nou)** | variantă cu margine de siguranță ~12% — nu se taie pe Android |
-| `public/icons/apple-touch-icon.png` **(nou)** | 180×180 pentru iPhone (iOS rotunjește singur colțurile) |
-| `app/layout.tsx` | `apple-touch-icon`, `appleWebApp` (`capable`, titlu „Companion"), montarea `PwaSetup` |
-| `components/pwa/device-detection.ts` **(nou)** | euristici iOS / Safari / ecran mic |
-| `components/pwa/pwa-status.ts` **(nou)** | standalone?, panou închis în ultimele 7 zile (localStorage — doar data închiderii) |
-| `components/pwa/install-companion.tsx` **(nou)** | panoul Android (`beforeinstallprompt`), instalare doar la apăsarea butonului |
-| `components/pwa/ios-install-guide.tsx` **(nou)** | ghidul în 3 pași pentru iPhone/Safari |
-| `components/pwa/pwa-setup.tsx` **(nou)** | punct unic de montare + înregistrarea service worker-ului |
-| `public/sw.js` **(nou)** | service worker MINIMAL: doar fallback de navigare către `/offline.html` |
-| `public/offline.html` **(nou)** | „Nu există conexiune la internet." + buton „Încearcă din nou" |
-| `app/globals.css` | stilul panoului + țintă de atingere: orice `.btn` are minim 44px |
-| `backend/config/packages/framework.yaml` | sesiune de 30 de zile (`cookie_lifetime` + `gc_maxlifetime` = 2 592 000s) |
+| `public/manifest.webmanifest` | Completed: `short_name: Companion`, `scope: /`, `any` + `maskable` icons |
+| `public/icons/icon-192.png`, `icon-512.png` | The existing icons (cog glyph on the theme background) |
+| `public/icons/icon-maskable-512.png` | Variant with a ~12% safe margin so Android does not crop it |
+| `public/icons/apple-touch-icon.png` | 180×180 for iPhone (iOS rounds the corners itself) |
+| `app/layout.tsx` | `apple-touch-icon`, `appleWebApp` (`capable`, title "Companion"), mounts `PwaSetup` |
+| `components/pwa/device-detection.ts` | iOS / Safari / small-screen heuristics |
+| `components/pwa/pwa-status.ts` | Standalone? Panel dismissed in the last 7 days (localStorage — only the dismissal date) |
+| `components/pwa/install-companion.tsx` | The Android panel (`beforeinstallprompt`); installation only on a button press |
+| `components/pwa/ios-install-guide.tsx` | The three-step guide for iPhone/Safari |
+| `components/pwa/pwa-setup.tsx` | Single mount point + service worker registration |
+| `public/sw.js` | MINIMAL service worker: navigation fallback to `/offline.html` only |
+| `public/offline.html` | "No internet connection." plus a "Try again" button |
+| `app/globals.css` | Panel styling + touch targets: every `.btn` is at least 44px |
+| `backend/config/packages/framework.yaml` | 30-day session (`cookie_lifetime` + `gc_maxlifetime` = 2,592,000s) |
 
-`theme_color` rămâne `#0a2540` — tokenul real al proiectului (`--primary`);
-roșul `#E2001A` este doar accent. O bară de sistem roșie peste interfața
-navy ar fi arătat străin de aplicație.
+`theme_color` stays `#0a2540` — the project's real token (`--primary`). The red
+`#E2001A` is only an accent; a red system bar over the navy interface would have
+looked foreign to the app.
 
-## Cum funcționează pe Android (Chrome)
+## How it works on Android (Chrome)
 
-1. Clientul deschide adresa Companion și se autentifică.
-2. Chrome emite `beforeinstallprompt` → apare panoul „Instalează Companion
-   pe telefon" (doar pe ecran de telefon, doar dacă nu rulează deja
-   standalone și nu a fost închis în ultimele 7 zile).
-3. Butonul „Instalează" pornește dialogul nativ; refuzul sau ✕ ascunde
-   panoul pentru 7 zile (`localStorage: bcsc.pwa.installDismissedAt`).
-4. Iconița „Companion" apare pe ecranul principal; pornește standalone
-   (fără bara browserului), pe `start_url: /` — autentificat → Acasă,
-   neautentificat → redirecționare la login.
+1. The customer opens the Companion address and logs in.
+2. Chrome fires `beforeinstallprompt` → the "Install Companion on your phone"
+   panel appears (phone-sized screens only, only if not already running
+   standalone, and only if it has not been dismissed in the last 7 days).
+3. The "Install" button starts the native dialog; declining or pressing ✕ hides
+   the panel for 7 days (`localStorage: bcsc.pwa.installDismissedAt`).
+4. The "Companion" icon appears on the home screen and launches standalone (no
+   browser bar) at `start_url: /` — logged in goes to Home, logged out redirects
+   to the login page.
 
-## Cum funcționează pe iPhone (Safari)
+## How it works on iPhone (Safari)
 
-Safari nu are `beforeinstallprompt`, deci se afișează ghidul manual
-(doar pe iOS + Safari, cu aceeași pauză de 7 zile): Partajare →
-„Adăugați la ecranul principal" → „Adăugați". Iconița folosește
-`apple-touch-icon.png`; aplicația pornește standalone datorită
+Safari has no `beforeinstallprompt`, so a manual guide is shown (iOS + Safari
+only, with the same 7-day pause): Share → "Add to Home Screen" → "Add". The icon
+uses `apple-touch-icon.png`, and the app starts standalone thanks to
 `appleWebApp.capable`.
 
-## Sesiunea
+## The session
 
-Cookie-ul de sesiune (PHPSESSID) are acum `Max-Age=2592000` (30 de zile),
-rămâne `HttpOnly` + `SameSite=Lax` + `Secure` (auto, activ pe HTTPS), iar
-`gc_maxlifetime` pe server e aliniat — deci clientul nu se re-autentifică
-la fiecare deschidere. Logout-ul invalidează sesiunea imediat; conturile
-dezactivate pierd accesul imediat (P0-07); nimic sensibil nu se ține în
-localStorage (doar data închiderii panoului și limba aleasă).
+The session cookie (PHPSESSID) has `Max-Age=2592000` (30 days) and remains
+`HttpOnly` + `SameSite=Lax` + `Secure` (automatic over HTTPS), with the server's
+`gc_maxlifetime` aligned — so the customer does not have to log in every time
+they open the app. Logout invalidates the session immediately; disabled accounts
+lose access immediately (P0-07). Nothing sensitive is kept in localStorage — only
+the panel dismissal date and the chosen language.
 
 ## Offline
 
-Un singur comportament: navigarea fără internet arată `/offline.html`
-(mesaj românesc + „Încearcă din nou"). Service worker-ul NU cache-ază
-API-uri, date de client/vehicul, scadențe, documente, istoric, oferte sau
-mesaje — datele apar doar cu conexiune, mereu proaspete.
+A single behaviour: navigating without a connection shows `/offline.html`. The
+service worker does **not** cache APIs, customer or vehicle data, deadlines,
+documents, history, quotes or messages — data appears only with a connection and
+is always fresh.
 
-## Lăsate deoparte INTENȚIONAT (pași viitori separați)
+## Deliberately left out (separate future steps)
 
-- web push notifications (necesită serviciu de push + preferințe);
-- service worker complet cu cache de rulare;
-- funcții offline parțiale;
-- împachetare App Store / Google Play (TWA);
-- notificări email — nu există încă mailer în backend, vezi
-  `EMAIL_NOTIFICATION_TODO.md`.
+- Web push notifications (needs a push service plus preferences);
+- a full service worker with runtime caching;
+- partial offline functionality;
+- App Store / Google Play packaging (TWA);
+- email notifications — there is still no mailer in the backend, see
+  [`EMAIL_NOTIFICATION_TODO.md`](EMAIL_NOTIFICATION_TODO.md).
 
-Pentru push mai târziu: se extinde `public/sw.js` cu handler `push` +
-`notificationclick`, se adaugă abonarea (VAPID) într-un endpoint nou și
-UI de consimțământ — restul infrastructurii de față rămâne neschimbat.
+For push later: extend `public/sw.js` with `push` and `notificationclick`
+handlers, add VAPID subscription in a new endpoint, and a consent UI. The rest of
+the infrastructure here stays unchanged.
 
-## Cerințe de mediu
+## Environment requirements
 
-- **HTTPS obligatoriu în producție** — fără el nu există instalare PWA și
-  nici service worker (localhost e exceptat pentru dezvoltare).
-- Nginx-ul servește `/manifest.webmanifest`, `/sw.js`, `/offline.html` și
-  `/icons/*` ca fișiere statice ale aplicației client (deja acoperit de
-  proxy-ul existent al Next).
+- **HTTPS is mandatory in production** — without it there is no PWA installation
+  and no service worker (localhost is exempt for development).
+- The frontend serves `/manifest.webmanifest`, `/sw.js`, `/offline.html` and
+  `/icons/*` as static files of the customer application (already covered by the
+  existing Next proxy).
 
-## Cum se testează instalarea
+## How to test the installation
 
-1. Stiva pornită (vezi `e2e/README.md`), pe telefon sau emulator, pe HTTPS
-   (sau localhost).
-2. Android/Chrome: meniul ⋮ → „Install app" sau panoul din aplicație;
-   verificați că iconița pornește fără bară de browser.
-3. iPhone/Safari: urmați ghidul afișat; verificați iconița și pornirea.
-4. Verificări automate existente: `node mobile-sweep.mjs` (lățimi
-   360/390/412/430 — fără overflow, butoane ≥44px) și `node pwa-check.mjs`
-   (SW activ, panouri, pauza de 7 zile) din scratchpad-ul sesiunii de
-   dezvoltare, plus `npx tsc --noEmit && npx next build`.
+1. Stack running (see [`../e2e/README.md`](../e2e/README.md)), on a phone or
+   emulator, over HTTPS (or localhost).
+2. Android/Chrome: ⋮ menu → "Install app", or the in-app panel; check that the
+   icon launches without a browser bar.
+3. iPhone/Safari: follow the displayed guide; check the icon and the launch.
+4. Plus `npx tsc --noEmit && npx next build`.

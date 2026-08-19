@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# RESTAURARE PESTE PRODUCȚIE. Singurul script din repo care DISTRUGE date reale.
+# RESTORE OVER PRODUCTION. The only script in this repo that destroys real data.
 #
-#   CONFIRM=RESTAUREZ-PRODUCTIA ./scripts/restore-production.sh /backups/restaurate/20260811-030000
+#   CONFIRM=RESTORE-PRODUCTION ./scripts/restore-production.sh --latest
+#   CONFIRM=RESTORE-PRODUCTION ./scripts/restore-production.sh /backups/restored/20260811-030000
 #
-# De ce script și nu o listă de pași într-un document: procedura are cinci pași
-# care trebuie făcuți în ordine, iar cel care o execută o face în cel mai prost
-# moment posibil — producția e căzută, e noapte, iar o comandă sărită înseamnă
-# fie o restaurare pe jumătate, fie pierderea stării curente.
+# Why a script rather than a list of steps in a document: the procedure has five
+# steps that must happen in order, and whoever runs it does so at the worst
+# possible moment — production is down, it is the middle of the night, and a
+# skipped command means either a half-finished restore or the loss of the
+# current state.
 #
-# Ce face, în ordine:
-#   1. BACKUP al stării CURENTE (înainte de a o distruge)
-#   2. oprește scriitorii (backend, worker, scheduler); baza și MinIO rămân sus
-#   3. închide conexiunile rămase și golește schema
-#   4. restaurează din backupul indicat
-#   5. repornește și verifică
+# What it does, in order:
+#   1. BACKS UP the CURRENT state (before destroying it)
+#   2. stops the writers (backend, worker, scheduler); db and MinIO stay up
+#   3. closes leftover connections
+#   4. restores from the given backup (restore.sh clears the schema itself)
+#   5. restarts and verifies
 #
-# Documentele NU se ating implicit. Vezi RESTORE_DOCUMENTS mai jos.
+# Documents are NOT touched by default. See RESTORE_DOCUMENTS below.
 set -euo pipefail
 
 SRC="${1:-}"
@@ -25,91 +27,90 @@ COMPOSE=(docker compose --env-file .env.prod -f compose.prod.yaml)
 WRITERS=(backend worker scheduler)
 
 say() { echo; echo "── $* ──"; }
-die() { echo "EROARE: $*" >&2; exit 1; }
+die() { echo "ERROR: $*" >&2; exit 1; }
 
-# --- Garduri -----------------------------------------------------------------
-[ -n "${SRC}" ] || die "Utilizare: CONFIRM=RESTAUREZ-PRODUCTIA $0 <director-backup>|--latest"
-[ "${CONFIRM:-}" = "RESTAUREZ-PRODUCTIA" ] || cat >&2 <<EOF
-EROARE: confirmare lipsă.
+# --- Guards -------------------------------------------------------------------
+[ -n "${SRC}" ] || die "Usage: CONFIRM=RESTORE-PRODUCTION $0 <backup-directory>|--latest"
+[ "${CONFIRM:-}" = "RESTORE-PRODUCTION" ] || cat >&2 <<EOF
+ERROR: confirmation missing.
 
-Scriptul ȘTERGE baza de date de producție și o înlocuiește cu conținutul din
+This script DELETES the production database and replaces it with the contents of
    ${SRC}
 
-Dacă chiar asta vreți:
-   CONFIRM=RESTAUREZ-PRODUCTIA $0 ${SRC}
+If that is really what you want:
+   CONFIRM=RESTORE-PRODUCTION $0 ${SRC}
 EOF
-[ "${CONFIRM:-}" = "RESTAUREZ-PRODUCTIA" ] || exit 1
+[ "${CONFIRM:-}" = "RESTORE-PRODUCTION" ] || exit 1
 
-[ -f .env.prod ] || die "${APP_DIR}/.env.prod lipsește."
+[ -f .env.prod ] || die "${APP_DIR}/.env.prod is missing."
 set -a; . ./.env.prod; set +a
-: "${POSTGRES_PASSWORD:?lipsește din .env.prod}"
+: "${POSTGRES_PASSWORD:?missing from .env.prod}"
 PROD_DB="${POSTGRES_DB:-bcsc}"
 PGUSER_="${POSTGRES_USER:-bcsc}"
 
 psql_() { "${COMPOSE[@]}" exec -T db psql -U "${PGUSER_}" "$@"; }
 
-# `--latest` = adu singur cea mai recentă copie din depozitul off-box, apoi
-# restaureaz-o. Ăsta e cazul real de urgență: instanța e stricată, iar cel care
-# repară nu trebuie să caute manual timestamp-uri în bucket.
+# `--latest` = fetch the most recent copy from the off-box store and restore it.
+# This is the real emergency case: the instance is broken and whoever is fixing
+# it should not have to hunt for timestamps in a bucket.
 if [ "${SRC}" = "--latest" ]; then
-  say "aduc cel mai recent backup din depozitul off-box"
+  say "fetching the most recent backup from the off-box store"
   FETCH_OUT="$("${COMPOSE[@]}" run --rm --no-deps -T --entrypoint fetch-offsite.sh backup --latest < /dev/null 2>&1)" \
-    || { echo "${FETCH_OUT}" >&2; die "nu am putut aduce backupul off-box"; }
-  SRC="$(printf '%s' "${FETCH_OUT}" | grep -oE '/backups/restaurate/[0-9]{8}-[0-9]{6}' | tail -1)"
-  [ -n "${SRC}" ] || die "nu am putut determina directorul adus din bucket"
-  echo "adus: ${SRC}"
+    || { echo "${FETCH_OUT}" >&2; die "could not fetch the off-box backup"; }
+  SRC="$(printf '%s' "${FETCH_OUT}" | grep -oE '/backups/restored/[0-9]{8}-[0-9]{6}' | tail -1)"
+  [ -n "${SRC}" ] || die "could not determine the fetched directory"
+  echo "fetched: ${SRC}"
 fi
 
-# Backupul indicat trebuie să existe ȘI să conțină un dump real. Fără asta am
-# putea goli producția și abia apoi descoperi că arhiva e goală.
+# The named backup must exist AND contain a real dump. Without this check we
+# could empty production and only then discover the archive was empty.
 "${COMPOSE[@]}" run --rm --no-deps -T --entrypoint sh backup -c "
   set -e
-  [ -f '${SRC}/db.sql.gz' ] || { echo 'lipsește ${SRC}/db.sql.gz'; exit 1; }
+  [ -f '${SRC}/db.sql.gz' ] || { echo 'missing ${SRC}/db.sql.gz'; exit 1; }
   gzip -t '${SRC}/db.sql.gz'
   gunzip -c '${SRC}/db.sql.gz' | grep -q 'PostgreSQL database dump complete'
 " < /dev/null >/dev/null 2>&1 \
-  || die "${SRC} nu conține un dump complet și valid. NU am atins producția."
+  || die "${SRC} does not contain a complete, valid dump. Production was NOT touched."
 
-say "0. sursă validată: ${SRC}"
-echo "ținta: baza '${PROD_DB}' din producție"
+say "0. source validated: ${SRC}"
+echo "target: production database '${PROD_DB}'"
 
-# --- 1. plasa de siguranță ----------------------------------------------------
-say "1. backup al stării CURENTE (înainte de a o distruge)"
-# Dacă se restaurează din greșeală backupul greșit, ăsta e singurul drum înapoi.
+# --- 1. the safety net --------------------------------------------------------
+say "1. backing up the CURRENT state (before destroying it)"
+# If the wrong backup gets restored, this is the only way back.
 #
-# Merge într-un PREFIX SEPARAT în bucket, nu în rotația normală. E o copie a unei
-# stări despre care știm că e stricată — de-aia o restaurăm peste. Dacă ar ateriza
-# în rotația obișnuită, ar deveni „cel mai recent backup", adică exact ce ar lua
-# un `--latest` ulterior sau drill-ul lunar. (Prins de propriul drill pe
-# 2026-08-11: după o restaurare, drill-ul a raportat corect
-# `vehicle_deadlines: producție=4 dar restaurat=0`, pentru că cel mai recent
-# backup off-box era instantaneul stării stricate.)
+# It goes to a SEPARATE off-box prefix, not the normal rotation. It is a copy of
+# a state we know is broken — that is why we are restoring over it. Landing in
+# the normal rotation would make it "the most recent backup", which is exactly
+# what a later `--latest` or the monthly drill would pick up. (Caught by the
+# drill itself on 2026-08-11, which correctly reported
+# `vehicle_deadlines: production=4 but restored=0`.)
 "${COMPOSE[@]}" run --rm -T \
   -e BACKUP_ONESHOT=1 \
   -e OFFSITE_PREFIX="${OFFSITE_PREFIX:-bcss}-pre-restore" \
   backup < /dev/null \
-  || die "backupul de siguranță a eșuat — refuz să continui fără el"
-echo "(copia off-box a stării dinaintea restaurării: prefix '${OFFSITE_PREFIX:-bcss}-pre-restore')"
+  || die "the safety backup failed — refusing to continue without it"
+echo "(off-box copy of the pre-restore state: prefix '${OFFSITE_PREFIX:-bcss}-pre-restore')"
 
-# --- 2. oprim scriitorii ------------------------------------------------------
-say "2. opresc scriitorii: ${WRITERS[*]}"
-# Baza și MinIO rămân pornite (avem nevoie de ele). Frontendurile rămân sus și
-# vor da erori de API — acceptabil: producția e oricum indisponibilă în timpul
-# unei restaurări, iar o pagină care se încarcă e mai bună decât una moartă.
+# --- 2. stop the writers ------------------------------------------------------
+say "2. stopping the writers: ${WRITERS[*]}"
+# db and MinIO stay up (we need them). The frontends stay up too and will return
+# API errors — acceptable: production is unavailable during a restore anyway,
+# and a page that loads beats a dead one.
 "${COMPOSE[@]}" stop "${WRITERS[@]}"
 
-# --- 3. golim schema ----------------------------------------------------------
-say "3. închid conexiunile rămase"
-# Golirea schemei o face `restore.sh` singur. Aici doar ne asigurăm că nu mai e
-# nimeni conectat: restore.sh REFUZĂ să golească o bază cu conexiuni active
-# (protecția lui împotriva ștergerii schemei sub o aplicație pornită), iar un
-# `stop` de container poate lăsa o conexiune muribundă în urmă.
+# --- 3. close leftover connections --------------------------------------------
+say "3. closing leftover connections"
+# Clearing the schema is restore.sh's job. Here we only make sure nobody is
+# still connected: restore.sh REFUSES to clear a database with active
+# connections (its protection against wiping the schema under a running app),
+# and a container `stop` can leave a dying connection behind.
 psql_ -d postgres -c \
   "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${PROD_DB}' AND pid <> pg_backend_pid();" >/dev/null
-echo "conexiuni închise"
+echo "connections closed"
 
-# --- 4. restaurăm -------------------------------------------------------------
-say "4. restaurez din ${SRC}"
+# --- 4. restore ---------------------------------------------------------------
+say "4. restoring from ${SRC}"
 "${COMPOSE[@]}" run --rm --no-deps -T \
   -e DATABASE_URL_RESTORE="postgresql://${PGUSER_}:${POSTGRES_PASSWORD}@db:5432/${PROD_DB}" \
   ${RESTORE_DOCUMENTS:+-e S3_ENDPOINT_RESTORE=${S3_ENDPOINT}} \
@@ -117,30 +118,30 @@ say "4. restaurez din ${SRC}"
   ${RESTORE_DOCUMENTS:+-e S3_KEY_RESTORE=${S3_KEY}} \
   ${RESTORE_DOCUMENTS:+-e S3_SECRET_RESTORE=${S3_SECRET}} \
   --entrypoint restore.sh backup "${SRC}" < /dev/null \
-  || die "restaurarea a eșuat. Scriitorii sunt încă OPRIȚI — schema e goală sau parțială. NU reporniți până nu restaurați cu succes."
+  || die "the restore failed. The writers are still STOPPED — the schema is empty or partial. Do NOT restart until a restore succeeds."
 
 if [ -z "${RESTORE_DOCUMENTS:-}" ]; then
   echo
-  echo "NOTĂ: documentele din bucket NU au fost atinse (doar baza de date)."
-  echo "Pentru a restaura și documentele: RESTORE_DOCUMENTS=1 $0 ${SRC}"
-  echo "Atenție: mc mirror suprascrie și adaugă, dar NU șterge obiectele care"
-  echo "există live și lipsesc din backup."
+  echo "NOTE: documents in the bucket were NOT touched (database only)."
+  echo "To restore documents as well: RESTORE_DOCUMENTS=1 $0 ${SRC}"
+  echo "Caution: mc mirror overwrites and adds, but does NOT delete objects that"
+  echo "exist live and are missing from the backup. It is not an exact mirror."
 fi
 
-# --- 5. repornim și verificăm -------------------------------------------------
-say "5. repornesc și verific"
+# --- 5. restart and verify ----------------------------------------------------
+say "5. restarting and verifying"
 "${COMPOSE[@]}" up -d "${WRITERS[@]}"
 
 MIG="$(psql_ -t -A -d "${PROD_DB}" -c 'SELECT count(*) FROM doctrine_migration_versions;' | tr -d '\r')"
-echo "migrații restaurate: ${MIG}"
+echo "migrations restored: ${MIG}"
 
 BASE_URL="${DEPLOY_BASE_URL:-https://app.bcss.ro}"
 for i in $(seq 1 24); do
-  curl -fsS --max-time 5 "${BASE_URL}/api/health" >/dev/null 2>&1 && { echo "liveness OK după ~$((i*5))s"; break; }
-  [ "${i}" -eq 24 ] && die "/api/health nu răspunde după 120s — verificați 'logs backend'"
+  curl -fsS --max-time 5 "${BASE_URL}/api/health" >/dev/null 2>&1 && { echo "liveness OK after ~$((i*5))s"; break; }
+  [ "${i}" -eq 24 ] && die "/api/health did not respond within 120s — check 'logs backend'"
   sleep 5
 done
 BASE_URL="${BASE_URL}" NONCRITICAL_MODE=warn bash infrastructure/monitoring/healthcheck.sh
 
-say "restaurare încheiată din ${SRC}"
-echo "Backupul stării dinaintea restaurării a rămas în /backups (pasul 1)."
+say "restore complete, from ${SRC}"
+echo "The backup of the pre-restore state remains in /backups (step 1)."

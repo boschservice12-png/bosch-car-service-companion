@@ -238,10 +238,10 @@ status so the failure was silent — `gzip -t` then certified the empty archive 
 refs, and `scripts/deploy-remote.sh` are in place and the four images build with the exact
 context/Dockerfile pairs the workflow uses. What has *not* happened is a real run: no push has
 gone through it, the server has never pulled from GHCR, and the SSH path is untested. Before
-relying on it, complete the one-time setup in `docs/DEPLOY_PILOT.md` §6.a — repo secrets and
+relying on it, complete the one-time setup in `docs/DEPLOYMENT.md` §4 — repo secrets and
 `docker login ghcr.io` on the server — then watch the first deploy rather than assuming it works.
 
-*Remaining one-time setup (see `docs/DEPLOY_PILOT.md` §6.a for the commands):*
+*Remaining one-time setup (see `docs/DEPLOYMENT.md` §4 for the commands):*
 - Repo secrets: `DEPLOY_HOST`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (and optionally
   `DEPLOY_USER`, default `ubuntu`). Generate a dedicated deploy key, not a personal one.
 - Server needs a one-time `docker login ghcr.io` with a `read:packages` PAT. Without it
@@ -277,7 +277,7 @@ rather than relying on `auto_setup=0`.
 | Subject | File |
 |---|---|
 | Pilot operation (6 blocks, env, readiness, backup) | `docs/PILOT_READINESS.md` |
-| Production deploy runbook | `docs/DEPLOY_PILOT.md` |
+| Production deploy runbook | `docs/DEPLOYMENT.md` |
 | API contract (kept in sync with the router, enforced by test) | `docs/api/openapi.yaml` |
 | Demo run | `docs/DEMO.md` |
 | Backup + restore | `infrastructure/backup/` |

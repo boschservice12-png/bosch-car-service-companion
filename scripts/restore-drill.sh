@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
-# Drill de restaurare AUTOMAT, lunar. Aduce cel mai recent backup DIN bucket,
-# îl restaurează într-o bază de unică folosință, verifică rezultatul, apoi curăță.
+# AUTOMATED monthly restore drill. Fetches the most recent backup FROM the
+# bucket, restores it into a single-use database, verifies the result, cleans up.
 #
-# De ce automat: „restaurarea a fost testată" e adevărat exact în ziua în care
-# cineva a testat-o. Peste trei luni nimeni nu-și mai amintește, iar un backup
-# neverificat de trei luni e din nou o presupunere. Singurul mod de a păstra
-# afirmația adevărată e s-o reverifici singur, periodic.
+# Why automated: "the restore was tested" is true on exactly the day someone
+# tested it. Three months later nobody remembers, and a backup unverified for
+# three months is an assumption again. The only way to keep the claim true is to
+# re-verify it on a schedule.
 #
-# Restaurează din copia OFF-BOX, nu din cea locală: asta exercită exact drumul
-# de care ai nevoie când instanța nu mai există.
+# It restores from the OFF-BOX copy, not the local one: that exercises the exact
+# path needed when the instance no longer exists.
 #
-# PRODUCȚIA NU E ATINSĂ. Se creează o bază separată, se șterge la final.
+# PRODUCTION IS NEVER TOUCHED. A separate database is created and dropped again.
 #
-# Cron (lunar, ziua 1, 06:00 UTC — după backup și după verificarea off-box):
+# Cron (monthly, 1st, 06:00 UTC — after the backup and the off-box check):
 #   0 6 1 * * /opt/bcss/scripts/restore-drill.sh >/dev/null 2>&1
 #
-# Variabile (din /etc/bcss-monitoring.env):
-#   COMPOSE_DIR             implicit /opt/bcss
-#   HC_PING_URL_DRILL       ping healthchecks.io pentru ACEST drill (al treilea URL)
-#   LOG_FILE                implicit /var/log/bcss-restore-drill.log
+# Variables (from /etc/bcss-monitoring.env):
+#   COMPOSE_DIR             default /opt/bcss
+#   HC_PING_URL_DRILL       healthchecks.io ping URL for THIS drill (the third one)
+#   LOG_FILE                default /var/log/bcss-restore-drill.log
 set -uo pipefail
 
 ENV_FILE="${BCSS_MONITORING_ENV:-/etc/bcss-monitoring.env}"
@@ -31,15 +31,15 @@ DRILL_DB="drill_${STAMP}"
 TS="$(date -u +%FT%TZ)"
 REPORT=""
 
-cd "${COMPOSE_DIR}" 2>/dev/null || { echo "[FAIL] nu pot intra în ${COMPOSE_DIR}" >&2; exit 1; }
+cd "${COMPOSE_DIR}" 2>/dev/null || { echo "[FAIL] cannot enter ${COMPOSE_DIR}" >&2; exit 1; }
 COMPOSE=(docker compose --env-file .env.prod -f compose.prod.yaml)
 
-# POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB stau în .env.prod, nu în
-# fișierul de monitorizare. Avem nevoie de ele ca să creăm baza de drill și să
-# construim DSN-ul de restaurare. Cronul rulează ca root, deci poate citi 0600.
-[ -r .env.prod ] || { echo "[FAIL] nu pot citi ${COMPOSE_DIR}/.env.prod (rulați ca root)" >&2; exit 1; }
+# POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB live in .env.prod, not in the
+# monitoring env file. They are needed to create the drill database and build
+# the restore DSN. Cron runs as root, so a 0600 file is readable.
+[ -r .env.prod ] || { echo "[FAIL] cannot read ${COMPOSE_DIR}/.env.prod (run as root)" >&2; exit 1; }
 set -a; . ./.env.prod; set +a
-: "${POSTGRES_PASSWORD:?[FAIL] POSTGRES_PASSWORD lipsește din .env.prod}"
+: "${POSTGRES_PASSWORD:?[FAIL] POSTGRES_PASSWORD missing from .env.prod}"
 
 log()  { REPORT="${REPORT}$1"$'\n'; echo "$1"; }
 ping_hc() {
@@ -47,15 +47,15 @@ ping_hc() {
   curl -fsS -m 10 --retry 3 --data-raw "${2:-}" "${HC_PING_URL_DRILL}${1:-}" >/dev/null 2>&1 || true
 }
 
-# Baza de drill se șterge ORICUM — și la eșec, și la întrerupere. Altfel fiecare
-# rulare eșuată ar lăsa în urmă o bază orfană pe discul producției.
+# The drill database is dropped NO MATTER WHAT — on failure and on interruption.
+# Otherwise every failed run would leave an orphan database on the production disk.
 cleanup() {
   "${COMPOSE[@]}" exec -T db psql -U "${POSTGRES_USER:-bcsc}" -d postgres \
     -c "DROP DATABASE IF EXISTS ${DRILL_DB};" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-finish() { # rc, rezumat
+finish() { # rc, summary
   printf '%s [rc=%s] %s\n%s\n' "${TS}" "$1" "$2" "${REPORT}" >> "${LOG_FILE}" 2>/dev/null
   if [ "$1" -eq 0 ]; then ping_hc "" "${REPORT}"; else ping_hc "/fail" "${REPORT}"; fi
   echo "$2"
@@ -63,75 +63,75 @@ finish() { # rc, rezumat
 }
 
 ping_hc "/start" ""
-log "=== drill de restaurare ${TS} ==="
+log "=== restore drill ${TS} ==="
 
-# --- 1. aducem cel mai recent backup din depozitul off-box --------------------
+# --- 1. fetch the most recent backup from the off-box store -------------------
 FETCH="$("${COMPOSE[@]}" run --rm --no-deps -T --entrypoint fetch-offsite.sh backup --latest 2>&1 < /dev/null)"
 if [ $? -ne 0 ]; then
   log "${FETCH}"
-  finish 1 "[FAIL] nu am putut aduce backupul off-box"
+  finish 1 "[FAIL] could not fetch the off-box backup"
 fi
-SRC="$(printf '%s' "${FETCH}" | grep -oE '/backups/restaurate/[0-9]{8}-[0-9]{6}' | tail -1)"
-[ -n "${SRC}" ] || finish 1 "[FAIL] nu am putut determina directorul adus"
-log "[ok]   adus din off-box: ${SRC}"
+SRC="$(printf '%s' "${FETCH}" | grep -oE '/backups/restored/[0-9]{8}-[0-9]{6}' | tail -1)"
+[ -n "${SRC}" ] || finish 1 "[FAIL] could not determine the fetched directory"
+log "[ok]   fetched from off-box: ${SRC}"
 
-# --- 2. bază de unică folosință ----------------------------------------------
+# --- 2. single-use database ---------------------------------------------------
 PROD_DB="${POSTGRES_DB:-bcsc}"
-# Plasă de siguranță: numele de drill nu are voie să coincidă cu producția.
-[ "${DRILL_DB}" != "${PROD_DB}" ] || finish 1 "[FAIL] refuz: baza de drill coincide cu producția"
+# Safety net: the drill name must never equal the production database.
+[ "${DRILL_DB}" != "${PROD_DB}" ] || finish 1 "[FAIL] refusing: drill database name equals production"
 
 "${COMPOSE[@]}" exec -T db psql -U "${POSTGRES_USER:-bcsc}" -d postgres \
   -c "CREATE DATABASE ${DRILL_DB} OWNER ${POSTGRES_USER:-bcsc};" >/dev/null 2>&1 \
-  || finish 1 "[FAIL] nu am putut crea baza ${DRILL_DB}"
-log "[ok]   bază de drill creată: ${DRILL_DB}"
+  || finish 1 "[FAIL] could not create database ${DRILL_DB}"
+log "[ok]   drill database created: ${DRILL_DB}"
 
-# --- 3. restaurare ------------------------------------------------------------
+# --- 3. restore ---------------------------------------------------------------
 RESTORE="$("${COMPOSE[@]}" run --rm --no-deps -T \
   -e DATABASE_URL_RESTORE="postgresql://${POSTGRES_USER:-bcsc}:${POSTGRES_PASSWORD}@db:5432/${DRILL_DB}" \
   --entrypoint restore.sh backup "${SRC}" 2>&1 < /dev/null)"
 if [ $? -ne 0 ]; then
   log "${RESTORE}"
-  finish 1 "[FAIL] restaurarea a eșuat"
+  finish 1 "[FAIL] the restore failed"
 fi
-log "[ok]   restaurare încheiată"
+log "[ok]   restore completed"
 
-# --- 4. verificări ------------------------------------------------------------
-q() { # bază, interogare
+# --- 4. verification ----------------------------------------------------------
+q() { # database, query
   "${COMPOSE[@]}" exec -T db psql -U "${POSTGRES_USER:-bcsc}" -t -A -d "$1" -c "$2" 2>/dev/null | tr -d '\r' | head -1
 }
 
-# 4a. setul de tabele trebuie să fie identic cu al producției. Un dump trunchiat
-#     restaurează „cu succes" un subset — de asta nu ne uităm doar la exit code.
+# 4a. The table set must be identical to production. A truncated dump restores a
+#     subset perfectly happily — which is why the exit code alone is not enough.
 PROD_TABLES="$(q "${PROD_DB}"  "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")"
 DRILL_TABLES="$(q "${DRILL_DB}" "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")"
 if [ "${PROD_TABLES}" != "${DRILL_TABLES}" ]; then
-  log "[FAIL] tabele: producție=${PROD_TABLES} restaurat=${DRILL_TABLES}"
-  finish 1 "[FAIL] setul de tabele nu se potrivește"
+  log "[FAIL] tables: production=${PROD_TABLES} restored=${DRILL_TABLES}"
+  finish 1 "[FAIL] the table set does not match"
 fi
-log "[ok]   tabele: ${DRILL_TABLES} (identic cu producția)"
+log "[ok]   tables: ${DRILL_TABLES} (identical to production)"
 
-# 4b. istoricul migrațiilor — fără el, următorul deploy reaplică migrații.
+# 4b. Migration history — without it the next deploy re-applies migrations.
 PROD_MIG="$(q "${PROD_DB}"  "SELECT count(*) FROM doctrine_migration_versions;")"
 DRILL_MIG="$(q "${DRILL_DB}" "SELECT count(*) FROM doctrine_migration_versions;")"
 if [ "${PROD_MIG}" != "${DRILL_MIG}" ]; then
-  log "[FAIL] migrații: producție=${PROD_MIG} restaurat=${DRILL_MIG}"
-  finish 1 "[FAIL] istoricul migrațiilor nu se potrivește"
+  log "[FAIL] migrations: production=${PROD_MIG} restored=${DRILL_MIG}"
+  finish 1 "[FAIL] migration history does not match"
 fi
-log "[ok]   migrații: ${DRILL_MIG}"
+log "[ok]   migrations: ${DRILL_MIG}"
 
-# 4c. Datele. NU cerem egalitate: producția evoluează între momentul backupului
-#     și cel al drill-ului, deci o diferență mică e normală și așteptată. Ce NU
-#     e normal e ca producția să aibă rânduri, iar copia restaurată să fie goală
-#     — exact semnătura unui dump gol, care e regresia din 05-11 august.
+# 4c. The data. We do NOT require equality: production moves on between the
+#     backup and the drill, so a small difference is normal and expected. What is
+#     NOT normal is production having rows while the restored copy is empty —
+#     exactly the signature of an empty dump, the 5-11 August regression.
 for T in users vehicles documents vehicle_deadlines; do
   P="$(q "${PROD_DB}" "SELECT count(*) FROM ${T};")"
   D="$(q "${DRILL_DB}" "SELECT count(*) FROM ${T};")"
-  [ -n "${P}" ] && [ -n "${D}" ] || { log "[FAIL] nu pot număra ${T}"; finish 1 "[FAIL] interogare eșuată pe ${T}"; }
+  [ -n "${P}" ] && [ -n "${D}" ] || { log "[FAIL] cannot count ${T}"; finish 1 "[FAIL] query failed on ${T}"; }
   if [ "${P}" -gt 0 ] && [ "${D}" -eq 0 ]; then
-    log "[FAIL] ${T}: producție=${P} dar restaurat=0 — backup gol?"
-    finish 1 "[FAIL] ${T} e gol în copia restaurată"
+    log "[FAIL] ${T}: production=${P} but restored=0 — empty backup?"
+    finish 1 "[FAIL] ${T} is empty in the restored copy"
   fi
-  log "[ok]   ${T}: producție=${P} restaurat=${D}"
+  log "[ok]   ${T}: production=${P} restored=${D}"
 done
 
-finish 0 "[ok] drill de restaurare TRECUT (${SRC} -> ${DRILL_DB}, curățat)"
+finish 0 "[ok] restore drill PASSED (${SRC} -> ${DRILL_DB}, cleaned up)"

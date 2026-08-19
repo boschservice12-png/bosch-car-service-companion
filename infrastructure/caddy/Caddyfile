@@ -1,20 +1,22 @@
-# Caddy — proxy de margine + TLS pentru pilot.
+# Caddy — edge proxy + TLS for the pilot.
 #
-# Două moduri, controlate prin variabile de mediu (vezi .env.prod):
+# Two modes, controlled by environment variables (see .env.prod):
 #
-#  A) CU DOMENIU (recomandat): setați
-#       CUSTOMER_SITE=companion.exemplu.ro
-#       ADMIN_SITE=admin.companion.exemplu.ro
-#     Caddy provizionează automat certificate Let's Encrypt (HTTPS pe 443).
+#  A) WITH DOMAINS (recommended, and what production uses): set
+#       CUSTOMER_SITE=app.bcss.ro
+#       ADMIN_SITE=admin.app.bcss.ro
+#     Caddy provisions Let's Encrypt certificates automatically (HTTPS on 443).
 #
-#  B) FĂRĂ DOMENIU (doar IP, pentru început): lăsați valorile implicite
+#  B) WITHOUT A DOMAIN (IP only, to begin with): leave the defaults
 #       CUSTOMER_SITE=:80   ADMIN_SITE=:8081
-#     Se servește HTTP simplu; puneți TLS când aveți domeniu. Pentru HTTPS
-#     self-signed pe IP, folosiți `https://:443 { tls internal … }`.
+#     Plain HTTP is served; add TLS once a domain exists. Note that the 8081
+#     port mapping was removed from compose.prod.yaml and must be re-added for
+#     this mode. For a self-signed HTTPS on an IP, use
+#     `https://:443 { tls internal … }`.
 #
-# Browserul vorbește DOAR cu frontendul; apelurile /api sunt proxy-ate mai
-# departe către backend de către serverul Next (rewrite din next.config), deci
-# nu e nevoie de CORS și cookie-urile rămân same-origin.
+# The browser talks ONLY to the frontend; /api calls are proxied onward to the
+# backend by the Next server (a rewrite in next.config), so CORS is not needed
+# and cookies stay same-origin.
 
 {$CUSTOMER_SITE::80} {
 	encode gzip zstd

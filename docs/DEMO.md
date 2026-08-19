@@ -1,142 +1,162 @@
-# Demo & runbook — Bosch Car Service Companion
+# Demo and walkthrough
 
-Ghid pentru a rula aplicația și a demonstra fluxurile livrate (Sprinturile 1–3),
-din **două sesiuni separate: CLIENT și ADMIN**.
+How to run the application and demonstrate the delivered flows, from **two
+separate sessions: CUSTOMER and ADMIN**.
 
-## Ce se poate demonstra
+## What can be demonstrated
 
-| Modul | Client | Service (admin) |
+| Module | Customer | Service (admin) |
 |---|---|---|
-| **Scadențe** (ITP / RCA / taxă de drum / asistență) | vede stările calculate (valid / expiră curând / expirat), adaugă scadențe, atașează documente | listează vehiculele, validează scadențe, adaugă/atașează documente |
-| **Istoric service** | vede istoricul publicat al propriilor vehicule, descarcă documente | creează ciornă → publică; corecțiile păstrează originalul vizibil |
-| **Comunicare & oferte** | trimite mesaje / cereri de ofertă cu atașamente, acceptă/refuză oferta | răspunde, trimite oferta (sumă) |
-| **Asistență rutieră** | deschide o cerere (locație, problemă, mobilitate, siguranță, telefon, foto), anulează | preia (contact telefonic), schimbă starea |
-| **Mobilitate** | cere mașină de înlocuire / taxi / transport, anulează | aprobă / asigură / respinge |
-| **Dosar de daună** | deschide un dosar (eveniment, asigurător, poliță, foto) | preia și urmărește starea |
-| **Taxe & impozite** | urmărește taxele anuale, le editează, marchează plata declarativ (fără fișiere) | ajustează starea de plată |
+| **Deadlines** (roadworthiness / insurance / road tax / assistance) | Sees the calculated states (valid / expiring soon / expired), adds deadlines, attaches documents | Lists vehicles, validates deadlines, adds and attaches documents |
+| **Service history** | Sees the published history for their own vehicles, downloads documents | Creates a draft → publishes; corrections keep the original visible |
+| **Communication & quotes** | Sends messages and quote requests with attachments, accepts or declines a quote | Replies, sends the quote (amount) |
+| **Roadside assistance** | Opens a request (location, problem, mobility, safety, phone, photo), cancels it | Takes it over (phone contact), changes its state |
+| **Mobility** | Requests a replacement car / taxi / transport, cancels | Approves / provides / rejects |
+| **Damage claim** | Opens a file (event, insurer, policy, photos) | Takes it over and tracks its state |
+| **Taxes and duties** | Tracks annual taxes, edits them, marks payment declaratively (no files) | Adjusts the payment state |
 
-Toate acțiunile respectă **autorizarea la nivel de obiect** (un client nu vede datele
-altuia) și sunt înregistrate în **auditul** aplicației.
+Every action respects **object-level authorisation** (one customer never sees
+another's data) and is written to the application's **audit log**.
 
-## Conturi demo (după seed)
+## Demo accounts (after seeding)
 
-| Rol | Email | Parolă |
+| Role | Email | Password |
 |---|---|---|
 | Service (admin) | `admin@bcsc.ro` | `Demo1234!` |
-| Client | `client@bcsc.ro` | `Demo1234!` |
+| Customer | `client@bcsc.ro` | `Demo1234!` |
 
-Clientul demo are 2 vehicule (BMW Seria 3 `MS01POP`, VW Golf `MS02POP`) cu scadențe în
-stări variate, un istoric de service (o înregistrare publicată + o corecție), o cerere
-de ofertă cu ofertă trimisă (stare **QUOTED**), plus — pentru primul vehicul — o cerere
-de **asistență rutieră** preluată, o solicitare de **mobilitate** aprobată, un **dosar de
-daună** în lucru și două **taxe** (impozit auto plătit + taxă de mediu neplătită).
+The demo customer has 2 vehicles (BMW 3 Series `MS01POP`, VW Golf `MS02POP`) with
+deadlines in various states, a service history (one published record plus a
+correction), a quote request with a quote sent (state **QUOTED**), and — for the
+first vehicle — a **roadside assistance** request that has been taken over, an
+approved **mobility** request, a **damage claim** in progress, and two **taxes**
+(vehicle tax paid, environmental tax unpaid).
 
-## Rulare
+## Running
 
-### Varianta cea mai simplă — o singură comandă (Docker)
+### Simplest — a single command (Docker)
 
-Pornește **întreaga stivă** (bază de date + backend + ambele frontend-uri, cu date demo):
+Starts the **entire stack** (database + backend + both frontends, with demo data):
 
 ```bash
 docker compose -f compose.demo.yaml up --build
 ```
 
-Apoi: **Client** http://localhost:3000 · **Admin** http://localhost:3001. Detalii: `demo/README.md`.
+Then: **Customer** http://localhost:3000 · **Admin** http://localhost:3001.
+Details: [`../demo/README.md`](../demo/README.md).
 
-### Varianta A — infrastructură în Docker + aplicații locale
+### Option A — infrastructure in Docker, applications local
 
 ```bash
-# 1) Infrastructura (PostgreSQL, MinIO, ClamAv, nginx → backend pe :8080)
+# 1) Infrastructure (PostgreSQL, MinIO, ClamAV, nginx → backend on :8080)
 cd infrastructure/docker && docker compose up -d
 
-# 2) Schema + date demo (în containerul backend)
+# 2) Schema + demo data (inside the backend container)
 docker compose exec backend php bin/console doctrine:migrations:migrate --no-interaction
 docker compose exec backend php bin/console app:demo:seed
 
-# 3) Frontend client (:3000)
+# 3) Customer frontend (:3000)
 cd ../../apps/customer-web && npm install && npm run dev
 
-# 4) Frontend admin (:3001) — sesiune separată de browser
+# 4) Admin frontend (:3001) — use a separate browser session
 cd ../service-admin && npm install && npm run dev
 ```
 
-### Varianta B — totul local (fără Docker)
+### Option B — everything local, no Docker
 
 ```bash
-# Backend (:8080) — necesită PHP 8.2+ și o bază PostgreSQL accesibilă prin DATABASE_URL
+# Backend (:8080) — needs PHP 8.3+ and a PostgreSQL reachable via DATABASE_URL
 cd backend
 composer install
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:demo:seed
 php -S 127.0.0.1:8080 -t public
 
-# Frontend client (:3000) și admin (:3001) — ca la Varianta A, pașii 3–4
+# Customer (:3000) and admin (:3001) frontends — as in Option A, steps 3-4
 ```
 
-- Client: <http://localhost:3000>  ·  Admin: <http://localhost:3001>
-- Frontend-urile proxy-ează `/api` către backend (`NEXT_PUBLIC_API_BASE`, implicit `http://localhost:8080`).
-- **Sfat demo:** folosiți două ferestre/profile de browser separate (sau una normală + una incognito),
-  ca sesiunile CLIENT și ADMIN să nu se suprascrie.
+- Customer: <http://localhost:3000> · Admin: <http://localhost:3001>
+- The frontends proxy `/api` to the backend (`NEXT_PUBLIC_API_BASE`, default
+  `http://localhost:8080`).
+- **Demo tip:** use two separate browser windows or profiles (or one normal and
+  one incognito) so the CUSTOMER and ADMIN sessions do not overwrite each other.
 
-## Scenariu de demonstrație (≈5 minute)
+## Demonstration script (about 5 minutes)
 
-### 1. Scadențe (CLIENT → ADMIN → CLIENT)
-1. **Client** (`client@bcsc.ro`): *Vehicule → MS01POP*. Se văd scadențele: ITP **valid**,
-   RCA **expiră curând**, taxă de drum **expirată** (culoare + text + zile rămase).
-2. Adăugați un document la o scadență (JPG/PNG/PDF, max 10 MB) → apare „în curs de scanare",
-   apoi devine descărcabil.
-3. **Admin** (`admin@bcsc.ro`): *Vehicule → MS01POP* → **Validează** o scadență introdusă de client.
-4. **Client**: reîncărcați — scadența apare marcată ca validată de service.
+### 1. Deadlines (CUSTOMER → ADMIN → CUSTOMER)
 
-### 2. Istoric service (ADMIN → CLIENT)
-1. **Admin**: *Vehicul → Istoric service → + Adaugă*. Completați data, kilometrajul, tipul
-   lucrării, descrierea, piesele, manopera, totalul, garanția → **Salvează ciorna**.
-2. Atașați un document/foto, apoi **Publică**.
-3. **Client**: *Vehicul → Istoric service* — vede înregistrarea publicată și poate descărca documentul.
-4. **Admin**: pe o înregistrare publicată apăsați **Creează corecție**, modificați și publicați.
-   **Client**: vede acum atât originalul (marcat „corectat"), cât și corecția — nimic nu se pierde.
+1. **Customer** (`client@bcsc.ro`): *Vehicles → MS01POP*. The deadlines are
+   visible: roadworthiness **valid**, insurance **expiring soon**, road tax
+   **expired** (colour + text + days remaining).
+2. Attach a document to a deadline (JPG/PNG/PDF, max 10 MB) → it shows "scanning
+   in progress", then becomes downloadable.
+3. **Admin** (`admin@bcsc.ro`): *Vehicles → MS01POP* → **Validate** a deadline
+   entered by the customer.
+4. **Customer**: reload — the deadline now shows as validated by the workshop.
 
-### 3. Comunicare & cerere de ofertă (CLIENT → ADMIN → CLIENT)
-1. **Client**: *Mesaje → + Nou* → tip **Cerere de ofertă**, subiect, vehicul, mesaj + atașament → **Trimite**.
-2. **Admin**: *Mesaje* → deschide firul → completează **suma ofertei** + detalii → **Trimite oferta**.
-3. **Client**: firul arată starea **Ofertă trimisă** + suma → **Acceptă** (sau Refuză).
-   (Conversația demo pornește deja în starea *QUOTED*, deci se poate accepta direct.)
+### 2. Service history (ADMIN → CUSTOMER)
 
-### 4. Servicii Sprint 4 (CLIENT → ADMIN)
-Din pagina **Acasă** a clientului (secțiunea „Servicii") sau din bara de sus a portalului admin:
-- **Asistență rutieră** (`/asistenta`): clientul deschide o cerere (locație, problemă, mobilitate,
-  siguranță, telefon + foto); **admin** o preia — starea devine „Preluată de service" (contact telefonic direct).
-- **Mobilitate** (`/mobilitate`): clientul cere o mașină de înlocuire; **admin** o aprobă / marchează asigurată.
-- **Dosar de daună** (`/daune`): clientul deschide un dosar (eveniment, asigurător, poliță, foto);
-  **admin** îl preia și îi urmărește starea; documentele se descarcă autorizat.
-- **Taxe & impozite** (`/taxe`): clientul urmărește taxele anuale, le editează și marchează plata
-  declarativ — nu se încarcă niciun fișier (fără bon fiscal); **admin** poate ajusta starea de plată.
+1. **Admin**: *Vehicle → Service history → + Add*. Fill in the date, mileage,
+   type of work, description, parts, labour, total, warranty → **Save draft**.
+2. Attach a document or photo, then **Publish**.
+3. **Customer**: *Vehicle → Service history* — sees the published record and can
+   download the document.
+4. **Admin**: on a published record press **Create correction**, change it and
+   publish. **Customer**: now sees both the original (marked "corrected") and the
+   correction — nothing is lost.
 
-### 5. Izolare & audit (opțional)
-- Autentificați un al doilea client și încercați să accesați datele primului — răspuns **403**
-  (pe oricare modul: scadențe, istoric, mesaje, asistență, mobilitate, daune, taxe).
-- Toate acțiunile de mai sus sunt scrise în tabelul `audit_logs` (before/after, actor, IP).
+### 3. Communication and quote request (CUSTOMER → ADMIN → CUSTOMER)
 
-## Staging
+1. **Customer**: *Messages → + New* → type **Quote request**, subject, vehicle,
+   message + attachment → **Send**.
+2. **Admin**: *Messages* → open the thread → fill in the **quote amount** and
+   details → **Send quote**.
+3. **Customer**: the thread shows **Quote sent** plus the amount → **Accept**
+   (or Decline). The demo conversation already starts in the *QUOTED* state, so it
+   can be accepted directly.
 
-- `infrastructure/deployment/environments.md` descrie variabilele de mediu (DATABASE_URL,
-  APP_SECRET, CORS_ALLOW_ORIGIN, CLAMAV_HOST/PORT, storage).
-- Pentru staging: rulați migrațiile și `app:demo:seed` o singură dată (comandă **idempotentă** —
-  la a doua rulare nu duplică datele), apoi porniți `worker`-ul Messenger pentru scanarea documentelor
-  (`php bin/console messenger:consume async`).
-- Nu comiteți secrete; folosiți variabile de mediu / secret manager.
+### 4. Additional services (CUSTOMER → ADMIN)
 
-## Verificare rapidă (CI local)
+From the customer's **Home** page ("Services" section) or the admin portal's top
+bar:
+
+- **Roadside assistance** (`/asistenta`): the customer opens a request (location,
+  problem, mobility, safety, phone + photo); the **admin** takes it over — the
+  state becomes "Taken over by the workshop" (direct phone contact).
+- **Mobility** (`/mobilitate`): the customer requests a replacement car; the
+  **admin** approves it or marks it as provided.
+- **Damage claim** (`/daune`): the customer opens a file (event, insurer, policy,
+  photos); the **admin** takes it over and tracks its state; documents download
+  through authorised URLs.
+- **Taxes and duties** (`/taxe`): the customer tracks annual taxes, edits them and
+  marks payment declaratively — no file is uploaded, no receipt; the **admin** can
+  adjust the payment state.
+
+### 5. Isolation and audit (optional)
+
+- Log in as a second customer and try to reach the first one's data — the response
+  is **403**, on every module (deadlines, history, messages, assistance, mobility,
+  claims, taxes).
+- Every action above is written to `audit_logs` (before/after, actor, IP).
+
+## Quick verification
 
 ```bash
-# Backend: teste (SQLite) + validare schemă (PostgreSQL)
-cd backend
-php bin/console doctrine:schema:create --env=test && vendor/bin/phpunit
-php bin/console doctrine:schema:validate           # pe o bază PostgreSQL migrată
-
-# Frontend (ambele aplicații)
-cd ../apps/customer-web && npx tsc --noEmit && npx next lint && npx next build
-cd ../service-admin  && npx tsc --noEmit && npx next lint && npx next build
+./scripts/regression.sh
 ```
 
-Pentru un test de browser end-to-end peste cele două sesiuni, vezi `e2e/README.md`.
+Or individually:
+
+```bash
+# Backend: tests (SQLite) + schema validation (PostgreSQL)
+cd backend
+php bin/console doctrine:schema:create --env=test && vendor/bin/phpunit
+php bin/console doctrine:schema:validate           # against a migrated PostgreSQL
+
+# Frontends (both applications)
+cd ../apps/customer-web && npx tsc --noEmit && npx next lint && npx next build
+cd ../service-admin     && npx tsc --noEmit && npx next lint && npx next build
+```
+
+For an end-to-end browser test across both sessions, see
+[`../e2e/README.md`](../e2e/README.md).

@@ -1,121 +1,146 @@
-# Bosch Car Service Companion
+# Bosch Car Service Companion (BCSS)
 
-Aplicația clienților și portalul de administrare pentru SC Szkaliczki Service SRL.
-Interfață în 3 limbi: **română (implicită) · maghiară · engleză**.
+The customer application and administration portal for SC Szkaliczki Service SRL.
+User interface in three languages: **Romanian (default) · Hungarian · English**.
 
-## Componentele produsului
+**Status: live pilot.** Deployed and serving at
+[app.bcss.ro](https://app.bcss.ro), but not yet handed to end users. See
+[Roadmap](docs/ROADMAP.md) for what stands between the pilot and real customers —
+most importantly, [automated notifications do not exist yet](#not-implemented--automated-notifications).
 
-| Componentă | Cale | Port dev |
-|---|---|---|
-| Backend API (Symfony) | `backend/` | 8080 |
-| Aplicația clientului (Next.js, PWA instalabilă) | `apps/customer-web/` | 3000 |
-| Portal service/admin (Next.js) | `apps/service-admin/` | 3001 |
+---
 
-## Funcționalități principale
+## Product components
 
-- **Client** (doar datele proprii): vehicule, scadențe (ITP / RCA / taxă de drum /
-  asistență rutieră) cu alerte și linkuri de verificare oficială (RAR, AIDA,
-  eRovinieta), istoric service publicat de service (+ PDF), mesaje și cereri,
-  cereri de ofertă, asistență rutieră (două linii telefonice), mobilitate,
-  taxe și impozite (evidență declarativă, **fără** încărcare de documente),
-  „În caz de accident" → amiabila.com.
-- **Onboarding**: înregistrare liberă cu email + parolă. Un vehicul creat de
-  importul Excel al service-ului se leagă de cont cu un **cod de activare**
-  emis de service (unic, hash-uit, cu expirare, o singură utilizare, cu limită
-  de încercări) — numărul de înmatriculare / VIN **nu** mai acordă singur acces.
-  Detalii: `docs/PILOT_READINESS.md` (Blocul 3).
-- **Service/admin**: panou cu căutare pe 3 câmpuri (nume / număr / VIN),
-  import Excel/CSV (clienți + istoric reparații, tranzacțional și idempotent),
-  publicare/corecție istoric, inbox-uri (mesaje, oferte, asistență, mobilitate,
-  daune, taxe), verificarea scadențelor, **2FA TOTP** cu coduri de rezervă.
-- **Securitate**: sesiuni httpOnly + CSRF double-submit pe toate cererile
-  modificatoare, rate limiting (login/mesaje/upload), conturi dezactivate
-  blocate imediat, VIN unic la nivel de bază de date, audit complet.
+| Component | Path | Dev port | Production URL |
+|---|---|---|---|
+| Backend API (Symfony 7, PHP 8.3) | `backend/` | 8080 | internal only |
+| Customer app (Next.js 15, installable PWA) | `apps/customer-web/` | 3000 | https://app.bcss.ro |
+| Service/admin portal (Next.js 15) | `apps/service-admin/` | 3001 | https://admin.app.bcss.ro |
 
-## Pornire (dezvoltare)
+## What it does
+
+**For the customer** (their own data only): vehicles, deadlines (roadworthiness
+test / insurance / road tax / roadside assistance) with alerts and links to the
+official checks (RAR, AIDA, eRovinieta), service history published by the
+workshop (+ PDF), messages and requests, quote requests, roadside assistance
+(two phone lines), mobility requests, taxes and duties (declarative records,
+**no** document upload), and an "In case of an accident" flow to amiabila.com.
+
+**Onboarding**: open registration with email and password. A vehicle created by
+the workshop's Excel import is linked to an account with an **activation code**
+issued by the workshop — single-use, hashed, expiring, with an attempt limit.
+A registration plate or VIN alone **does not** grant access.
+
+**For the workshop/admin**: a dashboard with three-field search (name / plate /
+VIN), Excel/CSV import (customers + repair history, transactional and
+idempotent), publishing and correcting history, inboxes (messages, quotes,
+assistance, mobility, damage claims, taxes), deadline review, and **TOTP 2FA**
+with backup codes.
+
+**Security**: httpOnly sessions + CSRF double-submit on every state-changing
+request, rate limiting (login/messages/upload), disabled accounts blocked
+immediately, VIN unique at the database level, and full audit logging.
+
+---
+
+## Quick start
+
+The fastest way to see the whole product running, with demo data:
 
 ```bash
-# 1) Backend (necesită PHP 8.2+ și PostgreSQL prin DATABASE_URL / .env.local)
+docker compose -f compose.demo.yaml up --build
+# Customer  http://localhost:3000
+# Admin     http://localhost:3001
+# Logins    admin@bcsc.ro / client@bcsc.ro   (password Demo1234!)
+```
+
+Native development (fastest iteration):
+
+```bash
+# 1) Backend — needs PHP 8.3+ and PostgreSQL via DATABASE_URL in backend/.env.local
 cd backend && composer install \
   && php bin/console doctrine:migrations:migrate -n \
   && php -S 127.0.0.1:8080 -t public
 
-# 2) Aplicația clientului
+# 2) Customer app
 cd apps/customer-web && npm install && npm run dev
 
-# 3) Portalul admin (sesiune separată de browser)
+# 3) Admin portal (use a separate browser session)
 cd apps/service-admin && npm install && npm run dev
 ```
 
-Alternativ, toată stiva cu date demo: `docker compose -f compose.demo.yaml up --build`
-(client: http://localhost:3000 · admin: http://localhost:3001). Detalii: `docs/DEMO.md`.
+Full details, including the Messenger worker the demo stack needs, are in
+[docs/DEMO.md](docs/DEMO.md).
 
-Stiva demo include un **worker Messenger** (serviciul `worker`) care consumă
-transportul `async` (scanarea antimalware a documentelor, notificări). Fără el,
-documentele ar rămâne veșnic în starea PENDING. Verificare:
+## Verification
 
 ```bash
-docker compose -f compose.demo.yaml logs -f worker      # pornire + fiecare mesaj procesat
-docker compose -f compose.demo.yaml exec backend php bin/console messenger:stats
-docker compose -f compose.demo.yaml exec backend php bin/console messenger:failed:show   # mesaje eșuate definitiv
+./scripts/regression.sh     # everything: tests, lints, both frontend builds, compose validation
 ```
 
-Workerul are `restart: unless-stopped`; oprirea lui e vizibilă în readiness
-(`GET /api/health/ready`, cheia `messenger`). Vezi `docs/PILOT_READINESS.md`.
-
-## Verificare
+Or individually:
 
 ```bash
-# Backend: unit + funcțional (include gardianul OpenAPI ↔ router)
 cd backend && php bin/console doctrine:schema:create --env=test && vendor/bin/phpunit
-
-# Frontenduri
 cd apps/customer-web  && npx tsc --noEmit && npx next build
 cd apps/service-admin && npx tsc --noEmit && npx next build
-
-# E2E de browser pe stiva pornită cu date demo (vezi e2e/README.md)
-cd e2e && npm install && npx playwright test
+cd e2e && npm install && npx playwright test    # needs the demo stack running
 ```
 
-## Documentație
+---
 
-| Subiect | Unde |
+## Documentation
+
+Start at the [documentation index](docs/README.md). The map:
+
+| I want to… | Read |
 |---|---|
-| Operare pilot (readiness, storage, activare, notificări, TOTP, backup) | `docs/PILOT_READINESS.md` |
-| Telepítés pilotra (production compose, `.env.prod`, TLS, runbook) | `docs/DEPLOY_PILOT.md` |
-| Contract API (sincron cu routerul, impus de `OpenApiSyncTest`) | `docs/api/openapi.yaml` |
-| Rulare demo + date demo | `docs/DEMO.md` |
-| Backup + restaurare (drill lunar) | `infrastructure/backup/` |
-| Monitorizare, cron, semnale de urmărit | `infrastructure/monitoring/monitoring.md` |
-| Teste e2e de browser | `e2e/README.md` |
-| Decizii de arhitectură | `docs/architecture/` (inclusiv `adr/`) |
+| Understand how the system fits together | [Architecture](docs/ARCHITECTURE.md) |
+| Run the system day to day | [Operations](docs/OPERATIONS.md) |
+| Ship a change to production | [Deployment](docs/DEPLOYMENT.md) |
+| Back up, restore, or recover from disaster | [Backup and restore](docs/BACKUP_AND_RESTORE.md) |
+| Understand the alerting | [Monitoring](docs/MONITORING.md) |
+| Debug something that is behaving oddly | [Troubleshooting](docs/TROUBLESHOOTING.md) |
+| Know what is left to do | [Roadmap](docs/ROADMAP.md) |
+| Call the API | [`docs/api/openapi.yaml`](docs/api/openapi.yaml) |
+| Understand a past design decision | [`docs/architecture/adr/`](docs/architecture/adr/) |
 
-## În curs — notificări automate (NU sunt implementate)
+Language convention: **all developer and operator documentation is in English.**
+Two exceptions are deliberate — user-facing product strings, where Romanian is
+the source language for the trilingual feature, and
+[`docs/GHID_INSTALARE_COMPANION_RO.md`](docs/GHID_INSTALARE_COMPANION_RO.md),
+which is written for Romanian customers rather than for developers.
 
-**Sistemul nu trimite nicio notificare automată.** Nu există furnizor de e-mail,
-push sau WhatsApp configurat. Fiecare notificare — inclusiv avertismentele de
-scadență (ITP, RCA, rovinietă), care sunt motivul principal pentru care un client
-folosește aplicația — se oprește în starea `MANUAL_ACTION_REQUIRED` și așteaptă
-ca **un om să trimită mesajul**.
+---
 
-Ce există deja:
+## Not implemented — automated notifications
 
-- `NotificationDelivery` (`backend/src/Notification/`) e contractul, pregătit
-  pentru o implementare reală;
-- `ManualNotificationDelivery` e implementarea curentă: marchează
-  `MANUAL_ACTION_REQUIRED` / `SKIPPED`, niciodată `SENT` „orb";
-- `app:deadlines:scan` calculează corect ce ar trebui trimis și când.
+**The system sends no automated notifications.** There is no email, push, or
+WhatsApp provider configured. Every notification — including the deadline
+warnings for roadworthiness tests, insurance and road tax, which are the main
+reason a customer installs the app — stops in the `MANUAL_ACTION_REQUIRED` state
+and waits for **a human to send the message**.
 
-Ce lipsește: un furnizor real (SMTP/SES/Postmark pentru e-mail, provider push
-pentru PWA) și o decizie de cost/GDPR privind canalul.
+What already exists:
 
-**Cine preia pilotul trebuie să știe asta înainte de primii utilizatori reali.**
-Un client care se așteaptă la o alertă de expirare a ITP-ului nu o va primi
-automat. Fără acest pas, promisiunea centrală a produsului e servită manual.
+- `NotificationDelivery` (`backend/src/Notification/`) is the contract, ready for
+  a real implementation;
+- `ManualNotificationDelivery` is the current implementation: it marks
+  `MANUAL_ACTION_REQUIRED` / `SKIPPED`, never a blind `SENT`;
+- `app:deadlines:scan` correctly computes what should be sent and when.
 
-## Atenție — demo-ul vechi
+What is missing: a real provider (SMTP/SES/Postmark for email, a push provider
+for the PWA) and a cost/GDPR decision about the channel.
 
-`archive/legacy-demo/` conține prototipul inițial (Vite/TanStack, date stocate
-în localStorage). **Nu este produsul** și nu trebuie pornit sau livrat; este
-păstrat doar ca referință vizuală. `npm run dev` din rădăcină afișează
-intenționat instrucțiunile de mai sus în loc să pornească ceva.
+**Whoever takes over the pilot has to know this before the first real users.**
+A customer expecting an alert that their roadworthiness test is expiring will not
+receive one automatically. Until this is built, the product's central promise is
+delivered by hand.
+
+## Note — the old demo
+
+`archive/legacy-demo/` contains the original prototype (Vite/TanStack, data in
+localStorage). **It is not the product** and must not be started or shipped; it
+is kept only as a visual reference. `npm run dev` at the repository root
+deliberately prints the instructions above instead of starting anything.

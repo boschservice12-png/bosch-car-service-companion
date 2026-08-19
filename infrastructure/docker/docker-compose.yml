@@ -1,6 +1,6 @@
-# Docker Compose — mediu de dezvoltare local
-# Servicii: postgres, redis, minio, clamav, backend (php-fpm), worker, nginx.
-# Versiunile imaginilor se fixează în ADR-0004 după verificarea liniilor suportate.
+# Docker Compose — local development environment.
+# Services: postgres, redis, minio, clamav, backend (php-fpm), worker, nginx.
+# Image versions are pinned deliberately; see docs/TROUBLESHOOTING.md for why.
 
 services:
   postgres:
@@ -55,8 +55,9 @@ services:
       redis: { condition: service_started }
     volumes:
       - ../../backend:/var/www/app
-      # Volum dedicat pentru vendor: bind mount-ul de mai sus ar ascunde altfel
-      # vendor-ul instalat în imagine (backend/vendor este gitignored).
+      # A dedicated volume for vendor: the bind mount above would otherwise
+      # hide the vendor directory installed in the image (backend/vendor is
+      # gitignored).
       - backend_vendor:/var/www/app/vendor
     expose: ["9000"]
 

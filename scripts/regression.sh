@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Suită de regresie pentru pilot-readiness — o singură comandă reproductibilă
-# care rulează întreaga baterie de verificări. Iese nenul la primul eșec.
+# Regression suite — one reproducible command that runs the whole battery of
+# checks. Exits non-zero on the first failure.
 #
 #   ./scripts/regression.sh
 #
-# Acoperă: teste backend (PHPUnit), lint container (prod + test), lint YAML,
-# typecheck + lint + build pentru ambele frontend-uri, și validarea celor două
-# fișiere docker compose. Testele Playwright e2e NU sunt incluse aici — ele cer
-# stiva pornită; vezi e2e/README.md pentru rularea lor locală.
+# Covers: backend tests (PHPUnit), container lint (prod + test), YAML lint,
+# typecheck + lint + build for both frontends, and validation of all three
+# docker compose files. Playwright e2e tests are NOT included here — they need
+# the stack running; see e2e/README.md for running them locally.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,7 +15,7 @@ cd "${ROOT}"
 
 step() { echo; echo "==== $* ===="; }
 
-step "Backend — PHPUnit (schema de test recreată)"
+step "Backend — PHPUnit (test schema recreated)"
 (
   cd backend
   rm -f var/test.db
@@ -23,7 +23,7 @@ step "Backend — PHPUnit (schema de test recreată)"
   APP_ENV=test php vendor/bin/phpunit
 )
 
-step "Backend — lint container (prod + test) + YAML"
+step "Backend — container lint (prod + test) + YAML"
 (
   cd backend
   php bin/console lint:container --env=prod
@@ -42,24 +42,24 @@ for app in customer-web service-admin; do
   )
 done
 
-step "Docker Compose — validare configurație"
+step "Docker Compose — configuration validation"
 docker compose -f compose.demo.yaml config -q
 docker compose -f infrastructure/docker/docker-compose.yml config -q
 
-# compose.prod.yaml — fișierul care descrie PRODUCȚIA — nu era validat de nimic.
-# Motivul: serviciile au `env_file: [.env.prod]`, iar acel fișier e gitignorat și
-# lipsește din repo, deci `config` pica. `--env-file` NU ajută: el controlează
-# doar substituția variabilelor, nu directiva `env_file` per serviciu. Deci avem
-# nevoie de un `.env.prod` REAL pe disc, fie cel existent, fie unul temporar
-# construit din exemplu.
+# compose.prod.yaml — the file that describes PRODUCTION — was validated by
+# nothing. The reason: its services use `env_file: [.env.prod]`, and that file is
+# gitignored and absent from the repo, so `config` failed. `--env-file` does NOT
+# help: it only controls variable substitution, not the per-service `env_file`
+# directive. So we need a REAL `.env.prod` on disk, either the existing one or a
+# temporary one built from the example.
 if [ -f .env.prod ]; then
-  # Pe un server cu configurație reală: o folosim, nu o atingem.
+  # On a server with real configuration: use it, do not touch it.
   docker compose --env-file .env.prod -f compose.prod.yaml config -q \
     || { echo "compose.prod.yaml INVALID" >&2; exit 1; }
 else
-  # Pe o mașină de dezvoltare / în CI: fabricăm unul temporar și îl ștergem.
-  # Ștergerea e în trap, ca să nu rămână un `.env.prod` fals dacă scriptul pică
-  # la mijloc — un fișier fantomă acolo ar deruta următorul deploy.
+  # On a development machine or in CI: fabricate a temporary one and delete it.
+  # The deletion is in a trap so a fake `.env.prod` cannot survive a mid-script
+  # failure — a phantom file there would confuse the next deploy.
   sed -e 's|<[^>]*>|placeholder|g' .env.prod.example > .env.prod
   trap 'rm -f "${ROOT}/.env.prod"' EXIT
   docker compose --env-file .env.prod -f compose.prod.yaml config -q \
@@ -70,4 +70,4 @@ fi
 echo "compose.prod.yaml OK"
 
 echo
-echo "==== Suită de regresie: TOATE verificările au trecut ===="
+echo "==== Regression suite: ALL checks passed ===="

@@ -1,6 +1,8 @@
 name: Backend CI
 
-# Rulează doar pentru backend (Symfony); nu atinge frontend-ul existent.
+# Runs for the backend (Symfony) only; does not touch the frontends.
+# NOTE: this workflow is path-filtered, so it does NOT run on every push to
+# main. The deploy workflow therefore carries its own test gate.
 on:
   push:
     branches: [ "claude/**", "main" ]
@@ -14,7 +16,7 @@ defaults:
 
 jobs:
   backend:
-    name: Teste (SQLite) + migrație & validare (PostgreSQL)
+    name: Tests (SQLite) + migration & validation (PostgreSQL)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -41,20 +43,20 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Lint container (validează wiring DI)
+      - name: Container lint (validates DI wiring)
         run: php bin/console lint:container --env=test
 
-      - name: Lint YAML config
+      - name: YAML config lint
         run: php bin/console lint:yaml config
 
-      - name: Teste (SQLite)
+      - name: Tests (SQLite)
         env:
           APP_ENV: test
         run: |
           php bin/console doctrine:schema:create --env=test
           vendor/bin/phpunit
 
-      - name: Migrație + schema:validate (PostgreSQL)
+      - name: Migration + schema:validate (PostgreSQL)
         env:
           APP_ENV: dev
           DATABASE_URL: "postgresql://bcsc:bcsc@127.0.0.1:5432/bcsc?serverVersion=16&charset=utf8"
