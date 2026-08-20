@@ -38,8 +38,15 @@ for app in customer-web service-admin; do
     [ -d node_modules ] || npm install --no-audit --no-fund
     npm run typecheck
     npm run lint
-    npm run build
   )
+  # The build goes through verify-build.sh rather than `npm run build`, because
+  # `next build` has two side effects that matter here: it writes into .next
+  # (breaking any dev server running against the same tree) and it rewrites
+  # tsconfig.json in place. The second one is why this matters even in CI —
+  # deploy-remote.sh refuses to run on a dirty working tree, so a build that
+  # silently edits a tracked file can block a deploy. `--no-lint` is correct:
+  # lint already ran above.
+  "${ROOT}/scripts/verify-build.sh" "${app}"
 done
 
 step "Docker Compose — configuration validation"
