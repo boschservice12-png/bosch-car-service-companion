@@ -33,7 +33,12 @@ export const metadata: Metadata = {
   description: 'Aplicația clienților SC Szkaliczki Service SRL',
   manifest: '/manifest.webmanifest',
   icons: {
-    icon: '/icons/icon-192.png',
+    // The vector is listed first so browsers that support it scale the mark
+    // cleanly at any tab size; the PNG stays as the fallback.
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/icons/apple-touch-icon.png',
   },
   appleWebApp: {

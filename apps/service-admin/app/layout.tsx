@@ -26,6 +26,13 @@ const barlowCondensed = Barlow_Condensed({
 export const metadata: Metadata = {
   title: 'Portal Service — Bosch Car Service Companion',
   description: 'Portal de administrare pentru service',
+  icons: {
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/icons/apple-touch-icon.png',
+  },
 };
 
 export const viewport: Viewport = { themeColor: '#0a2540', width: 'device-width', initialScale: 1 };
