@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Me } from '@/lib/types';
@@ -48,35 +49,50 @@ export default function ProfilePage() {
 
   return (
     <>
-      <h1>{t('Profil')}</h1>
-      <div className="card stack">
-        {me.name ? (
-          <div>
-            <span className="muted">{t('Nume:')}</span> {me.name}
-          </div>
-        ) : null}
+      <header className="page-head">
         <div>
-          <span className="muted">{t('Email:')}</span> {me.email}
+          <h1>{t('Profil')}</h1>
         </div>
-        <div>
-          <span className="muted">{t('Rol:')}</span> {me.role === 'SERVICE_ADMIN' ? t('Administrator service') : t('Client')}
+        <div className="page-head-actions">
+          <button className="btn btn-ghost btn-sm" onClick={logout}>
+            {t('Deconectare')}
+          </button>
         </div>
-      </div>
+      </header>
 
-      <button className="btn btn-ghost" onClick={logout}>
-        {t('Deconectare')}
-      </button>
+      <section className="panel panel-form" style={{ marginBottom: 'var(--s4)' }}>
+        <div className="panel-head">
+          <span className="panel-title">{t('Cont')}</span>
+        </div>
+        <div className="panel-body">
+          <dl className="dl">
+            {me.name ? (
+              <>
+                <dt>{t('Nume:')}</dt>
+                <dd>{me.name}</dd>
+              </>
+            ) : null}
+            <dt>{t('Email:')}</dt>
+            <dd>{me.email}</dd>
+            <dt>{t('Rol:')}</dt>
+            <dd>{me.role === 'SERVICE_ADMIN' ? t('Administrator service') : t('Client')}</dd>
+          </dl>
+        </div>
+      </section>
 
       {me.role === 'CLIENT' ? (
-        <section className="card stack" style={{ marginTop: 16 }}>
-          <h2 style={{ margin: 0 }}>{t('Datele mele (GDPR)')}</h2>
+        <section className="panel panel-form">
+          <div className="panel-head">
+            <span className="panel-title">{t('Datele mele (GDPR)')}</span>
+          </div>
+          <div className="panel-body stack">
           <button className="btn btn-ghost" onClick={downloadExport}>
-            {t('⬇️ Descarcă datele mele (JSON)')}
+            <Icon name="download" size={16} /> {t('Descarcă datele mele (JSON)')}
           </button>
 
           {!showDelete ? (
-            <button className="btn btn-ghost" style={{ color: '#c62828' }} onClick={() => setShowDelete(true)}>
-              {t('Șterge contul…')}
+            <button className="btn btn-ghost btn-danger" onClick={() => setShowDelete(true)}>
+              <Icon name="trash" size={16} /> {t('Șterge contul…')}
             </button>
           ) : (
             <form
@@ -95,7 +111,7 @@ export default function ProfilePage() {
               }}
               noValidate
             >
-              <p className="muted" style={{ fontSize: '0.88rem' }}>
+              <p className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                 {t('Contul se blochează imediat, iar după 30 de zile datele personale se șterg definitiv. În acest interval vă puteți răzgândi contactând service-ul.')}
               </p>
               {deleteError ? (
@@ -114,8 +130,8 @@ export default function ProfilePage() {
                   required
                 />
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn" style={{ background: '#c62828' }} type="submit" disabled={busy || deletePassword === ''}>
+              <div style={{ display: 'flex', gap: 'var(--s2)' }}>
+                <button className="btn btn-danger" type="submit" disabled={busy || deletePassword === ''}>
                   {busy ? t('Se trimite…') : t('Confirm ștergerea contului')}
                 </button>
                 <button className="btn btn-ghost" type="button" onClick={() => setShowDelete(false)}>
@@ -124,6 +140,7 @@ export default function ProfilePage() {
               </div>
             </form>
           )}
+          </div>
         </section>
       ) : null}
 

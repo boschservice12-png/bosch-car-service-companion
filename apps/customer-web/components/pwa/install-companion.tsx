@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { useT } from '@/lib/i18n';
 import { isSmallScreen } from './device-detection';
 import { isRecentlyDismissed, isStandalone, rememberDismissed } from './pwa-status';
@@ -67,7 +68,7 @@ export function InstallCompanion() {
           {t('Instalează')}
         </button>
         <button type="button" className="btn btn-ghost" onClick={dismiss} aria-label={t('Închide')}>
-          ✕
+          <Icon name="close" size={16} />
         </button>
       </div>
     </div>

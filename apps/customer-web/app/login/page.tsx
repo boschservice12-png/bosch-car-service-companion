@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/types';
 import { useT } from '@/lib/i18n';
+import { AuthShell } from '@/components/AuthShell';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,13 +31,17 @@ export default function LoginPage() {
   }
 
   return (
-    <>
+    <AuthShell t={t} lede={t('Scadențele mașinii, într-un singur loc.')}>
+      <p className="eyebrow">{t('Cont client')}</p>
       <h1>{t('Autentificare')}</h1>
+      <p className="auth-intro">{t('Introduceți datele contului pentru a continua.')}</p>
+
       {error ? (
         <div className="alert alert-err" role="alert">
           {error}
         </div>
       ) : null}
+
       <form onSubmit={onSubmit} noValidate>
         <div className="field">
           <label htmlFor="email">{t('Email')}</label>
@@ -57,9 +62,10 @@ export default function LoginPage() {
           {busy ? t('Se conectează…') : t('Intră în cont')}
         </button>
       </form>
-      <p className="center muted" style={{ marginTop: 16 }}>
+
+      <p className="auth-alt">
         {t('Nu aveți cont?')} <Link href="/register">{t('Creați unul')}</Link>
       </p>
-    </>
+    </AuthShell>
   );
 }

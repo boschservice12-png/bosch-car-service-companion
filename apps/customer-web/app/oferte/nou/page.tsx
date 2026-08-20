@@ -1,21 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
 import { useT } from '@/lib/i18n';
 import { BottomNav } from '@/components/BottomNav';
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  fontSize: '1rem',
-  background: '#fff',
-};
 
 export default function NewQuoteRequestPage() {
   const router = useRouter();
@@ -68,10 +60,15 @@ export default function NewQuoteRequestPage() {
 
   return (
     <>
-      <Link href="/oferte" className="muted">
-        {t('← Cereri de ofertă')}
-      </Link>
-      <h1>{t('Cere ofertă de preț')}</h1>
+      <header className="page-head">
+        <div>
+  <Link href="/oferte" className="back-link">
+          <Icon name="arrow-left" size={14} />
+          {t('Cereri de ofertă')}
+        </Link>
+          <h1>{t('Cere ofertă de preț')}</h1>
+        </div>
+      </header>
       <p className="muted">{t('Descrieți problema — service-ul revine cu o estimare. Fără obligații.')}</p>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
@@ -86,7 +83,7 @@ export default function NewQuoteRequestPage() {
       >
         <div className="field">
           <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
-          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
+          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
@@ -97,7 +94,7 @@ export default function NewQuoteRequestPage() {
         </div>
         <div className="field">
           <label htmlFor="mileage">{t('Kilometraj (opțional)')}</label>
-          <input id="mileage" type="number" min={0} inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} style={inputStyle} />
+          <input id="mileage" type="number" min={0} inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} />
         </div>
         <div className="field">
           <label htmlFor="symptom">{t('Descrierea simptomului *')}</label>
@@ -109,27 +106,26 @@ export default function NewQuoteRequestPage() {
             minLength={10}
             required
             placeholder={t('Ex.: zgomot metalic la frânare, în față…')}
-            style={inputStyle}
           />
         </div>
         <div className="field">
           <label htmlFor="conditions">{t('Când apare (opțional)')}</label>
-          <input id="conditions" type="text" value={occurrenceConditions} onChange={(e) => setOccurrenceConditions(e.target.value)} placeholder={t('Ex.: la frânări puternice')} style={inputStyle} />
+          <input id="conditions" type="text" value={occurrenceConditions} onChange={(e) => setOccurrenceConditions(e.target.value)} placeholder={t('Ex.: la frânări puternice')} />
         </div>
         <div className="field">
           <label htmlFor="drivable">{t('Mașina e conducibilă?')}</label>
-          <select id="drivable" value={vehicleDrivable ? 'DA' : 'NU'} onChange={(e) => setVehicleDrivable(e.target.value === 'DA')} style={inputStyle}>
+          <select id="drivable" value={vehicleDrivable ? 'DA' : 'NU'} onChange={(e) => setVehicleDrivable(e.target.value === 'DA')}>
             <option value="DA">{t('Da')}</option>
             <option value="NU">{t('Nu')}</option>
           </select>
         </div>
         <div className="field">
           <label htmlFor="lights">{t('Martori aprinși în bord (opțional)')}</label>
-          <input id="lights" type="text" value={warningLights} onChange={(e) => setWarningLights(e.target.value)} placeholder={t('Ex.: ABS, motor')} style={inputStyle} />
+          <input id="lights" type="text" value={warningLights} onChange={(e) => setWarningLights(e.target.value)} placeholder={t('Ex.: ABS, motor')} />
         </div>
         <div className="field">
           <label htmlFor="contact">{t('Contact preferat')}</label>
-          <select id="contact" value={preferredContactMethod} onChange={(e) => setPreferredContactMethod(e.target.value)} style={inputStyle}>
+          <select id="contact" value={preferredContactMethod} onChange={(e) => setPreferredContactMethod(e.target.value)}>
             <option value="PHONE">{t('Telefon')}</option>
             <option value="WHATSAPP">WhatsApp</option>
             <option value="APP">{t('Mesaj în aplicație')}</option>
@@ -137,7 +133,7 @@ export default function NewQuoteRequestPage() {
         </div>
         <div className="field">
           <label htmlFor="interval">{t('Interval preferat (opțional)')}</label>
-          <input id="interval" type="text" value={preferredInterval} onChange={(e) => setPreferredInterval(e.target.value)} placeholder={t('Ex.: luni–vineri după 16:00')} style={inputStyle} />
+          <input id="interval" type="text" value={preferredInterval} onChange={(e) => setPreferredInterval(e.target.value)} placeholder={t('Ex.: luni–vineri după 16:00')} />
         </div>
 
         <button className="btn" type="submit" disabled={busy}>

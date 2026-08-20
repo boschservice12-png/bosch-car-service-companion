@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -13,15 +14,6 @@ const STATUS_CLASS: Record<PaymentStatus, string> = {
   PARTIALLY_PAID: 'badge-warn',
   PAID: 'badge-ok',
   OVERDUE: 'badge-err',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  fontSize: '1rem',
-  background: '#fff',
 };
 
 function money(ron: number): string {
@@ -134,17 +126,26 @@ export default function TaxDetailPage() {
 
   return (
     <>
-      <Link href="/taxe" className="muted">
-        {t('← Taxe și impozite')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ marginBottom: 0 }}>{t(tax.typeLabel)} · {tax.year}</h1>
-        <span className={`badge ${STATUS_CLASS[tax.status]}`}>{t(tax.statusLabel)}</span>
-      </div>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href="/taxe" className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Taxe și impozite')}
+          </Link>
+          <h1>{t(tax.typeLabel)} · {tax.year}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          <span className={`badge ${STATUS_CLASS[tax.status]}`}>{t(tax.statusLabel)}</span>
+        </div>
+      </header>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
-      <div className="card stack" style={{ gap: 8 }}>
+      <div className="panel panel-body panel-form stack">
         <div><strong>{money(tax.amount)}</strong></div>
         {tax.paidAmount !== null && tax.status !== 'PAID' ? (
           <div><span className="muted">{t('Plătit până acum:')}</span> {money(tax.paidAmount)}</div>
@@ -156,11 +157,11 @@ export default function TaxDetailPage() {
       </div>
 
       {tax.status === 'PAID' ? (
-        <p className="muted" style={{ fontSize: '0.85rem' }}>
+        <p className="muted" style={{ fontSize: 'var(--text-sm)' }}>
           {t('Taxa este plătită integral. Pentru corecții contactați service-ul.')}
         </p>
       ) : editing ? (
-        <form onSubmit={saveEdit} className="card stack" style={{ gap: 10 }}>
+        <form onSubmit={saveEdit} className="panel panel-body panel-form stack">
           <strong>{t('Editează taxa')}</strong>
           <div className="field">
             <label htmlFor="year">{t('An')}</label>
@@ -168,7 +169,7 @@ export default function TaxDetailPage() {
           </div>
           <div className="field">
             <label htmlFor="type">{t('Tip')}</label>
-            <select id="type" value={type} onChange={(e) => setType(e.target.value)} style={inputStyle}>
+            <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
               <option value="VEHICLE_TAX">{t('Impozit auto')}</option>
               <option value="ENVIRONMENT">{t('Taxă de mediu')}</option>
               <option value="OTHER">{t('Altă taxă')}</option>
@@ -184,7 +185,7 @@ export default function TaxDetailPage() {
           </div>
           <div className="field">
             <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
-            <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
+            <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
               <option value="">{t('— fără vehicul —')}</option>
               {vehicles.map((v) => (
                 <option key={v.id} value={v.id}>
@@ -204,9 +205,9 @@ export default function TaxDetailPage() {
         </form>
       ) : (
         <>
-          <div className="card stack" style={{ gap: 10 }}>
+          <div className="panel panel-body panel-form stack">
             <strong>{t('Marchează plata')}</strong>
-            <span className="muted" style={{ fontSize: '0.85rem' }}>
+            <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
               {t('Evidență declarativă — nu se încarcă niciun document. Goliți suma pentru plată integrală.')}
             </span>
             <div className="field">
@@ -228,10 +229,10 @@ export default function TaxDetailPage() {
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px' }} disabled={busy} onClick={() => startEdit(tax)}>
-              {t('✏️ Editează')}
+              <Icon name="edit" size={16} /> {t('Editează')}
             </button>
             <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 14px', color: 'var(--err, #b3261e)' }} disabled={busy} onClick={remove}>
-              {t('🗑 Șterge')}
+              <Icon name="trash" size={16} /> {t('Șterge')}
             </button>
           </div>
         </>

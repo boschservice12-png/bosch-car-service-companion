@@ -1,18 +1,19 @@
 import type { DeadlineState } from '@/lib/types';
+import { Icon, type IconName } from '@/components/Icon';
 
-const MAP: Record<DeadlineState, { cls: string; icon: string }> = {
-  VALID: { cls: 'badge-ok', icon: '✓' },
-  DUE_SOON: { cls: 'badge-warn', icon: '!' },
-  EXPIRED: { cls: 'badge-err', icon: '×' },
-  UNKNOWN: { cls: 'badge-unknown', icon: '•' },
+const MAP: Record<DeadlineState, { cls: string; icon: IconName }> = {
+  VALID: { cls: 'badge-ok', icon: 'check' },
+  DUE_SOON: { cls: 'badge-warn', icon: 'alert' },
+  EXPIRED: { cls: 'badge-err', icon: 'close' },
+  UNKNOWN: { cls: 'badge-unknown', icon: 'dot' },
 };
 
-/** Status = text + icon + culoare (culoarea nu e singurul indicator — WCAG). */
+/** Status = text + icon + colour. Colour is never the only signal (WCAG 2.1 AA). */
 export function DeadlineBadge({ state, label }: { state: DeadlineState; label: string }) {
   const { cls, icon } = MAP[state];
   return (
     <span className={`badge ${cls}`}>
-      <span aria-hidden>{icon}</span> {label}
+      <Icon name={icon} size={13} /> {label}
     </span>
   );
 }

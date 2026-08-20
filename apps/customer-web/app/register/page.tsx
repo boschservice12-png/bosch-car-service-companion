@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/types';
 import { useT } from '@/lib/i18n';
+import { AuthShell } from '@/components/AuthShell';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -49,8 +50,10 @@ export default function RegisterPage() {
   const fieldErr = (name: string) => errors[name]?.[0];
 
   return (
-    <>
+    <AuthShell t={t} lede={t('Scadențele mașinii, într-un singur loc.')}>
+      <p className="eyebrow">{t('Cont client')}</p>
       <h1>{t('Creare cont')}</h1>
+      <p className="auth-intro">{t('Vă luați câteva minute o dată; după aceea scadențele vin la dumneavoastră.')}</p>
       {general ? (
         <div className="alert alert-err" role="alert">
           {t(general)}
@@ -87,7 +90,7 @@ export default function RegisterPage() {
           {t('Dacă sunteți deja client al service-ului, cereți service-ului un cod de activare pentru vehicul și introduceți-l după autentificare (pagina Vehicule).')}
         </div>
         <div className="field">
-          <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontWeight: 400 }}>
+          <label className="check">
             <input type="checkbox" checked={form.consent} onChange={(e) => set('consent', e.target.checked)} />
             <span>{t('Sunt de acord cu prelucrarea datelor mele personale conform informării de confidențialitate.')}</span>
           </label>
@@ -97,9 +100,9 @@ export default function RegisterPage() {
           {busy ? t('Se creează…') : t('Creează cont')}
         </button>
       </form>
-      <p className="center muted" style={{ marginTop: 16 }}>
+      <p className="auth-alt">
         {t('Aveți deja cont?')} <Link href="/login">{t('Autentificați-vă')}</Link>
       </p>
-    </>
+    </AuthShell>
   );
 }

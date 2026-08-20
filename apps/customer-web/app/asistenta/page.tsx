@@ -17,7 +17,7 @@ import { Loading, EmptyState, ErrorState } from '@/components/states';
 const CALL_LINES = [
   {
     key: 'activ',
-    label: '🚨 Am asistență rutieră activă',
+    label: 'Am asistență rutieră activă',
     name: 'Linia de asistență NON-STOP',
     phone: '0372 500 000',
     note: 'NON-STOP, 24/7 — pentru clienții cu asistență rutieră activă.',
@@ -64,14 +64,18 @@ export default function RoadsideListPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Asistență rutieră')}</h1>
-        <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/asistenta/nou">
-          {t('+ Cerere')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Asistență rutieră')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link className="btn btn-sm" href="/asistenta/nou">
+            {t('+ Cerere')}
+          </Link>
+        </div>
+      </header>
 
-      <div className="card stack" style={{ gap: 10 }}>
+      <div className="panel panel-body panel-form stack">
         <strong>{t('Solicită asistență — alege situația ta')}</strong>
         {CALL_LINES.map((line) => (
           <a
@@ -83,7 +87,7 @@ export default function RoadsideListPage() {
             {t(line.label)} — {line.phone}
           </a>
         ))}
-        <span className="muted" style={{ fontSize: '0.8rem' }}>
+        <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
           {t(CALL_LINES[0].name)}: {t(CALL_LINES[0].note)} {t(CALL_LINES[1].name)}: {t(CALL_LINES[1].note)}
         </span>
       </div>
@@ -95,21 +99,21 @@ export default function RoadsideListPage() {
       ) : null}
 
       {items && items.length > 0 ? (
-        <div className="stack" style={{ gap: 10 }}>
-          {items.map((r) => (
-            <Link key={r.id} href={`/asistenta/${r.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="list-row">
-                <div>
-                  <strong>{r.location}</strong>
-                  <div className="muted" style={{ fontSize: '0.82rem' }}>
+        <section className="panel">
+          <div className="panel-body-flush">
+            {items.map((r) => (
+              <Link key={r.id} href={`/asistenta/${r.id}`} className="row-link">
+                <span className="row-main">
+                  <span className="row-title">{r.location}</span>
+                  <span className="row-sub">
                     {t(r.mobilityLabel)} · {new Date(r.createdAt).toLocaleDateString('ro-RO')}
-                  </div>
-                </div>
+                  </span>
+                </span>
                 <span className={`badge ${STATUS_CLASS[r.status]}`}>{t(r.statusLabel)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <BottomNav />

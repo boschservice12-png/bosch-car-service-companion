@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -22,9 +23,9 @@ interface AlertRow {
 
 /** Alerte cu verificare externă: ITP la RAR, RCA la AIDA — se deschid direct. */
 const EXTERNAL_CHECK: Partial<Record<Deadline['type'], { href: string; hint: string }>> = {
-  ITP: { href: 'https://prog.rarom.ro/rarpol/', hint: ' · verificare ITP (RAR) ↗' },
-  RCA: { href: 'https://www.aida.info.ro/polite-rca', hint: ' · verificare RCA (AIDA) ↗' },
-  ROAD_TAX: { href: 'https://www.erovinieta.ro', hint: ' · verificare taxă de drum (eRovinieta) ↗' },
+  ITP: { href: 'https://prog.rarom.ro/rarpol/', hint: ' · verificare ITP (RAR)' },
+  RCA: { href: 'https://www.aida.info.ro/polite-rca', hint: ' · verificare RCA (AIDA)' },
+  ROAD_TAX: { href: 'https://www.erovinieta.ro', hint: ' · verificare taxă de drum (eRovinieta)' },
 };
 
 export default function AlertsPage() {
@@ -68,11 +69,16 @@ export default function AlertsPage() {
 
   return (
     <>
-      <Link href="/" className="muted">
-        {t('← Acasă')}
-      </Link>
-      <h1>{t('Alerte')}</h1>
-      <p className="muted" style={{ fontSize: '0.85rem' }}>
+      <header className="page-head">
+        <div>
+  <Link href="/" className="back-link">
+          <Icon name="arrow-left" size={14} />
+          {t('Acasă')}
+        </Link>
+          <h1>{t('Alerte')}</h1>
+        </div>
+      </header>
+      <p className="muted" style={{ fontSize: 'var(--text-sm)' }}>
         {t('ITP · RCA · Taxă de drum · Asistență rutieră — pentru toate vehiculele dumneavoastră.')}
       </p>
 
@@ -91,7 +97,7 @@ export default function AlertsPage() {
                   <strong>
                     {t(deadline.typeLabel)} — {vehicle.plateNumber}
                   </strong>
-                  <div className="muted" style={{ fontSize: '0.82rem' }}>
+                  <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                     {deadline.expiresAt ?? '—'} · {daysLeftText(t, deadline.daysLeft)}
                     {deadline.verified ? t(' · validat de service') : ''}
                     {external?.hint ? t(external.hint) : ''}
@@ -126,9 +132,9 @@ export default function AlertsPage() {
       )}
 
       <Link className="btn btn-ghost" href="/vehicule">
-        {t('🚗 Gestionează scadențele pe vehicul')}
+        <Icon name="car" size={16} /> {t('Gestionează scadențele pe vehicul')}
       </Link>
-      <p className="muted" style={{ fontSize: '0.82rem' }}>
+      <p className="muted" style={{ fontSize: 'var(--text-sm)' }}>
         {t('Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.')}
       </p>
 

@@ -1,95 +1,900 @@
+/* =========================================================================
+   Bosch Car Service Companion — service portal design system
+   =========================================================================
+   Deliberately the same system as the customer app: same tokens, same panel,
+   table and nav vocabulary. Staff move between the two products and a Bosch
+   service should look like one family, so the portal is distinguished by what
+   it puts on screen (denser tables, more actions) rather than by restyling.
+   The only visual tell is the wordmark, which reads "Portal Service".
+
+   The product's job is: do not let something expire. Everything here is
+   arranged around making a deadline legible at a glance.
+
+   Brand is fixed: Bosch navy as primary, Bosch red as accent. Red is reserved
+   for expiry and the brand mark — it is never used decoratively, so that when
+   something is red it means something.
+
+   Existing class names (.card, .btn, .badge, .field, .list-row …) are kept and
+   upgraded rather than replaced, so pages not yet converted still render.
+   ========================================================================= */
+
 :root {
-  --bg: #f4f6f9;
+  /* ---- Surface ---------------------------------------------------------- */
+  --bg: #f7f9fc;          /* canvas — near-white, so data carries the page */
   --surface: #ffffff;
+  --surface-sunken: #f2f5f9;
+  --surface-raised: #ffffff;
+
+  /* Chrome is a dark navy plane, not a white strip. This single change does
+     more than anything else to stop the app reading as an unstyled form. */
+  --chrome: #07182b;
+  --chrome-2: #0f2a45;    /* hover / active row inside the chrome          */
+  --chrome-line: #16324f;
+  --chrome-ink: #a9bed4;  /* AA on --chrome                                 */
+  --chrome-ink-strong: #ffffff;
+
+  /* ---- Ink -------------------------------------------------------------- */
   --ink: #0a2540;
+  --ink-2: #3d5266;       /* secondary text, still AA on white             */
   --muted: #5b6b7b;
+  --ink-inverse: #ffffff;
+
+  /* ---- Brand ------------------------------------------------------------ */
   --primary: #0a2540;
-  --accent: #e2231a; /* roșu tip Bosch — placeholder, se confirmă identitatea vizuală */
-  --ok: #1a7f37;
-  --warn: #9a6700;
+  --primary-hover: #14375c;
+  --accent: #e2231a;      /* Bosch red — expiry and brand mark only        */
+
+  /* ---- Status (all AA on white) ----------------------------------------- */
+  --ok: #12704a;
+  --ok-bg: #e7f4ed;
+  --warn: #8a5a00;
+  --warn-bg: #fdf4e3;
   --err: #b42318;
-  --border: #dbe1e8;
-  --radius: 12px;
+  --err-bg: #fdecea;
+  --neutral-bg: #eef1f5;
+
+  /* Third-party channel identity. Not part of the palette — it is here so that
+     when a panel is marked as "this goes out over WhatsApp", the mark is that
+     service's own colour and cannot be mistaken for a status. */
+  --channel-whatsapp: #25d366;
+
+  /* ---- Line and depth --------------------------------------------------- */
+  --border: #dce3eb;
+  --border-strong: #c3ceda;
+  --shadow-1: 0 1px 2px rgba(10, 37, 64, 0.06);
+  --shadow-2: 0 4px 16px rgba(10, 37, 64, 0.08);
+  --shadow-3: 0 12px 32px rgba(10, 37, 64, 0.14);
+
+  /* ---- Radius ----------------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* ---- Space scale (4px base) ------------------------------------------- */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 20px; --s6: 24px; --s7: 32px; --s8: 40px; --s9: 56px;
+
+  /* ---- Type scale ------------------------------------------------------- */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-hero: 4rem;
+
+  --font-body: var(--font-barlow), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-barlow-condensed), var(--font-barlow), system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Kept for compatibility with pages not yet converted. */
+  --radius-legacy: 12px;
 }
 
 * { box-sizing: border-box; }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
   background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
+  /* Numbers line up in every list — essential when the content is dates,
+     plates, days remaining and amounts. */
+  font-variant-numeric: tabular-nums;
 }
 
-.app-shell { max-width: 640px; margin: 0 auto; min-height: 100vh; padding: 16px 16px 88px; }
+/* =========================================================================
+   Console frame
+   -------------------------------------------------------------------------
+   A fixed dark sidebar plus a full-bleed content canvas. There is deliberately
+   NO max-width on the content: this is a dashboard, and capping it at 640px was
+   what made a desktop screen look like a stretched phone.
+   ========================================================================= */
 
-h1 { font-size: 1.5rem; margin: 8px 0 16px; }
-h2 { font-size: 1.15rem; margin: 20px 0 10px; }
-a { color: var(--primary); }
+.app-shell {
+  min-height: 100vh;
+  padding: var(--s4) var(--s4) 88px;   /* phone: bottom nav clearance */
+}
 
-.card {
+@media (min-width: 900px) {
+  .app-shell {
+    margin-left: 264px;                /* clears the fixed sidebar */
+    padding: 0 var(--s7) var(--s8);
+    max-width: 1760px;                 /* stops absurd line lengths on 4K only */
+  }
+}
+
+/* Page header — title, context and actions on one line. */
+.page-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: var(--s5); flex-wrap: wrap;
+  padding: var(--s6) 0 var(--s5);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--s6);
+}
+.page-head-actions { display: flex; gap: var(--s2); align-items: center; }
+
+/* Content grids. */
+.grid { display: grid; gap: var(--s4); }
+@media (min-width: 1100px) {
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-main { grid-template-columns: minmax(0, 2.2fr) minmax(300px, 1fr); align-items: start; }
+}
+
+/* =========================================================================
+   Panel — the console's content container. Flatter and tighter than a card,
+   with a labelled header, because a dashboard is made of panels of data.
+   ========================================================================= */
+
+.panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 12px;
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+  padding: var(--s3) var(--s5);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-sunken);
+}
+.panel-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xs); font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
+}
+.panel-body { padding: var(--s5); }
+.panel-body-flush { padding: 0; }
+
+/* =========================================================================
+   Stat — the summary strip. Large condensed numeral, micro label beneath.
+   ========================================================================= */
+
+.stat-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); }
+.stat {
+  background: var(--surface);
+  padding: var(--s5);
+  display: flex; flex-direction: column; gap: var(--s1);
+  text-decoration: none; color: inherit;
+}
+.stat:hover { background: var(--surface-sunken); }
+.stat-value {
+  font-family: var(--font-display);
+  font-size: var(--text-3xl); font-weight: 700; line-height: 1;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  font-family: var(--font-display);
+  font-size: var(--text-xs); font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
+}
+.stat-err .stat-value { color: var(--accent); }
+.stat-warn .stat-value { color: var(--warn); }
+.stat-ok .stat-value { color: var(--ok); }
+
+/* =========================================================================
+   Data table — dense rows, aligned numerals. The core of a console.
+   ========================================================================= */
+
+.dtable-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.dtable { width: 100%; min-width: 520px; border-collapse: collapse; font-size: var(--text-sm); }
+@media (min-width: 900px) { .dtable { min-width: 0; } }
+.dtable thead th {
+  text-align: left; padding: var(--s2) var(--s5);
+  font-family: var(--font-display);
+  font-size: var(--text-xs); font-weight: 700;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
+  background: var(--surface-sunken); border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dtable tbody td { padding: var(--s3) var(--s5); border-bottom: 1px solid var(--border); vertical-align: middle; }
+.dtable tbody tr:last-child td { border-bottom: none; }
+.dtable tbody tr:hover { background: var(--surface-sunken); }
+.dtable a { text-decoration: none; color: inherit; }
+.td-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.td-tight { width: 1%; white-space: nowrap; }
+
+/* A status dot carries state at row scale, where a meter would be too heavy.
+   It is always paired with the state word — never colour alone. */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: var(--s2); }
+.dot-ok { background: var(--ok); }
+.dot-warn { background: var(--warn); }
+.dot-err { background: var(--accent); }
+.dot-unknown { background: var(--border-strong); }
+
+/* Inline meter for table rows — the same idea as the hero, at row scale. */
+.meter-inline { display: flex; align-items: center; gap: var(--s3); min-width: 160px; }
+.meter-inline-track { flex: 1; height: 4px; border-radius: var(--radius-pill); background: var(--neutral-bg); overflow: hidden; }
+.meter-inline-fill { display: block; height: 100%; border-radius: var(--radius-pill); }
+.meter-inline-days {
+  font-family: var(--font-display); font-weight: 700; font-size: var(--text-base);
+  font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right;
 }
 
-.field { margin-bottom: 14px; }
-.field label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
-.field input {
-  width: 100%; padding: 12px; border: 1px solid var(--border);
-  border-radius: 8px; font-size: 1rem; background: #fff;
-}
-.field .hint { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
-.field .err { color: var(--err); font-size: 0.85rem; margin-top: 4px; }
+/* =========================================================================
+   Typography
+   ========================================================================= */
 
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 14px 16px; border: none; border-radius: 10px;
-  background: var(--primary); color: #fff; font-size: 1rem; font-weight: 600;
-  cursor: pointer;
-}
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-ghost { background: transparent; color: var(--primary); border: 1px solid var(--border); }
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
 
-.alert { border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; font-size: 0.92rem; }
-.alert-err { background: #fdeceb; color: var(--err); border: 1px solid #f5c2bd; }
-.alert-ok { background: #e8f6ec; color: var(--ok); border: 1px solid #b7e0c2; }
-.alert-warn { background: #fff7e0; color: #8a6100; border: 1px solid #f0dfa8; }
+h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: var(--s2) 0 var(--s4);
+}
+
+h2 {
+  font-size: var(--text-md);
+  margin: var(--s7) 0 var(--s3);
+}
+
+/* An eyebrow labels a section by what it contains, in the display face. */
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: var(--s7) 0 var(--s3);
+}
+.eyebrow:first-child { margin-top: 0; }
+
+a { color: var(--primary); text-underline-offset: 2px; }
 
 .muted { color: var(--muted); }
 .center { text-align: center; }
-.stack > * + * { margin-top: 10px; }
+.stack { display: flex; flex-direction: column; gap: var(--s3); }
+
+/* Plates, VINs and activation codes are codes — set them as codes. */
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  letter-spacing: 0.04em;
+}
+.plate {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* =========================================================================
+   Card
+   ========================================================================= */
+
+.card {
+  /* MUST be block. `.card` is applied to <a>/<Link> on many pages, and an
+     anchor is inline by default — the box collapsed to a sliver and its
+     block-level children spilled out of it. */
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  /* Same radius as .panel. At --radius-lg the two sat side by side on the same
+     screen looking like two different families of object. */
+  border-radius: var(--radius);
+  padding: var(--s5);
+  margin-bottom: var(--s3);
+  box-shadow: var(--shadow-1);
+}
+.card-flush { padding: 0; overflow: hidden; }
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.card-link:hover { box-shadow: var(--shadow-2); border-color: var(--border-strong); }
+.card-link:active { transform: translateY(1px); }
+
+/* =========================================================================
+   THE SIGNATURE ELEMENT — validity meter
+   -------------------------------------------------------------------------
+   A deadline is a window with a real start and end. The bar shows how much of
+   that legal window has been consumed; the number that matters — days
+   remaining — is set large in the condensed face. This replaces a coloured
+   pill, which said only "warn" without saying how close.
+   ========================================================================= */
+
+.meter { display: grid; grid-template-columns: 1fr auto; gap: var(--s3) var(--s4); align-items: baseline; }
+
+.meter-label {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.meter-count {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.meter-count-unit {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+  margin-left: var(--s1);
+}
+
+.meter-track {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-bg);
+  overflow: hidden;
+}
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--ok);
+  transition: width 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.meter-foot {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+/* State drives both the fill and the numeral, so colour is never the only cue —
+   the wording beneath it always states the same thing. */
+.meter-ok   .meter-fill { background: var(--ok); }
+.meter-ok   .meter-count { color: var(--ok); }
+.meter-warn .meter-fill { background: var(--warn); }
+.meter-warn .meter-count { color: var(--warn); }
+.meter-err  .meter-fill { background: var(--accent); }
+.meter-err  .meter-count { color: var(--accent); }
+.meter-unknown .meter-fill { background: var(--border-strong); }
+.meter-unknown .meter-count { color: var(--muted); }
+
+/* The hero variant: one deadline, the most urgent, given real presence. */
+.meter-hero .meter-count { font-size: var(--text-hero); }
+.meter-hero .meter-track { height: 10px; }
+
+/* =========================================================================
+   Badge — still used where a meter would be too heavy (inline, in tables)
+   ========================================================================= */
+
+.badge {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  font-size: var(--text-xs); font-weight: 600;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  border: 1px solid; white-space: nowrap;
+}
+.badge-ok { color: var(--ok); border-color: #a8d5bf; background: var(--ok-bg); }
+.badge-warn { color: var(--warn); border-color: #e5c98a; background: var(--warn-bg); }
+.badge-err { color: var(--err); border-color: #f2b9b3; background: var(--err-bg); }
+.badge-unknown { color: var(--muted); border-color: var(--border); background: var(--neutral-bg); }
+
+/* =========================================================================
+   Buttons
+   -------------------------------------------------------------------------
+   Previously every button was width:100%, which turned every page into a
+   stack of full-width bars. Width is now opt-in via .btn-block.
+   ========================================================================= */
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+  min-height: 44px;                       /* touch target */
+  padding: 11px var(--s5);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.btn:hover { background: var(--primary-hover); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-block { width: 100%; }
+
+.btn-ghost { background: transparent; color: var(--primary); border-color: var(--border-strong); }
+.btn-ghost:hover { background: var(--surface-sunken); border-color: var(--primary); }
+
+.btn-quiet { background: transparent; color: var(--ink-2); border-color: transparent; padding-inline: var(--s3); }
+.btn-quiet:hover { background: var(--surface-sunken); }
+
+.btn-sm { min-height: 34px; padding: 5px var(--s3); font-size: var(--text-sm); }
+
+/* Keyboard focus must be visible everywhere, not only on buttons. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* =========================================================================
+   Tiles — the services grid, replacing eight stacked full-width buttons
+   ========================================================================= */
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--s3);
+}
+
+.tile {
+  display: flex; flex-direction: column; gap: var(--s2);
+  padding: var(--s4);
+  min-height: 96px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+  transition: box-shadow 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.tile:hover { box-shadow: var(--shadow-2); border-color: var(--border-strong); }
+.tile:active { transform: translateY(1px); }
+.tile-icon { color: var(--primary); }
+.tile-label { font-weight: 600; line-height: 1.25; }
+.tile-note { font-size: var(--text-xs); color: var(--muted); margin-top: auto; }
+
+/* =========================================================================
+   Rows and lists
+   ========================================================================= */
+
 .list-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 14px 0; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
+  padding: var(--s4) 0;
+  border-bottom: 1px solid var(--border);
 }
 .list-row:last-child { border-bottom: none; }
 
-/* Status: text + icon + culoare (culoarea nu e singurul indicator — WCAG) */
-.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600;
-  padding: 3px 10px; border-radius: 999px; border: 1px solid; }
-.badge-ok { color: var(--ok); border-color: var(--ok); background: #e8f6ec; }
-.badge-warn { color: var(--warn); border-color: var(--warn); background: #fdf6e3; }
-.badge-err { color: var(--err); border-color: var(--err); background: #fdeceb; }
-.badge-unknown { color: var(--muted); border-color: var(--border); background: #f0f3f6; }
-
-.bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
-  border-top: 1px solid var(--border); display: flex; justify-content: space-around;
-  padding: 8px 4px; max-width: 640px; margin: 0 auto;
+.row-link {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-bottom: 1px solid var(--border);
+  text-decoration: none; color: inherit;
 }
-.bottom-nav a { display: flex; flex-direction: column; align-items: center; gap: 2px;
-  font-size: 0.72rem; text-decoration: none; color: var(--muted); }
-.bottom-nav a.active { color: var(--primary); font-weight: 700; }
+.row-link:last-child { border-bottom: none; }
+.row-link:hover { background: var(--surface-sunken); }
+/* A row's title and subtitle stack. Without this they ran together —
+   "RCA" + the plate rendered as "RCAMS01POP". */
+.row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.row-title { font-weight: 600; line-height: 1.2; }
+.row-sub { font-size: var(--text-sm); color: var(--muted); line-height: 1.2; }
 
-.skeleton { background: linear-gradient(90deg,#eee,#f5f5f5,#eee); border-radius: 8px; height: 56px; margin-bottom: 10px; }
+/* =========================================================================
+   Forms
+   ========================================================================= */
 
-/* Comutator de limbă (RO implicit · HU · EN) */
-.lang-switcher { position: fixed; top: 10px; right: 12px; z-index: 50; display: flex; gap: 2px;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 2px; }
-.lang-switcher button { border: none; background: transparent; color: var(--muted); font-size: 0.72rem;
-  font-weight: 700; padding: 4px 8px; border-radius: 999px; cursor: pointer; }
+.field { margin-bottom: var(--s4); }
+.field label { display: block; font-weight: 600; margin-bottom: var(--s2); font-size: var(--text-sm); }
+/* Checkboxes and radios must be excluded: `width: 100%` stretches the control
+   to the width of its row, which pushed consent labels far off to the right. */
+.field input:not([type='checkbox']):not([type='radio']),
+.field select, .field textarea,
+.stack > input:not([type='checkbox']):not([type='radio']),
+.stack > select, .stack > textarea {
+  width: 100%; padding: 10px var(--s3);
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+  font-family: inherit; font-size: var(--text-base); background: #fff; color: var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus,
+.stack > input:focus, .stack > select:focus, .stack > textarea:focus {
+  outline: 2px solid var(--primary); outline-offset: 0; border-color: var(--primary);
+}
+.field .hint { color: var(--muted); font-size: var(--text-xs); margin-top: var(--s1); }
+.field .err { color: var(--err); font-size: var(--text-sm); margin-top: var(--s1); }
+
+/* =========================================================================
+   Alerts
+   ========================================================================= */
+
+.alert {
+  border-radius: var(--radius); padding: var(--s3) var(--s4);
+  margin-bottom: var(--s4); font-size: var(--text-sm); border: 1px solid;
+}
+.alert-err { background: var(--err-bg); color: var(--err); border-color: #f2b9b3; }
+.alert-ok { background: var(--ok-bg); color: var(--ok); border-color: #a8d5bf; }
+
+/* =========================================================================
+   Empty state — an invitation to act, not an apology
+   ========================================================================= */
+
+.empty {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s3);
+  padding: var(--s8) var(--s5); text-align: center;
+  background: var(--surface); border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+}
+.empty-icon { color: var(--border-strong); }
+.empty-title { font-weight: 600; }
+.empty-note { font-size: var(--text-sm); color: var(--muted); max-width: 34ch; }
+
+/* =========================================================================
+   Navigation — a dark console sidebar on desktop, a bottom bar on a phone.
+   -------------------------------------------------------------------------
+   All destinations live here. Previously eight of them sat in the content area
+   as tiles, which is what made the dashboard read as a menu: navigation was
+   occupying the canvas where data belongs.
+   ========================================================================= */
+
+.nav {
+  position: fixed; z-index: 40;
+  background: var(--chrome);
+  /* Phone: a bottom bar with the primary four. */
+  bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: space-around;
+  padding: var(--s2) var(--s1);
+  padding-bottom: calc(var(--s2) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--chrome-line);
+}
+
+.nav a.nav-brand { display: none; }
+.nav-group-label { display: none; }
+.nav-secondary { display: none; }   /* phone: secondary lives on the home page */
+
+.nav a {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  min-width: 56px; padding: var(--s1) var(--s2);
+  font-size: 0.7rem; font-weight: 500;
+  text-decoration: none; color: var(--chrome-ink); border-radius: var(--radius-sm);
+}
+.nav a.active { color: var(--chrome-ink-strong); }
+
+/* On a phone the bottom bar carries only the four primary destinations;
+   crowding eight into it would drop every touch target below 44px. */
+.nav-desktop-only { display: none; }
+
+@media (min-width: 900px) {
+  .nav {
+    top: 0; bottom: 0; left: 0; right: auto;
+    width: 264px;
+    flex-direction: column; justify-content: flex-start; gap: 2px;
+    padding: 0 var(--s4) var(--s6);
+    border-top: none; border-right: 1px solid var(--chrome-line);
+    overflow-y: auto;
+  }
+
+  /* The brand mark: the one place Bosch red appears as identity rather than
+     as an expiry signal. */
+  .nav a.nav-brand {
+    display: flex; align-items: center; gap: var(--s3);
+    padding: var(--s6) var(--s3) var(--s6);
+    color: var(--chrome-ink-strong);
+    text-decoration: none;
+  }
+  .nav-brand-mark { flex: none; color: #fff; }
+  .nav-brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+  .nav-brand-name {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: var(--text-md); letter-spacing: -0.01em;
+  }
+  .nav-brand-sub {
+    font-size: 0.6875rem; color: var(--chrome-ink);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  .nav-group-label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.6875rem; font-weight: 700;
+    letter-spacing: 0.11em; text-transform: uppercase;
+    color: #5d7590;
+    padding: var(--s5) var(--s3) var(--s2);
+  }
+
+  .nav-secondary { display: contents; }
+
+  .nav a {
+    flex-direction: row; gap: var(--s3); width: 100%;
+    padding: 9px var(--s3); font-size: var(--text-base); font-weight: 500;
+    border-radius: var(--radius-sm);
+  }
+  .nav a:hover { background: var(--chrome-2); color: var(--chrome-ink-strong); }
+  .nav a.active {
+    background: var(--chrome-2);
+    color: var(--chrome-ink-strong);
+    font-weight: 600;
+    /* A left marker states the current section without relying on colour. */
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .nav a svg { flex: none; opacity: 0.9; }
+  .nav-desktop-only { display: flex; }
+  .nav-spacer { flex: 1; }
+}
+
+/* =========================================================================
+   Loading
+   ========================================================================= */
+
+.skeleton {
+  background: linear-gradient(90deg, #e6ebf1 25%, #f2f5f8 37%, #e6ebf1 63%);
+  background-size: 400% 100%;
+  animation: skeleton 1.3s ease infinite;
+  border-radius: var(--radius);
+  height: 64px; margin-bottom: var(--s3);
+}
+@keyframes skeleton { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================================================
+   Language switcher
+   ========================================================================= */
+
+.lang-switcher {
+  position: fixed; top: var(--s3); right: var(--s3); z-index: 50;
+  display: flex; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); padding: 2px; box-shadow: var(--shadow-1);
+}
+.lang-switcher button {
+  border: none; background: transparent; color: var(--muted);
+  font-family: var(--font-display);
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.06em;
+  padding: 5px 10px; border-radius: var(--radius-pill); cursor: pointer;
+}
 .lang-switcher button.active { background: var(--primary); color: #fff; }
+
+@media (min-width: 900px) {
+  /* Move the switcher into the sidebar. Fixed to the top-right it collided
+     with every page's own action buttons — /taxe put "+ Tax" underneath it. */
+  .lang-switcher {
+    top: auto; right: auto;
+    bottom: var(--s5); left: var(--s4);
+    width: 232px; justify-content: center;
+    background: var(--chrome-2);
+    border-color: var(--chrome-line);
+    box-shadow: none;
+  }
+  .lang-switcher button { color: var(--chrome-ink); }
+  .lang-switcher button:hover { color: var(--chrome-ink-strong); }
+  .lang-switcher button.active { background: var(--accent); color: #fff; }
+}
+
+/* =========================================================================
+   PWA install panel
+   ========================================================================= */
+
+.pwa-banner {
+  position: fixed; left: var(--s3); right: var(--s3); bottom: 76px; z-index: 60;
+  display: flex; gap: var(--s3); align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-3); padding: var(--s3) var(--s4);
+}
+.pwa-banner-text { display: flex; flex-direction: column; gap: 2px; font-size: var(--text-sm); }
+.pwa-banner-text .muted { font-size: var(--text-xs); }
+.pwa-banner-actions { display: flex; gap: var(--s2); align-items: center; }
+.pwa-banner-actions .btn { width: auto; }
+.pwa-steps { margin: var(--s2) 0 0; padding-left: 18px; font-size: var(--text-sm); color: var(--muted); }
+.pwa-steps li { margin: 2px 0; }
+
+@media (min-width: 900px) {
+  .pwa-banner { left: auto; right: var(--s6); bottom: var(--s6); max-width: 420px; }
+}
+
+/* Back link — replaces the "← Label" string that used to carry the arrow as
+   text. The arrow is now an icon so it inherits colour and sits on the same
+   optical grid as every other glyph. */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted, #64748b);
+  font-size: var(--text-sm, 0.86rem);
+  font-weight: 500;
+  text-decoration: none;
+}
+.back-link:hover { color: var(--ink, #0f172a); }
+.back-link svg { flex: none; }
+
+/* An unclassed link that pairs a word with a trailing icon: align them on one
+   baseline and keep the underline from running through the gap between them. */
+a:not([class]):has(> svg) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* =========================================================================
+   Utilities that pages rely on
+   ========================================================================= */
+
+.alert-warn { background: var(--warn-bg); color: var(--warn); border-color: #e5c98a; }
+
+/* Numbers that must line up in a column even inside running text. */
+.tabnum { font-variant-numeric: tabular-nums; }
+
+/* A row title that leads with an icon. */
+.row-title-icon { display: inline-flex; align-items: center; gap: var(--s2); }
+
+.expired { color: var(--accent); }
+
+/* =========================================================================
+   Auth
+   -------------------------------------------------------------------------
+   Signing in is the first thing anyone sees, so it has to establish the same
+   language as the console rather than looking like a different product: the
+   dark chrome plane on one side, the work surface on the other.
+
+   The brand side states what the app tracks. That is not decoration — it is
+   the only screen where a visitor has no data of their own to look at, so the
+   honest thing to show is the product's actual subject.
+   ========================================================================= */
+
+/* Auth pages own the whole viewport; the shell's sidebar gutter must not apply. */
+.app-shell:has(.auth) { margin: 0; padding: 0; max-width: none; }
+
+.auth {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+/* Three rows: lockup pinned top, the message optically centred, legal pinned
+   bottom. A flex column with `margin-top:auto` on the footer looks like it
+   should do this but does not — the auto margin absorbs all the free space, so
+   the message ends up hard against the top. */
+.auth-brand {
+  background: var(--chrome);
+  color: var(--chrome-ink-strong);
+  padding: var(--s6) var(--s5);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--s6);
+}
+.auth-brand-body { align-self: center; display: flex; flex-direction: column; gap: var(--s6); }
+
+.auth-brand-lockup { display: flex; align-items: center; gap: var(--s3); text-decoration: none; color: inherit; }
+.auth-brand-mark { flex: none; color: #fff; }
+.auth-brand-name {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: var(--text-lg); letter-spacing: -0.01em; line-height: 1.1;
+}
+.auth-brand-sub {
+  font-size: 0.6875rem; color: var(--chrome-ink);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+
+.auth-lede {
+  font-family: var(--font-display);
+  font-size: var(--text-xl); font-weight: 600; line-height: 1.15;
+  letter-spacing: -0.02em; max-width: 18ch; margin: 0;
+}
+
+.auth-tracks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.auth-track {
+  display: flex; align-items: center; gap: var(--s3);
+  color: var(--chrome-ink); font-size: var(--text-sm);
+}
+.auth-track svg { flex: none; color: var(--chrome-ink-strong); }
+
+.auth-foot {
+  align-self: end; margin: 0;
+  display: flex; align-items: center; gap: var(--s2);
+  font-size: var(--text-xs); color: var(--chrome-ink);
+}
+.auth-foot svg { flex: none; }
+
+.auth-panel { display: flex; align-items: center; justify-content: center; padding: var(--s7) var(--s5); }
+.auth-form { width: 100%; max-width: 384px; }
+.auth-form h1 { margin-bottom: var(--s2); }
+.auth-form .eyebrow { margin-bottom: var(--s2); }
+.auth-intro { color: var(--muted); margin: 0 0 var(--s6); }
+.auth-form .btn { width: 100%; margin-top: var(--s2); }
+.auth-alt { margin-top: var(--s6); padding-top: var(--s5); border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--muted); }
+
+@media (min-width: 900px) {
+  .auth { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+  .auth-brand { padding: var(--s8); }
+  .auth-lede { font-size: var(--text-3xl); max-width: 15ch; }
+  .auth-panel { padding: var(--s8); }
+}
+
+/* The switcher normally docks into the sidebar. Auth screens have no sidebar,
+   so there it would sit dark-on-dark across the brand panel's footer. */
+body:has(.auth) .lang-switcher {
+  top: var(--s4); right: var(--s4);
+  bottom: auto; left: auto;
+  width: auto;
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow-1);
+}
+body:has(.auth) .lang-switcher button { color: var(--muted); }
+body:has(.auth) .lang-switcher button.active { background: var(--primary); color: #fff; }
+
+/* Consent / opt-in row: control and its sentence on one line, the sentence
+   readable as prose rather than as a field label. */
+.check,
+.field label.check {   /* `.field label` is 0,1,1 and would otherwise win */
+  display: flex; align-items: flex-start; gap: var(--s3);
+  font-weight: 400; font-size: var(--text-sm); line-height: 1.45; color: var(--ink-2);
+}
+.check input[type='checkbox'] {
+  flex: none; width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--primary);
+}
+
+/* A single-column form must keep a readable measure; stretched across a 1700px
+   console every field becomes a 1500px-wide box with a 6-character label. */
+.panel-form { max-width: 680px; }
+
+/* One deadline: the summary row, with its document control tucked underneath
+   when the deadline exists. Separated by a rule rather than a gap so the panel
+   reads as a table of deadlines instead of a stack of cards. */
+.deadline-row { padding: var(--s4) var(--s5); border-bottom: 1px solid var(--border); }
+.deadline-row:last-child { border-bottom: none; }
+.deadline-row > .list-row { padding: 0; border-bottom: none; }
+.deadline-row a { font-size: var(--text-sm); }
+
+/* Destructive action. Previously an inline `background: '#c62828'` — a fourth
+   red that matched neither the accent nor the error token. */
+.btn-danger { background: var(--err); border-color: var(--err); color: #fff; }
+.btn-danger:hover { background: #97180f; border-color: #97180f; }
+.btn-ghost.btn-danger { background: transparent; color: var(--err); border-color: var(--border-strong); }
+.btn-ghost.btn-danger:hover { background: var(--err-bg); border-color: var(--err); }
+
+/* Label/value pairs — account details, record identification. The label is set
+   quiet and narrow so the values form a readable column. */
+.dl { display: grid; gap: var(--s3); }
+@media (min-width: 600px) { .dl { grid-template-columns: max-content 1fr; gap: var(--s3) var(--s5); } }
+.dl dt { color: var(--muted); font-size: var(--text-sm); margin: 0; }
+.dl dd { margin: 0; }
+
+/* A panel that names the channel or system an action will use. The left edge
+   carries the channel's colour; everything else stays neutral so the accent
+   means "which channel", never "which status". */
+.callout { border-left: 4px solid var(--border-strong); }
+.callout-whatsapp { border-left-color: var(--channel-whatsapp); }
+.callout b { display: flex; align-items: center; gap: var(--s2); }
+
+/* Panel footer — pagination and bulk actions that belong to the panel's list
+   rather than to any one row. */
+.panel-foot { padding: var(--s3) var(--s5); border-top: 1px solid var(--border); background: var(--surface-sunken); }

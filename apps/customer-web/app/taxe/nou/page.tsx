@@ -1,20 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
 import { useT } from '@/lib/i18n';
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  fontSize: '1rem',
-  background: '#fff',
-};
 
 export default function NewTaxPage() {
   const router = useRouter();
@@ -53,23 +45,28 @@ export default function NewTaxPage() {
 
   return (
     <>
-      <Link href="/taxe" className="muted">
-        {t('← Taxe și impozite')}
-      </Link>
-      <h1>{t('Taxă nouă')}</h1>
+      <header className="page-head">
+        <div>
+  <Link href="/taxe" className="back-link">
+          <Icon name="arrow-left" size={14} />
+          {t('Taxe și impozite')}
+        </Link>
+          <h1>{t('Taxă nouă')}</h1>
+        </div>
+      </header>
       {error ? (
         <div className="alert alert-err" role="alert">
           {t(error)}
         </div>
       ) : null}
-      <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
+      <form onSubmit={submit} className="panel panel-body panel-form stack">
         <div className="field">
           <label htmlFor="year">{t('An')}</label>
           <input id="year" type="number" min={2000} max={2100} value={year} onChange={(e) => setYear(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="type">{t('Tip')}</label>
-          <select id="type" value={type} onChange={(e) => setType(e.target.value)} style={inputStyle}>
+          <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
             <option value="VEHICLE_TAX">{t('Impozit auto')}</option>
             <option value="ENVIRONMENT">{t('Taxă de mediu')}</option>
             <option value="OTHER">{t('Altă taxă')}</option>
@@ -85,7 +82,7 @@ export default function NewTaxPage() {
         </div>
         <div className="field">
           <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
-          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
+          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>

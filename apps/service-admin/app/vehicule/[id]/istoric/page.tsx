@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -53,17 +54,26 @@ export default function AdminServiceHistoryPage() {
 
   return (
     <>
-      <Link href={`/vehicule/${params.id}`} className="muted">
-        {t('← Vehicul')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Istoric service')}</h1>
-        {!creating ? (
-          <button className="btn" style={{ width: 'auto', padding: '8px 12px' }} onClick={() => setCreating(true)}>
-            {t('+ Adaugă')}
-          </button>
-        ) : null}
-      </div>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href={`/vehicule/${params.id}`} className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Vehicul')}
+          </Link>
+          <h1>{t('Istoric service')}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          {!creating ? (
+            <button className="btn btn-sm" onClick={() => setCreating(true)}>
+              {t('+ Adaugă')}
+            </button>
+          ) : null}
+        </div>
+      </header>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
@@ -82,7 +92,7 @@ export default function AdminServiceHistoryPage() {
         ))}
       </div>
 
-      <p className="muted" style={{ fontSize: '0.82rem' }}>
+      <p className="muted" style={{ fontSize: 'var(--text-sm)' }}>
         {t('O înregistrare publicată nu poate fi rescrisă. Pentru modificări folosiți „Creează corecție" — atât originalul, cât și corecția rămân vizibile.')}
       </p>
     </>

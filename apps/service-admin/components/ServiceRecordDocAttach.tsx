@@ -62,14 +62,14 @@ export function ServiceRecordDocAttach({ recordId, onChange }: { recordId: strin
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          {busy ? t('Se încarcă…') : t('📎 Atașează document / foto')}
+          {busy ? t('Se încarcă…') : t('Atașează document / foto')}
         </button>
-        <span className="muted" style={{ fontSize: '0.75rem', marginLeft: 8 }}>
+        <span className="muted" style={{ fontSize: 'var(--text-xs)', marginLeft: 8 }}>
           {t('JPG, PNG, WEBP sau PDF · max {n} MB', { n: Math.round(UPLOAD_MAX_BYTES / (1024 * 1024)) })}
         </span>
       </div>
       {error ? (
-        <div className="alert alert-err" role="alert" style={{ fontSize: '0.85rem' }}>
+        <div className="alert alert-err" role="alert" style={{ fontSize: 'var(--text-sm)' }}>
           {error}
         </div>
       ) : null}

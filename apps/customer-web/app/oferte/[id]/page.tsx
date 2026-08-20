@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -71,17 +72,26 @@ export default function QuoteRequestDetailPage() {
 
   return (
     <>
-      <Link href="/oferte" className="muted">
-        {t('← Cereri de ofertă')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <h1 style={{ marginBottom: 4 }}>{t('Cerere de ofertă')}</h1>
-        <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
-      </div>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href="/oferte" className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Cereri de ofertă')}
+          </Link>
+          <h1>{t('Cerere de ofertă')}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
+        </div>
+      </header>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
-      <div className="card stack" style={{ gap: 6 }}>
+      <div className="panel panel-body stack">
         {req.vehiclePlate ? <div><span className="muted">{t('Vehicul:')}</span> {req.vehiclePlate}</div> : null}
         {req.mileage != null ? <div><span className="muted">{t('Kilometraj:')}</span> {req.mileage.toLocaleString('ro-RO')} km</div> : null}
         <div><span className="muted">{t('Problemă:')}</span> {req.symptomDescription}</div>
@@ -97,7 +107,7 @@ export default function QuoteRequestDetailPage() {
           <div className="stack" style={{ gap: 10 }}>
             {req.responses.map((r) => (
               <div key={r.id} className="card">
-                <div className="muted" style={{ fontSize: '0.78rem', marginBottom: 4 }}>
+                <div className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 4 }}>
                   {new Date(r.createdAt).toLocaleString('ro-RO')}
                 </div>
                 <div style={{ whiteSpace: 'pre-wrap' }}>{r.message}</div>

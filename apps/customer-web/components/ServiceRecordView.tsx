@@ -1,6 +1,7 @@
 'use client';
 
 import { serviceRecordDocumentHref } from '@/lib/api';
+import { Icon } from '@/components/Icon';
 import type { ServiceRecord } from '@/lib/types';
 import { useT } from '@/lib/i18n';
 
@@ -20,14 +21,14 @@ export function ServiceRecordView({ record }: { record: ServiceRecord }) {
       <div className="list-row">
         <div>
           <strong>{record.serviceDate ?? '—'}</strong>
-          <div className="muted" style={{ fontSize: '0.82rem' }}>
+          <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
             {record.workType ?? t('Lucrare')} · {formatKm(record.odometerKm)}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          {record.correctionOfId ? <span className="badge badge-warn">{t('✎ Corecție')}</span> : null}
+          {record.correctionOfId ? <span className="badge badge-warn">{t('Corecție')}</span> : null}
           {record.correctionOfId && record.correctionReason ? (
-            <span className="muted" style={{ fontSize: '0.8rem' }}>{t('Motiv:')} {record.correctionReason}</span>
+            <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('Motiv:')} {record.correctionReason}</span>
           ) : null}
           {record.corrected ? <span className="badge badge-unknown">{t('• Corectat ulterior')}</span> : null}
         </div>
@@ -37,12 +38,12 @@ export function ServiceRecordView({ record }: { record: ServiceRecord }) {
 
       {record.partsSummary ? (
         <div>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('Piese:')}</span>{' '}
-          <span style={{ fontSize: '0.9rem' }}>{record.partsSummary}</span>
+          <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('Piese:')}</span>{' '}
+          <span style={{ fontSize: 'var(--text-sm)' }}>{record.partsSummary}</span>
         </div>
       ) : null}
 
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.9rem' }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 'var(--text-sm)' }}>
         <span>
           <span className="muted">{t('Manoperă:')}</span> {formatMoney(record.laborCost)}
         </span>
@@ -58,11 +59,11 @@ export function ServiceRecordView({ record }: { record: ServiceRecord }) {
 
       {record.documents.length > 0 ? (
         <div className="stack" style={{ gap: 4 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('Documente:')}</span>
+          <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('Documente:')}</span>
           {record.documents.map((d) => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span aria-hidden>📎</span>
-              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
+              <Icon name="paperclip" size={14} />
+              <span style={{ fontSize: 'var(--text-sm)', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
               {d.servable ? (
                 <a
                   className="btn btn-ghost"
@@ -74,7 +75,7 @@ export function ServiceRecordView({ record }: { record: ServiceRecord }) {
                   {t('Descarcă')}
                 </a>
               ) : (
-                <span className="muted" style={{ fontSize: '0.8rem' }}>{t('indisponibil')}</span>
+                <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('indisponibil')}</span>
               )}
             </div>
           ))}

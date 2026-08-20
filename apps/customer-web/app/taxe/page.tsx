@@ -44,12 +44,16 @@ export default function TaxListPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Taxe și impozite')}</h1>
-        <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/taxe/nou">
-          {t('+ Taxă')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Taxe și impozite')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link className="btn btn-sm" href="/taxe/nou">
+            {t('+ Taxă')}
+          </Link>
+        </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
@@ -58,22 +62,22 @@ export default function TaxListPage() {
       ) : null}
 
       {items && items.length > 0 ? (
-        <div className="stack" style={{ gap: 10 }}>
-          {items.map((tax) => (
-            <Link key={tax.id} href={`/taxe/${tax.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="list-row">
-                <div>
-                  <strong>{t(tax.typeLabel)} · {tax.year}</strong>
-                  <div className="muted" style={{ fontSize: '0.82rem' }}>
+        <section className="panel">
+          <div className="panel-body-flush">
+            {items.map((tax) => (
+              <Link key={tax.id} href={`/taxe/${tax.id}`} className="row-link">
+                <span className="row-main">
+                  <span className="row-title">{t(tax.typeLabel)} · {tax.year}</span>
+                  <span className="row-sub">
                     {money(tax.amount)}
                     {tax.dueDate ? t(' · scadent {date}', { date: tax.dueDate }) : ''}
-                  </div>
-                </div>
+                  </span>
+                </span>
                 <span className={`badge ${STATUS_CLASS[tax.status]}`}>{t(tax.statusLabel)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <BottomNav />

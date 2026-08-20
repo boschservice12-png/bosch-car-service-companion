@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api, roadsideDocumentHref } from '@/lib/api';
@@ -62,17 +63,26 @@ export default function RoadsideDetailPage() {
 
   return (
     <>
-      <Link href="/asistenta" className="muted">
-        {t('← Asistență rutieră')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ marginBottom: 0 }}>{t('Cerere de asistență')}</h1>
-        <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
-      </div>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href="/asistenta" className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Asistență rutieră')}
+          </Link>
+          <h1>{t('Cerere de asistență')}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
+        </div>
+      </header>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
-      <div className="card stack" style={{ gap: 8 }}>
+      <div className="panel panel-body panel-form stack">
         <div><span className="muted">{t('Locație:')}</span> {req.location}</div>
         <div><span className="muted">{t('Problemă:')}</span> {req.problem}</div>
         <div><span className="muted">{t('Mobilitate:')}</span> {t(req.mobilityLabel)}</div>
@@ -84,17 +94,17 @@ export default function RoadsideDetailPage() {
 
       {req.documents.length > 0 ? (
         <div className="card stack" style={{ gap: 4 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('Documente:')}</span>
+          <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('Documente:')}</span>
           {req.documents.map((d) => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span aria-hidden>📎</span>
-              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
+              <Icon name="paperclip" size={14} />
+              <span style={{ fontSize: 'var(--text-sm)', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
               {d.servable ? (
                 <a className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px' }} href={roadsideDocumentHref(req.id, d.id)} target="_blank" rel="noopener">
                   {t('Descarcă')}
                 </a>
               ) : (
-                <span className="muted" style={{ fontSize: '0.8rem' }}>{t('în curs de scanare')}</span>
+                <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('în curs de scanare')}</span>
               )}
             </div>
           ))}

@@ -51,7 +51,11 @@ export default function NewDeadlinePage() {
 
   return (
     <>
-      <h1>{t('Adaugă scadență')}</h1>
+      <header className="page-head">
+        <div>
+          <h1>{t('Adaugă scadență')}</h1>
+        </div>
+      </header>
       {general ? (
         <div className="alert alert-err" role="alert">
           {general}
@@ -64,7 +68,7 @@ export default function NewDeadlinePage() {
             id="type"
             value={form.type}
             onChange={(e) => set('type', e.target.value)}
-            style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: '1rem', background: '#fff' }}
+            style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: 'var(--text-md)', background: '#fff' }}
           >
             {TYPES.map((opt) => (
               <option key={opt.value} value={opt.value}>

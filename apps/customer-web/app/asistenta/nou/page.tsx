@@ -1,20 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
 import { useT } from '@/lib/i18n';
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  fontSize: '1rem',
-  background: '#fff',
-};
 
 export default function NewRoadsidePage() {
   const router = useRouter();
@@ -55,34 +47,39 @@ export default function NewRoadsidePage() {
 
   return (
     <>
-      <Link href="/asistenta" className="muted">
-        {t('← Asistență rutieră')}
-      </Link>
-      <h1>{t('Cerere de asistență')}</h1>
+      <header className="page-head">
+        <div>
+  <Link href="/asistenta" className="back-link">
+          <Icon name="arrow-left" size={14} />
+          {t('Asistență rutieră')}
+        </Link>
+          <h1>{t('Cerere de asistență')}</h1>
+        </div>
+      </header>
       {error ? (
         <div className="alert alert-err" role="alert">
           {t(error)}
         </div>
       ) : null}
-      <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
+      <form onSubmit={submit} className="panel panel-body panel-form stack">
         <div className="field">
           <label htmlFor="location">{t('Locația')}</label>
           <input id="location" type="text" maxLength={500} value={location} onChange={(e) => setLocation(e.target.value)} required placeholder={t('Ex: DN13, km 12')} />
         </div>
         <div className="field">
           <label htmlFor="problem">{t('Problema')}</label>
-          <textarea id="problem" rows={3} value={problem} onChange={(e) => setProblem(e.target.value)} required style={inputStyle} />
+          <textarea id="problem" rows={3} value={problem} onChange={(e) => setProblem(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="mobility">{t('Mașina se poate deplasa?')}</label>
-          <select id="mobility" value={mobility} onChange={(e) => setMobility(e.target.value)} style={inputStyle}>
+          <select id="mobility" value={mobility} onChange={(e) => setMobility(e.target.value)}>
             <option value="DRIVABLE">{t('Da, se poate deplasa')}</option>
             <option value="NOT_DRIVABLE">{t('Nu, este imobilizată')}</option>
           </select>
         </div>
         <div className="field">
           <label htmlFor="safety">{t('Sunteți în siguranță?')}</label>
-          <select id="safety" value={safety} onChange={(e) => setSafety(e.target.value)} style={inputStyle}>
+          <select id="safety" value={safety} onChange={(e) => setSafety(e.target.value)}>
             <option value="SAFE">{t('Da, în siguranță')}</option>
             <option value="AT_RISK">{t('Nu, situație periculoasă')}</option>
           </select>
@@ -93,7 +90,7 @@ export default function NewRoadsidePage() {
         </div>
         <div className="field">
           <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
-          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
+          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>

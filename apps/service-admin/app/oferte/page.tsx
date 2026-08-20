@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -43,32 +44,34 @@ export default function AdminQuoteRequestsPage() {
 
   return (
     <>
-      <h1>{t('Cereri ofertă')}</h1>
-      <p className="muted">{t('Cererile de ofertă ale clienților (ciornele nu apar aici).')}</p>
+      <header className="page-head">
+        <div>
+          <h1>{t('Cereri ofertă')}</h1>
+          <p className="muted">{t('Cererile de ofertă ale clienților (ciornele nu apar aici).')}</p>
+        </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={3} /> : null}
       {!error && items?.length === 0 ? <EmptyState title={t('Nicio cerere de ofertă')} hint={t('Cererile trimise de clienți apar aici.')} /> : null}
 
       {items && items.length > 0 ? (
-        <div className="stack" style={{ gap: 10 }}>
-          {items.map((q) => (
-            <Link key={q.id} href={`/oferte/${q.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                <div>
-                  <strong style={{ display: 'block' }}>
-                    {q.symptomDescription.length > 70 ? `${q.symptomDescription.slice(0, 70)}…` : q.symptomDescription}
-                  </strong>
-                  <span className="muted" style={{ fontSize: '0.82rem' }}>
+        <section className="panel">
+          <div className="panel-body-flush">
+            {items.map((q) => (
+              <Link key={q.id} href={`/oferte/${q.id}`} className="row-link">
+                <span className="row-main">
+                  <span className="row-title">{q.symptomDescription.length > 70 ? `${q.symptomDescription.slice(0, 70)}…` : q.symptomDescription}</span>
+                  <span className="row-sub">
                     {q.customerName ?? '—'}
                     {q.vehiclePlate ? ` · ${q.vehiclePlate}` : ''} · {new Date(q.createdAt).toLocaleDateString('ro-RO')}
                   </span>
-                </div>
+                </span>
                 <span className={`badge ${STATUS_CLASS[q.status]}`}>{t(q.statusLabel)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
     </>
   );

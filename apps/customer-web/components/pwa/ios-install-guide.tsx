@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { useT } from '@/lib/i18n';
 import { isIosSafari, isSmallScreen } from './device-detection';
 import { isRecentlyDismissed, isStandalone, rememberDismissed } from './pwa-status';
@@ -38,7 +39,7 @@ export function IosInstallGuide() {
       </div>
       <div className="pwa-banner-actions">
         <button type="button" className="btn btn-ghost" onClick={dismiss} aria-label={t('Închide')}>
-          ✕
+          <Icon name="close" size={16} />
         </button>
       </div>
     </div>

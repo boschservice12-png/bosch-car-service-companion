@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -81,21 +82,30 @@ export default function AdminQuoteRequestDetailPage() {
 
   return (
     <>
-      <Link href="/oferte" className="muted">
-        {t('← Cereri ofertă')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <h1 style={{ marginBottom: 4 }}>{t('Cerere de ofertă')}</h1>
-        <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
-      </div>
-      <div className="muted" style={{ fontSize: '0.85rem', marginBottom: 12 }}>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href="/oferte" className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Cereri ofertă')}
+          </Link>
+          <h1>{t('Cerere de ofertă')}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
+        </div>
+      </header>
+      <div className="muted" style={{ fontSize: 'var(--text-sm)', marginBottom: 12 }}>
         {req.customerName ?? '—'}
         {req.vehiclePlate ? ` · ${req.vehiclePlate}` : ''} · {new Date(req.createdAt).toLocaleString('ro-RO')}
       </div>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
-      <div className="card stack" style={{ gap: 6 }}>
+      <div className="panel panel-body stack">
         {req.mileage != null ? <div><span className="muted">{t('Kilometraj:')}</span> {req.mileage.toLocaleString('ro-RO')} km</div> : null}
         <div><span className="muted">{t('Problemă:')}</span> {req.symptomDescription}</div>
         {req.occurrenceConditions ? <div><span className="muted">{t('Când apare:')}</span> {req.occurrenceConditions}</div> : null}
@@ -111,7 +121,7 @@ export default function AdminQuoteRequestDetailPage() {
           <div className="stack" style={{ gap: 10 }}>
             {req.responses.map((r) => (
               <div key={r.id} className="card">
-                <div className="muted" style={{ fontSize: '0.78rem', marginBottom: 4 }}>
+                <div className="muted" style={{ fontSize: 'var(--text-xs)', marginBottom: 4 }}>
                   {new Date(r.createdAt).toLocaleString('ro-RO')}
                 </div>
                 <div style={{ whiteSpace: 'pre-wrap' }}>{r.message}</div>
@@ -133,14 +143,14 @@ export default function AdminQuoteRequestDetailPage() {
       {req.status === 'IN_REVIEW' ? (
         <>
           <h2 style={{ marginTop: 16 }}>{t('Trimite oferta')}</h2>
-          <form onSubmit={respond} className="card stack" style={{ gap: 10 }}>
+          <form onSubmit={respond} className="panel panel-body panel-form stack">
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={3}
               required
               placeholder={t('Estimare, piese, manoperă, termen…')}
-              style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: '1rem', background: '#fff' }}
+              style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: 'var(--text-md)', background: '#fff' }}
             />
             <button className="btn" type="submit" disabled={busy}>
               {busy ? t('Se trimite…') : t('Trimite oferta (REPLIED)')}

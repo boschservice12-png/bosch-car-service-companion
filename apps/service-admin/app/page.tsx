@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -67,41 +68,23 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Vehicule')}</h1>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Link href="/import" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('📥 Import clienți (Excel)')}
+      {/* Every destination that used to sit in this row now lives in the
+          sidebar. Nine navigation buttons across the top of the fleet list was
+          navigation occupying the canvas where the data belongs; what stays
+          here is the one action that acts on this page plus signing out. */}
+      <header className="page-head">
+        <div>
+          <h1>{t('Vehicule')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link href="/import" className="btn btn-ghost btn-sm">
+            <Icon name="import" size={16} /> {t('Import clienți (Excel)')}
           </Link>
-          <Link href="/oferte" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('🧰 Cereri ofertă')}
-          </Link>
-          <Link href="/mesaje" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('💬 Mesaje')}
-          </Link>
-          <Link href="/asistenta" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('🆘 Asistență')}
-          </Link>
-          <Link href="/mobilitate" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('🚕 Mobilitate')}
-          </Link>
-          <Link href="/daune" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('📋 Daune')}
-          </Link>
-          <Link href="/taxe" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('🧾 Taxe')}
-          </Link>
-          <Link href="/notificari" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('🔔 Notificări')}
-          </Link>
-          <Link href="/securitate" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-            {t('🔐 Securitate')}
-          </Link>
-          <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} onClick={logout}>
+          <button className="btn btn-quiet btn-sm" onClick={logout}>
             {t('Ieșire')}
           </button>
         </div>
-      </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && vehicles === null ? <Loading /> : null}
@@ -123,8 +106,12 @@ export default function DashboardPage() {
               : vehicles;
             return (
               <>
-                <div className="card" style={{ marginTop: 12 }}>
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+                  <div className="panel-head">
+                    <span className="panel-title">{t('Căutare')}</span>
+                  </div>
+                  <div className="panel-body">
+                  <div style={{ display: 'flex', gap: 'var(--s3)', flexWrap: 'wrap' }}>
                     <div className="field" style={{ flex: '1 1 180px', margin: 0 }}>
                       <label htmlFor="qName">{t('Nume proprietar')}</label>
                       <input
@@ -157,12 +144,11 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   {searching ? (
-                    <div className="muted" style={{ fontSize: '0.82rem', marginTop: 6 }}>
+                    <div className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 6 }}>
                       {t('{n} din {m} vehicule', { n: filtered.length, m: vehicles.length })} ·{' '}
                       <button
                         type="button"
-                        className="btn btn-ghost"
-                        style={{ width: 'auto', padding: '2px 8px', fontSize: '0.82rem' }}
+                        className="btn btn-quiet btn-sm"
                         onClick={() => {
                           setQName('');
                           setQPlate('');
@@ -173,62 +159,65 @@ export default function DashboardPage() {
                       </button>
                     </div>
                   ) : null}
-                </div>
+                  </div>
+                </section>
                 {filtered.length === 0 ? (
                   <EmptyState
                     title={t('Niciun vehicul găsit')}
                     hint={t('Niciun rezultat pentru filtrele introduse — căutați după numele proprietarului, numărul de înmatriculare sau VIN.')}
                   />
                 ) : (
-                  <div className="card">
+                  <section className="panel">
                     {issued ? (
-                      <div className="alert alert-ok" role="status" style={{ marginBottom: 8 }}>
+                      <div className="alert alert-ok" role="status" style={{ margin: 'var(--s4) var(--s5) 0' }}>
                         <div>
                           <strong>{t('Cod de activare pentru {plate}', { plate: issued.plate })}:</strong>{' '}
                           <code className="tabnum">{issued.token}</code>
                         </div>
-                        <div className="muted" style={{ fontSize: '0.8rem' }}>
+                        <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                           {t('Comunicați acest cod clientului. Se afișează O SINGURĂ DATĂ și expiră în 7 zile.')}
                         </div>
                       </div>
                     ) : null}
+                    <div className="panel-body-flush">
                     {filtered.slice(0, visibleCount).map((v) => (
                       <div key={v.id} className="list-row">
                         <div>
                           <strong>{v.plateNumber}</strong>
-                          <div className="muted" style={{ fontSize: '0.85rem' }}>
+                          <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                             {[v.make, v.model, v.year].filter(Boolean).join(' ')}
                             {v.ownerName ? ` · ${v.ownerName}` : ''}
                           </div>
-                          <div className="muted" style={{ fontSize: '0.78rem' }}>VIN: {v.vin}</div>
+                          <div className="muted" style={{ fontSize: 'var(--text-xs)' }}>VIN: {v.vin}</div>
                         </div>
                         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                           <button
                             type="button"
-                            className="btn btn-ghost"
-                            style={{ width: 'auto', padding: '6px 10px' }}
+                            className="btn btn-ghost btn-sm"
                             onClick={() => issueCode(v.id, v.plateNumber)}
                           >
-                            {t('🔑 Cod activare')}
+                            <Icon name="key" size={16} /> {t('Cod activare')}
                           </button>
-                          <Link href={`/vehicule/${v.id}`}>{t('Scadențe →')}</Link>
+                          <Link href={`/vehicule/${v.id}`}>{t('Scadențe')}<Icon name="chevron" size={14} /></Link>
                         </div>
                       </div>
                     ))}
+                    </div>
                     {filtered.length > visibleCount ? (
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ width: '100%', marginTop: 8 }}
-                        onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-                      >
-                        {t('Afișează încă {n} (din {m} rămase)', {
-                          n: Math.min(PAGE_SIZE, filtered.length - visibleCount),
-                          m: filtered.length - visibleCount,
-                        })}
-                      </button>
+                      <div className="panel-foot">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-block"
+                          onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+                        >
+                          {t('Afișează încă {n} (din {m} rămase)', {
+                            n: Math.min(PAGE_SIZE, filtered.length - visibleCount),
+                            m: filtered.length - visibleCount,
+                          })}
+                        </button>
+                      </div>
                     ) : null}
-                  </div>
+                  </section>
                 )}
               </>
             );

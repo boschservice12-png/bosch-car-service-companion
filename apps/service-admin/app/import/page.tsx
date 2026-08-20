@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useState } from 'react';
 import { api } from '@/lib/api';
 import { ApiError, type DeadlineImportReport, type HistoryImportReport, type ImportReport } from '@/lib/types';
@@ -85,10 +86,15 @@ export default function ImportPage() {
 
   return (
     <>
-      <Link href="/" className="muted">
-        {t('← Panou')}
-      </Link>
-      <h1>{t('Import date din Excel')}</h1>
+      <header className="page-head">
+        <div>
+  <Link href="/" className="back-link">
+          <Icon name="arrow-left" size={14} />
+          {t('Panou')}
+        </Link>
+          <h1>{t('Import date din Excel')}</h1>
+        </div>
+      </header>
       <h2 style={{ marginTop: 8 }}>{t('Pasul 1 — Clienți și vehicule')}</h2>
       <p className="muted">
         {t('Încărcați „lista parteneri" din ASM (.xls, .xlsx sau .csv). Coloane recunoscute:')} <b>Partener/Proprietar</b>,{' '}
@@ -98,7 +104,7 @@ export default function ImportPage() {
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
-      <form onSubmit={submit} className="card stack" style={{ gap: 12 }}>
+      <form onSubmit={submit} className="panel panel-body panel-form stack">
         <div className="field">
           <label htmlFor="file">{t('Fișier (.xls, .xlsx sau .csv, max. 10 MB)')}</label>
           <input
@@ -117,7 +123,7 @@ export default function ImportPage() {
       {report ? (
         <>
           <h2 style={{ marginTop: 16 }}>{t('Raport import')}</h2>
-          <div className="card stack" style={{ gap: 6 }}>
+          <div className="panel panel-body stack">
             <div><span className="muted">{t('Rânduri procesate:')}</span> <b>{report.totalRows}</b></div>
             <div><span className="muted">{t('Proprietari noi:')}</span> <b>{report.ownersCreated}</b></div>
             <div><span className="muted">{t('Vehicule noi:')}</span> <b>{report.vehiclesCreated}</b> · <span className="muted">{t('actualizate:')}</span> <b>{report.vehiclesUpdated}</b></div>
@@ -135,14 +141,14 @@ export default function ImportPage() {
               <h3 style={{ marginTop: 12 }}>{t('Rânduri cu probleme ({n})', { n: report.errors.length })}</h3>
               <div className="stack" style={{ gap: 6 }}>
                 {report.errors.map((e) => (
-                  <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: '0.88rem' }}>
+                  <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: 'var(--text-sm)' }}>
                     {t('Rândul {n}:', { n: e.row })} {e.message}
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori. ✔')}</p>
+            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori.')}</p>
           )}
         </>
       ) : null}
@@ -157,7 +163,7 @@ export default function ImportPage() {
 
       {histError ? <div className="alert alert-err" role="alert">{t(histError)}</div> : null}
 
-      <form onSubmit={submitHistory} className="card stack" style={{ gap: 12 }}>
+      <form onSubmit={submitHistory} className="panel panel-body panel-form stack">
         <div className="field">
           <label htmlFor="histFile">{t('Fișier istoric (.xls, .xlsx sau .csv, max. 10 MB)')}</label>
           <input
@@ -176,7 +182,7 @@ export default function ImportPage() {
       {histReport ? (
         <>
           <h3 style={{ marginTop: 16 }}>{t('Raport istoric')}</h3>
-          <div className="card stack" style={{ gap: 6 }}>
+          <div className="panel panel-body stack">
             <div><span className="muted">{t('Rânduri procesate:')}</span> <b>{histReport.totalRows}</b></div>
             <div><span className="muted">{t('Publicate (vizibile clientului):')}</span> <b>{histReport.recordsPublished}</b></div>
             <div><span className="muted">{t('Ciorne (de completat):')}</span> <b>{histReport.recordsDraft}</b></div>
@@ -185,13 +191,13 @@ export default function ImportPage() {
           {histReport.errors.length > 0 ? (
             <div className="stack" style={{ gap: 6, marginTop: 10 }}>
               {histReport.errors.map((e) => (
-                <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: '0.88rem' }}>
+                <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: 'var(--text-sm)' }}>
                   {t('Rândul {n}:', { n: e.row })} {e.message}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori. ✔')}</p>
+            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori.')}</p>
           )}
         </>
       ) : null}
@@ -200,12 +206,12 @@ export default function ImportPage() {
       <p className="muted">
         {t('Raportul de alerte din ASM („report itp . rca"). Coloane recunoscute:')} <b>Denumire alertă</b>,{' '}
         <b>Data alertei</b>, <b>Nr. înmatriculare</b>.{' '}
-        {t('Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și 🔔 Notificări.')}
+        {t('Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și Notificări.')}
       </p>
 
       {dlError ? <div className="alert alert-err" role="alert">{t(dlError)}</div> : null}
 
-      <form onSubmit={submitDeadlines} className="card stack" style={{ gap: 12 }}>
+      <form onSubmit={submitDeadlines} className="panel panel-body panel-form stack">
         <div className="field">
           <label htmlFor="dlFile">{t('Fișier raport (.xls, .xlsx sau .csv, max. 10 MB)')}</label>
           <input
@@ -224,7 +230,7 @@ export default function ImportPage() {
       {dlReport ? (
         <>
           <h3 style={{ marginTop: 16 }}>{t('Raport scadențe')}</h3>
-          <div className="card stack" style={{ gap: 6 }}>
+          <div className="panel panel-body stack">
             <div><span className="muted">{t('Rânduri procesate:')}</span> <b>{dlReport.totalRows}</b></div>
             <div><span className="muted">{t('Scadențe create:')}</span> <b>{dlReport.deadlinesCreated}</b> · <span className="muted">{t('actualizate:')}</span> <b>{dlReport.deadlinesUpdated}</b></div>
             <div><span className="muted">{t('Neschimbate (sărite):')}</span> <b>{dlReport.rowsSkipped}</b> · <span className="muted">{t('alte alerte (nu ITP/RCA):')}</span> <b>{dlReport.nonItpRcaSkipped}</b></div>
@@ -232,13 +238,13 @@ export default function ImportPage() {
           {dlReport.errors.length > 0 ? (
             <div className="stack" style={{ gap: 6, marginTop: 10 }}>
               {dlReport.errors.map((e) => (
-                <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: '0.88rem' }}>
+                <div key={`${e.row}-${e.message}`} className="alert alert-err" style={{ fontSize: 'var(--text-sm)' }}>
                   {t('Rândul {n}:', { n: e.row })} {e.message}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori. ✔')}</p>
+            <p className="muted" style={{ marginTop: 8 }}>{t('Toate rândurile au fost importate fără erori.')}</p>
           )}
         </>
       ) : null}

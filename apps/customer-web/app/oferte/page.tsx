@@ -44,12 +44,16 @@ export default function QuoteRequestListPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Cere ofertă')}</h1>
-        <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/oferte/nou">
-          {t('+ Cerere')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Cere ofertă')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link className="btn btn-sm" href="/oferte/nou">
+            {t('+ Cerere')}
+          </Link>
+        </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
@@ -58,24 +62,22 @@ export default function QuoteRequestListPage() {
       ) : null}
 
       {items && items.length > 0 ? (
-        <div className="stack" style={{ gap: 10 }}>
-          {items.map((q) => (
-            <Link key={q.id} href={`/oferte/${q.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                <div>
-                  <strong style={{ display: 'block' }}>
-                    {q.symptomDescription.length > 60 ? `${q.symptomDescription.slice(0, 60)}…` : q.symptomDescription}
-                  </strong>
-                  <span className="muted" style={{ fontSize: '0.82rem' }}>
+        <section className="panel">
+          <div className="panel-body-flush">
+            {items.map((q) => (
+              <Link key={q.id} href={`/oferte/${q.id}`} className="row-link">
+                <span className="row-main">
+                  <span className="row-title">{q.symptomDescription.length > 60 ? `${q.symptomDescription.slice(0, 60)}…` : q.symptomDescription}</span>
+                  <span className="row-sub">
                     {q.vehiclePlate ? `${q.vehiclePlate} · ` : ''}
                     {new Date(q.createdAt).toLocaleDateString('ro-RO')}
                   </span>
-                </div>
+                </span>
                 <span className={`badge ${STATUS_CLASS[q.status]}`}>{t(q.statusLabel)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <BottomNav />

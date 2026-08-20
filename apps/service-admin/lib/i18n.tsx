@@ -20,9 +20,22 @@ export const LOCALE_NAMES: Record<Locale, string> = { ro: 'RO', hu: 'HU', en: 'E
 type Dict = Record<string, string>;
 
 const HU: Dict = {
+  'Căutare': 'Keresés',
+  'Autentificare': 'Bejelentkezés',
+  'Cereri de ofertă': 'Ajánlatkérések',
+  'Carte de service': 'Szervizkönyv',
+  'Asistență rutieră și daune': 'Autómentés és kárakták',
+  'Vehicule și scadențe': 'Járművek és lejáratok',
+  'Accesul cere autentificare în doi pași.': 'A belépéshez kétlépcsős azonosítás szükséges.',
+  'Pasul 2 din 2': '2. lépés a 2-ből',
+  'Cont service': 'Szervizfiók',
+  'Fiecare vehicul din service, la zi.': 'Minden szervizben lévő jármű naprakészen.',
+  'Import clienți': 'Ügyfelek importálása',
+  'Administrare': 'Adminisztráció',
+  'Cereri': 'Kérések',
+  'Navigație principală': 'Fő navigáció',
   // Comune
   'Vehicule': 'Járművek',
-  'Vehicule →': 'Járművek →',
   'Mesaje': 'Üzenetek',
   'Se încarcă…': 'Betöltés…',
   'Se încarcă': 'Betöltés',
@@ -59,7 +72,6 @@ const HU: Dict = {
   'Notă:': 'Megjegyzés:',
   'Notă internă (opțional)…': 'Belső megjegyzés (opcionális)…',
   'Actualizează starea': 'Állapot frissítése',
-
   // Etichete backend (statusuri și tipuri)
   'Neplătită': 'Nincs befizetve',
   'Parțial plătită': 'Részben befizetve',
@@ -111,13 +123,11 @@ const HU: Dict = {
   'Indisponibilă': 'Nem elérhető',
   'Documente lipsă': 'Hiányzó dokumentumok',
   'Dosar deschis': 'Akta megnyitva',
-
   // Scadențe (DeadlineBadge)
   'fără dată': 'nincs dátum',
   'expiră azi': 'ma jár le',
   'expirat de {n} zile': '{n} napja lejárt',
   '{n} zile rămase': '{n} nap van hátra',
-
   // Atașamente și documente
   'Fișier gol.': 'Üres fájl.',
   'Fișierul depășește {n} MB.': 'A fájl meghaladja a {n} MB-ot.',
@@ -125,14 +135,13 @@ const HU: Dict = {
   'Tip de fișier nepermis (JPG, PNG, WEBP, PDF).': 'Nem engedélyezett fájltípus (JPG, PNG, WEBP, PDF).',
   'Tip de fișier nepermis. Acceptăm imagini (JPG, PNG, WEBP) și PDF.': 'Nem engedélyezett fájltípus. Képeket (JPG, PNG, WEBP) és PDF-et fogadunk el.',
   'Elimină {name}': '{name} eltávolítása',
-  '📎 Adaugă atașament': '📎 Melléklet hozzáadása',
+  'Adaugă atașament': 'Melléklet hozzáadása',
   'respins (malware)': 'elutasítva (kártevő)',
   'Niciun document ataşat.': 'Nincs csatolt dokumentum.',
   'Înlocuieşte documentul': 'Dokumentum cseréje',
-  '📎 Ataşează document': '📎 Dokumentum csatolása',
-  '📎 Atașează document / foto': '📎 Dokumentum / fotó csatolása',
+  'Ataşează document': 'Dokumentum csatolása',
+  'Atașează document / foto': 'Dokumentum / fotó csatolása',
   'JPG, PNG, WEBP sau PDF · max {n} MB': 'JPG, PNG, WEBP vagy PDF · max. {n} MB',
-
   // Autentificare
   'Portal Service': 'Szerviz portál',
   'Autentificare administrator.': 'Adminisztrátori bejelentkezés.',
@@ -140,15 +149,13 @@ const HU: Dict = {
     'Ez a portál kizárólag a szerviz adminisztrátorai számára érhető el.',
   'Se conectează…': 'Bejelentkezés…',
   'Intră în portal': 'Belépés a portálra',
-
   // Panou (dashboard)
-  '📥 Import clienți (Excel)': '📥 Ügyfélimport (Excel)',
-  '🧰 Cereri ofertă': '🧰 Ajánlatkérések',
-  '💬 Mesaje': '💬 Üzenetek',
-  '🆘 Asistență': '🆘 Autómentés',
-  '🚕 Mobilitate': '🚕 Mobilitás',
-  '📋 Daune': '📋 Károk',
-  '🧾 Taxe': '🧾 Adók',
+  'Import clienți (Excel)': 'Ügyfélimport (Excel)',
+  'Cereri ofertă': 'Ajánlatkérések',
+  'Asistență': 'Autómentés',
+  'Mobilitate': 'Mobilitás',
+  'Daune': 'Károk',
+  'Taxe': 'Adók',
   'Nu am putut încărca vehiculele.': 'Nem sikerült betölteni a járműveket.',
   'Niciun vehicul înregistrat': 'Nincs regisztrált jármű',
   'Nume proprietar': 'Tulajdonos neve',
@@ -161,15 +168,15 @@ const HU: Dict = {
   'Niciun vehicul găsit': 'Nem található jármű',
   'Niciun rezultat pentru filtrele introduse — căutați după numele proprietarului, numărul de înmatriculare sau VIN.':
     'Nincs találat a megadott szűrőkre — keressen a tulajdonos neve, a rendszám vagy az alvázszám (VIN) alapján.',
-  'Scadențe →': 'Lejáratok →',
-  '🔑 Cod activare': '🔑 Aktiválókód',
+  'Scadențe': 'Lejáratok',
+  'Cod activare': 'Aktiválókód',
   'Nu am putut emite codul.': 'A kód kibocsátása nem sikerült.',
   'Cod de activare pentru {plate}': 'Aktiválókód – {plate}',
   'Comunicați acest cod clientului. Se afișează O SINGURĂ DATĂ și expiră în 7 zile.':
     'Adja át ezt a kódot az ügyfélnek. CSAK EGYSZER jelenik meg, és 7 nap múlva lejár.',
 
   // Import Excel
-  '← Panou': '← Vezérlőpult',
+  'Panou': 'Vezérlőpult',
   'Import date din Excel': 'Adatimport Excelből',
   'Pasul 1 — Clienți și vehicule': '1. lépés — Ügyfelek és járművek',
   'Încărcați tabelul cu proprietari și vehicule (.xlsx sau .csv). Coloane:':
@@ -188,7 +195,7 @@ const HU: Dict = {
   'Legături proprietate create:': 'Létrehozott tulajdonosi kapcsolatok:',
   'Rânduri cu probleme ({n})': 'Hibás sorok ({n})',
   'Rândul {n}:': '{n}. sor:',
-  'Toate rândurile au fost importate fără erori. ✔': 'Minden sor hiba nélkül importálva. ✔',
+  'Toate rândurile au fost importate fără erori.': 'Minden sor hiba nélkül importálva.',
   'Pasul 2 — Istoric reparații': '2. lépés — Javítási előzmények',
   'Tabelul cu istoricul de reparații, legat de vehicule prin VIN (importați întâi clienții). Coloane:':
     'A javítási előzmények táblázata, a járművekhez alvázszám (VIN) alapján kapcsolva (először az ügyfeleket importálja). Oszlopok:',
@@ -200,24 +207,19 @@ const HU: Dict = {
   'Publicate (vizibile clientului):': 'Közzétéve (ügyfél számára látható):',
   'Ciorne (de completat):': 'Piszkozatok (kiegészítendő):',
   'Sărite (existau deja):': 'Kihagyva (már létezett):',
-
   // Vehicul — scadențe
-  '← Vehicule': '← Járművek',
-  'Scadențe': 'Lejáratok',
-  '🧾 Istoric service': '🧾 Szervizelőzmények',
+  'Istoric service': 'Szervizelőzmények',
   'Nicio scadență introdusă.': 'Nincs megadott lejárat.',
   'validat': 'jóváhagyva',
   'nevalidat': 'nincs jóváhagyva',
-  'Verificare ITP (RAR) ↗': 'Műszaki vizsga ellenőrzése (RAR) ↗',
-  'Verificare RCA (AIDA) ↗': 'RCA ellenőrzése (AIDA) ↗',
-  'Verificare taxă de drum (eRovinieta) ↗': 'Útdíj ellenőrzése (eRovinieta) ↗',
+  'Verificare ITP (RAR)': 'Műszaki vizsga ellenőrzése (RAR)',
+  'Verificare RCA (AIDA)': 'RCA ellenőrzése (AIDA)',
+  'Verificare taxă de drum (eRovinieta)': 'Útdíj ellenőrzése (eRovinieta)',
   'Validează': 'Jóváhagyás',
   'Adaugă scadență (validată de service)': 'Lejárat hozzáadása (szerviz által jóváhagyva)',
   'Data expirării': 'Lejárat dátuma',
-
   // Istoric service
-  '← Vehicul': '← Jármű',
-  'Istoric service': 'Szervizelőzmények',
+  'Vehicul': 'Jármű',
   '+ Adaugă': '+ Hozzáadás',
   'Înregistrare nouă (ciornă)': 'Új bejegyzés (piszkozat)',
   'Salvează ciorna': 'Piszkozat mentése',
@@ -246,28 +248,21 @@ const HU: Dict = {
   'Total (RON)': 'Összesen (RON)',
   'Garanție': 'Garancia',
   'Ex: 12 luni / 20.000 km': 'Pl.: 12 hónap / 20 000 km',
-
   // Taxe și impozite
   'Taxe și impozite': 'Adók és illetékek',
-  '← Taxe și impozite': '← Adók és illetékek',
   'Nicio taxă înregistrată': 'Nincs rögzített adó',
   'Scadență:': 'Esedékesség:',
   'Stare de plată': 'Fizetési állapot',
   'Marchează plătită': 'Megjelölés befizetettként',
   'Marchează neplătită': 'Megjelölés befizetetlenként',
-
   // Mesaje
   'Mesaje & oferte': 'Üzenetek és ajánlatok',
   'Nicio conversație': 'Nincs beszélgetés',
-  '← Mesaje': '← Üzenetek',
   'Redeschide conversația': 'Beszélgetés újranyitása',
   'Închide conversația': 'Beszélgetés lezárása',
   'Răspunde': 'Válasz',
   'Scrieți un mesaj…': 'Írjon üzenetet…',
-
   // Cereri ofertă
-  'Cereri ofertă': 'Ajánlatkérések',
-  '← Cereri ofertă': '← Ajánlatkérések',
   'Cererile de ofertă ale clienților (ciornele nu apar aici).':
     'Az ügyfelek ajánlatkérései (a piszkozatok itt nem jelennek meg).',
   'Nicio cerere de ofertă': 'Nincs ajánlatkérés',
@@ -290,9 +285,7 @@ const HU: Dict = {
   'Trimite oferta (REPLIED)': 'Ajánlat küldése (REPLIED)',
   'Tranziție nepermisă.': 'Nem engedélyezett állapotváltás.',
   'Trimiterea răspunsului a eșuat.': 'A válasz elküldése nem sikerült.',
-
   // Asistență rutieră
-  '← Asistență rutieră': '← Autómentés',
   'Nicio cerere de asistență': 'Nincs segítségkérelem',
   'Locație:': 'Helyszín:',
   'Mobilitate:': 'Mozgásképesség:',
@@ -301,20 +294,15 @@ const HU: Dict = {
   'Direcționează (contact telefonic)': 'Továbbítás (telefonos kapcsolat)',
   'Finalizează': 'Befejezés',
   'Anulează': 'Visszavonás',
-
   // Mobilitate
-  'Mobilitate': 'Mobilitás',
-  '← Mobilitate': '← Mobilitás',
   'Nicio solicitare de mobilitate': 'Nincs mobilitási igénylés',
   ' · pentru {date}': ' · {date} napra',
   'Detalii:': 'Részletek:',
   'Data preferată:': 'Kívánt dátum:',
   'Client contactat': 'Ügyfél értesítve',
   'Confirmă': 'Megerősítés',
-
   // Daune
   'Dosare de daună': 'Kárakták',
-  '← Dosare de daună': '← Kárakták',
   'Niciun dosar de daună': 'Nincs kárakta',
   'Dosar de daună': 'Kárakta',
   'Cere documente': 'Dokumentumok bekérése',
@@ -323,10 +311,9 @@ const HU: Dict = {
   'Descriere:': 'Leírás:',
   'Poliță:': 'Kötvény:',
   'Fotografii și documente:': 'Fényképek és dokumentumok:',
-
   // Securitate / 2FA (P0-06)
-  '🔐 Securitate': '🔐 Biztonság',
-  '← Înapoi': '← Vissza',
+  'Securitate': 'Biztonság',
+  'Înapoi': 'Vissza',
   'Securitatea contului': 'A fiók biztonsága',
   'Autentificare în doi pași (2FA)': 'Kétlépcsős azonosítás (2FA)',
   'Nu am putut încărca datele contului.': 'Nem sikerült betölteni a fiók adatait.',
@@ -367,10 +354,8 @@ const HU: Dict = {
   'Contul de service trebuie să activeze 2FA înainte de a folosi portalul.': 'A szerviz fióknak be kell kapcsolnia a 2FA-t a portál használata előtt.',
   '2FA este deja activ pe acest cont.': 'A 2FA már aktív ezen a fiókon.',
   '2FA nu este activat pe acest cont.': 'A 2FA nincs bekapcsolva ezen a fiókon.',
-
   // Liste mari (P2-03)
   'Afișează încă {n} (din {m} rămase)': 'Még {n} megjelenítése ({m} van hátra)',
-
   // Import ASM (.xls)
   'Sărite — VIN nevalid (rămân doar în ASM):': 'Kihagyva — érvénytelen VIN (csak az ASM-ben maradnak):',
   'Parteneri fără vehicul:': 'Jármű nélküli partnerek:',
@@ -382,18 +367,17 @@ const HU: Dict = {
   'Exportul „PersonalManopere" din ASM sau orice tabel legat prin VIN (importați întâi clienții). Coloane recunoscute:': 'Az ASM „PersonalManopere" exportja vagy bármely VIN-nel kapcsolt tábla (előbb az ügyfeleket importálja). Felismert oszlopok:',
   'Pasul 3 — Report ITP/RCA → scadențe': '3. lépés — ITP/RCA riport → lejáratok',
   'Raportul de alerte din ASM („report itp . rca"). Coloane recunoscute:': 'Az ASM riasztás-riportja („report itp . rca"). Felismert oszlopok:',
-  'Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și 🔔 Notificări.': 'Csak az ITP/RCA riasztásokból lesz lejárat (a többit kihagyja); az autót rendszám alapján azonosítja, az újraimport duplikálás nélkül frissít. A lejáratok az Alerte (ügyfél) és a 🔔 Értesítések alatt jelennek meg.',
+  'Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și Notificări.': 'Csak az ITP/RCA riasztásokból lesz lejárat (a többit kihagyja); az autót rendszám alapján azonosítja, az újraimport duplikálás nélkül frissít. A lejáratok az Alerte (ügyfél) és a Értesítések alatt jelennek meg.',
   'Fișier raport (.xls, .xlsx sau .csv, max. 10 MB)': 'Riportfájl (.xls, .xlsx vagy .csv, max. 10 MB)',
   'Importă scadențele': 'Lejáratok importálása',
   'Raport scadențe': 'Lejárat-jelentés',
   'Scadențe create:': 'Létrehozott lejáratok:',
   'Neschimbate (sărite):': 'Változatlan (kihagyva):',
   'alte alerte (nu ITP/RCA):': 'egyéb riasztás (nem ITP/RCA):',
-
   // Notificări de scadență (P1-03)
   'Expeditor: WhatsApp-ul service-ului': 'Feladó: a szerviz WhatsAppja',
   'Folosiți acest calculator cu WhatsApp Web conectat la numărul de mai sus — mesajele pleacă de pe numărul cu care sunteți autentificați.': 'Ezt a gépet a fenti számmal bejelentkezett WhatsApp Webbel használja — az üzenetek arról a számról mennek, amelyikkel be van jelentkezve.',
-  '🔔 Notificări': '🔔 Értesítések',
+  'Notificări': 'Értesítések',
   'Notificări de scadență': 'Lejárati értesítések',
   'Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.':
     'Az üzenet előre megírva nyílik meg a szerviz WhatsAppjában vagy e-mailben — egy kattintással elküldi, a küldés pedig rögzül.',
@@ -404,14 +388,26 @@ const HU: Dict = {
   'expirat': 'lejárt',
   'fără telefon': 'nincs telefonszám',
   'Notificat ultima dată: {date}': 'Utoljára értesítve: {date}',
-  '📲 WhatsApp': '📲 WhatsApp',
-  '✉️ Email': '✉️ E-mail',
+  'WhatsApp': 'WhatsApp',
 };
 
 const EN: Dict = {
+  'Căutare': 'Search',
+  'Autentificare': 'Sign in',
+  'Cereri de ofertă': 'Quote requests',
+  'Carte de service': 'Service book',
+  'Asistență rutieră și daune': 'Roadside assistance and claims',
+  'Vehicule și scadențe': 'Vehicles and deadlines',
+  'Accesul cere autentificare în doi pași.': 'Access requires two-factor authentication.',
+  'Pasul 2 din 2': 'Step 2 of 2',
+  'Cont service': 'Workshop account',
+  'Fiecare vehicul din service, la zi.': 'Every vehicle in the workshop, up to date.',
+  'Import clienți': 'Import customers',
+  'Administrare': 'Administration',
+  'Cereri': 'Requests',
+  'Navigație principală': 'Main navigation',
   // Comune
   'Vehicule': 'Vehicles',
-  'Vehicule →': 'Vehicles →',
   'Mesaje': 'Messages',
   'Se încarcă…': 'Loading…',
   'Se încarcă': 'Loading',
@@ -448,7 +444,6 @@ const EN: Dict = {
   'Notă:': 'Note:',
   'Notă internă (opțional)…': 'Internal note (optional)…',
   'Actualizează starea': 'Update status',
-
   // Etichete backend (statusuri și tipuri)
   'Neplătită': 'Unpaid',
   'Parțial plătită': 'Partially paid',
@@ -500,13 +495,11 @@ const EN: Dict = {
   'Indisponibilă': 'Unavailable',
   'Documente lipsă': 'Documents missing',
   'Dosar deschis': 'File opened',
-
   // Scadențe (DeadlineBadge)
   'fără dată': 'no date',
   'expiră azi': 'expires today',
   'expirat de {n} zile': 'expired {n} days ago',
   '{n} zile rămase': '{n} days left',
-
   // Atașamente și documente
   'Fișier gol.': 'Empty file.',
   'Fișierul depășește {n} MB.': 'File exceeds {n} MB.',
@@ -515,14 +508,13 @@ const EN: Dict = {
   'Tip de fișier nepermis. Acceptăm imagini (JPG, PNG, WEBP) și PDF.':
     'File type not allowed. We accept images (JPG, PNG, WEBP) and PDF.',
   'Elimină {name}': 'Remove {name}',
-  '📎 Adaugă atașament': '📎 Add attachment',
+  'Adaugă atașament': 'Add attachment',
   'respins (malware)': 'rejected (malware)',
   'Niciun document ataşat.': 'No document attached.',
   'Înlocuieşte documentul': 'Replace document',
-  '📎 Ataşează document': '📎 Attach document',
-  '📎 Atașează document / foto': '📎 Attach document / photo',
+  'Ataşează document': 'Attach document',
+  'Atașează document / foto': 'Attach document / photo',
   'JPG, PNG, WEBP sau PDF · max {n} MB': 'JPG, PNG, WEBP or PDF · max {n} MB',
-
   // Autentificare
   'Portal Service': 'Service portal',
   'Autentificare administrator.': 'Administrator sign-in.',
@@ -530,15 +522,13 @@ const EN: Dict = {
     'This portal is for service administrators only.',
   'Se conectează…': 'Signing in…',
   'Intră în portal': 'Enter portal',
-
   // Panou (dashboard)
-  '📥 Import clienți (Excel)': '📥 Client import (Excel)',
-  '🧰 Cereri ofertă': '🧰 Quote requests',
-  '💬 Mesaje': '💬 Messages',
-  '🆘 Asistență': '🆘 Assistance',
-  '🚕 Mobilitate': '🚕 Mobility',
-  '📋 Daune': '📋 Damage claims',
-  '🧾 Taxe': '🧾 Taxes',
+  'Import clienți (Excel)': 'Client import (Excel)',
+  'Cereri ofertă': 'Quote requests',
+  'Asistență': 'Assistance',
+  'Mobilitate': 'Mobility',
+  'Daune': 'Damage claims',
+  'Taxe': 'Taxes',
   'Nu am putut încărca vehiculele.': 'Could not load vehicles.',
   'Niciun vehicul înregistrat': 'No vehicles registered',
   'Nume proprietar': 'Owner name',
@@ -551,15 +541,15 @@ const EN: Dict = {
   'Niciun vehicul găsit': 'No vehicles found',
   'Niciun rezultat pentru filtrele introduse — căutați după numele proprietarului, numărul de înmatriculare sau VIN.':
     'No results for the given filters — search by owner name, license plate, or VIN.',
-  'Scadențe →': 'Deadlines →',
-  '🔑 Cod activare': '🔑 Activation code',
+  'Scadențe': 'Deadlines',
+  'Cod activare': 'Activation code',
   'Nu am putut emite codul.': 'Could not issue the code.',
   'Cod de activare pentru {plate}': 'Activation code for {plate}',
   'Comunicați acest cod clientului. Se afișează O SINGURĂ DATĂ și expiră în 7 zile.':
     'Give this code to the customer. It is shown ONCE and expires in 7 days.',
 
   // Import Excel
-  '← Panou': '← Dashboard',
+  'Panou': 'Dashboard',
   'Import date din Excel': 'Import data from Excel',
   'Pasul 1 — Clienți și vehicule': 'Step 1 — Clients and vehicles',
   'Încărcați tabelul cu proprietari și vehicule (.xlsx sau .csv). Coloane:':
@@ -578,7 +568,7 @@ const EN: Dict = {
   'Legături proprietate create:': 'Ownership links created:',
   'Rânduri cu probleme ({n})': 'Rows with problems ({n})',
   'Rândul {n}:': 'Row {n}:',
-  'Toate rândurile au fost importate fără erori. ✔': 'All rows were imported without errors. ✔',
+  'Toate rândurile au fost importate fără erori.': 'All rows were imported without errors.',
   'Pasul 2 — Istoric reparații': 'Step 2 — Repair history',
   'Tabelul cu istoricul de reparații, legat de vehicule prin VIN (importați întâi clienții). Coloane:':
     'The repair history table, linked to vehicles by VIN (import clients first). Columns:',
@@ -590,24 +580,19 @@ const EN: Dict = {
   'Publicate (vizibile clientului):': 'Published (visible to customer):',
   'Ciorne (de completat):': 'Drafts (to complete):',
   'Sărite (existau deja):': 'Skipped (already existed):',
-
   // Vehicul — scadențe
-  '← Vehicule': '← Vehicles',
-  'Scadențe': 'Deadlines',
-  '🧾 Istoric service': '🧾 Service history',
+  'Istoric service': 'Service history',
   'Nicio scadență introdusă.': 'No deadlines entered.',
   'validat': 'verified',
   'nevalidat': 'not verified',
-  'Verificare ITP (RAR) ↗': 'Check inspection (RAR) ↗',
-  'Verificare RCA (AIDA) ↗': 'Check RCA (AIDA) ↗',
-  'Verificare taxă de drum (eRovinieta) ↗': 'Check road tax (eRovinieta) ↗',
+  'Verificare ITP (RAR)': 'Check inspection (RAR)',
+  'Verificare RCA (AIDA)': 'Check RCA (AIDA)',
+  'Verificare taxă de drum (eRovinieta)': 'Check road tax (eRovinieta)',
   'Validează': 'Validate',
   'Adaugă scadență (validată de service)': 'Add deadline (validated by the service)',
   'Data expirării': 'Expiry date',
-
   // Istoric service
-  '← Vehicul': '← Vehicle',
-  'Istoric service': 'Service history',
+  'Vehicul': 'Vehicle',
   '+ Adaugă': '+ Add',
   'Înregistrare nouă (ciornă)': 'New record (draft)',
   'Salvează ciorna': 'Save draft',
@@ -636,28 +621,21 @@ const EN: Dict = {
   'Total (RON)': 'Total (RON)',
   'Garanție': 'Warranty',
   'Ex: 12 luni / 20.000 km': 'E.g. 12 months / 20,000 km',
-
   // Taxe și impozite
   'Taxe și impozite': 'Taxes & duties',
-  '← Taxe și impozite': '← Taxes & duties',
   'Nicio taxă înregistrată': 'No taxes recorded',
   'Scadență:': 'Due date:',
   'Stare de plată': 'Payment status',
   'Marchează plătită': 'Mark as paid',
   'Marchează neplătită': 'Mark as unpaid',
-
   // Mesaje
   'Mesaje & oferte': 'Messages & quotes',
   'Nicio conversație': 'No conversations',
-  '← Mesaje': '← Messages',
   'Redeschide conversația': 'Reopen conversation',
   'Închide conversația': 'Close conversation',
   'Răspunde': 'Reply',
   'Scrieți un mesaj…': 'Write a message…',
-
   // Cereri ofertă
-  'Cereri ofertă': 'Quote requests',
-  '← Cereri ofertă': '← Quote requests',
   'Cererile de ofertă ale clienților (ciornele nu apar aici).':
     "Customers' quote requests (drafts do not appear here).",
   'Nicio cerere de ofertă': 'No quote requests',
@@ -680,9 +658,7 @@ const EN: Dict = {
   'Trimite oferta (REPLIED)': 'Send quote (REPLIED)',
   'Tranziție nepermisă.': 'Transition not allowed.',
   'Trimiterea răspunsului a eșuat.': 'Failed to send the reply.',
-
   // Asistență rutieră
-  '← Asistență rutieră': '← Roadside assistance',
   'Nicio cerere de asistență': 'No assistance requests',
   'Locație:': 'Location:',
   'Mobilitate:': 'Mobility:',
@@ -691,20 +667,15 @@ const EN: Dict = {
   'Direcționează (contact telefonic)': 'Forward (phone contact)',
   'Finalizează': 'Complete',
   'Anulează': 'Cancel',
-
   // Mobilitate
-  'Mobilitate': 'Mobility',
-  '← Mobilitate': '← Mobility',
   'Nicio solicitare de mobilitate': 'No mobility requests',
   ' · pentru {date}': ' · for {date}',
   'Detalii:': 'Details:',
   'Data preferată:': 'Preferred date:',
   'Client contactat': 'Customer contacted',
   'Confirmă': 'Confirm',
-
   // Daune
   'Dosare de daună': 'Damage claims',
-  '← Dosare de daună': '← Damage claims',
   'Niciun dosar de daună': 'No damage claims',
   'Dosar de daună': 'Damage claim',
   'Cere documente': 'Request documents',
@@ -713,10 +684,9 @@ const EN: Dict = {
   'Descriere:': 'Description:',
   'Poliță:': 'Policy:',
   'Fotografii și documente:': 'Photos and documents:',
-
   // Securitate / 2FA (P0-06)
-  '🔐 Securitate': '🔐 Security',
-  '← Înapoi': '← Back',
+  'Securitate': 'Security',
+  'Înapoi': 'Back',
   'Securitatea contului': 'Account security',
   'Autentificare în doi pași (2FA)': 'Two-factor authentication (2FA)',
   'Nu am putut încărca datele contului.': 'Could not load account details.',
@@ -757,10 +727,8 @@ const EN: Dict = {
   'Contul de service trebuie să activeze 2FA înainte de a folosi portalul.': 'The service account must enable 2FA before using the portal.',
   '2FA este deja activ pe acest cont.': '2FA is already active on this account.',
   '2FA nu este activat pe acest cont.': '2FA is not enabled on this account.',
-
   // Liste mari (P2-03)
   'Afișează încă {n} (din {m} rămase)': 'Show {n} more ({m} remaining)',
-
   // ASM (.xls) import
   'Sărite — VIN nevalid (rămân doar în ASM):': 'Skipped — invalid VIN (they stay in ASM only):',
   'Parteneri fără vehicul:': 'Partners without a vehicle:',
@@ -772,18 +740,17 @@ const EN: Dict = {
   'Exportul „PersonalManopere" din ASM sau orice tabel legat prin VIN (importați întâi clienții). Coloane recunoscute:': 'The ASM “PersonalManopere” export, or any table linked by VIN (import the clients first). Recognised columns:',
   'Pasul 3 — Report ITP/RCA → scadențe': 'Step 3 — ITP/RCA report → deadlines',
   'Raportul de alerte din ASM („report itp . rca"). Coloane recunoscute:': 'The ASM alert report (“report itp . rca”). Recognised columns:',
-  'Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și 🔔 Notificări.': 'Only ITP/RCA alerts become deadlines (the rest are skipped); the vehicle is matched by plate, and re-importing updates without duplicates. Deadlines then appear in Alerts (client) and 🔔 Notifications.',
+  'Doar alertele ITP/RCA devin scadențe (restul se sar); vehiculul se identifică după număr, iar reimportul actualizează fără dubluri. Scadențele apar apoi în Alerte (client) și Notificări.': 'Only ITP/RCA alerts become deadlines (the rest are skipped); the vehicle is matched by plate, and re-importing updates without duplicates. Deadlines then appear in Alerts (client) and Notifications.',
   'Fișier raport (.xls, .xlsx sau .csv, max. 10 MB)': 'Report file (.xls, .xlsx or .csv, max. 10 MB)',
   'Importă scadențele': 'Import deadlines',
   'Raport scadențe': 'Deadline report',
   'Scadențe create:': 'Deadlines created:',
   'Neschimbate (sărite):': 'Unchanged (skipped):',
   'alte alerte (nu ITP/RCA):': 'other alerts (not ITP/RCA):',
-
   // Notificări de scadență (P1-03)
   'Expeditor: WhatsApp-ul service-ului': 'Sender: the workshop’s WhatsApp',
   'Folosiți acest calculator cu WhatsApp Web conectat la numărul de mai sus — mesajele pleacă de pe numărul cu care sunteți autentificați.': 'Use this computer with WhatsApp Web signed in with the number above — messages are sent from whichever number you are signed in with.',
-  '🔔 Notificări': '🔔 Notifications',
+  'Notificări': 'Notifications',
   'Notificări de scadență': 'Deadline notifications',
   'Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.':
     'The message opens pre-written in the workshop’s own WhatsApp or in email — send it with one click, and the send is recorded.',
@@ -794,8 +761,7 @@ const EN: Dict = {
   'expirat': 'expired',
   'fără telefon': 'no phone number',
   'Notificat ultima dată: {date}': 'Last notified: {date}',
-  '📲 WhatsApp': '📲 WhatsApp',
-  '✉️ Email': '✉️ Email',
+  'WhatsApp': 'WhatsApp',
 };
 
 const DICTS: Record<Locale, Dict | null> = { ro: null, hu: HU, en: EN };

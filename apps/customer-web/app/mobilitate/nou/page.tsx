@@ -1,20 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
 import { useT } from '@/lib/i18n';
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  fontSize: '1rem',
-  background: '#fff',
-};
 
 export default function NewMobilityPage() {
   const router = useRouter();
@@ -51,19 +43,24 @@ export default function NewMobilityPage() {
 
   return (
     <>
-      <Link href="/mobilitate" className="muted">
-        {t('← Mobilitate')}
-      </Link>
-      <h1>{t('Solicitare de mobilitate')}</h1>
+      <header className="page-head">
+        <div>
+  <Link href="/mobilitate" className="back-link">
+          <Icon name="arrow-left" size={14} />
+          {t('Mobilitate')}
+        </Link>
+          <h1>{t('Solicitare de mobilitate')}</h1>
+        </div>
+      </header>
       {error ? (
         <div className="alert alert-err" role="alert">
           {t(error)}
         </div>
       ) : null}
-      <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
+      <form onSubmit={submit} className="panel panel-body panel-form stack">
         <div className="field">
           <label htmlFor="type">{t('Tip')}</label>
-          <select id="type" value={type} onChange={(e) => setType(e.target.value)} style={inputStyle}>
+          <select id="type" value={type} onChange={(e) => setType(e.target.value)}>
             <option value="REPLACEMENT_CAR">{t('Mașină de înlocuire')}</option>
             <option value="TAXI">{t('Taxi')}</option>
             <option value="PERSON_TRANSPORT">{t('Transport persoane')}</option>
@@ -72,8 +69,8 @@ export default function NewMobilityPage() {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="details">{t('Detalii')}</label>
-          <textarea id="details" rows={3} value={details} onChange={(e) => setDetails(e.target.value)} required style={inputStyle} />
+          <label htmlFor="details">{t('Detalii')}<Icon name="chevron" size={14} /></label>
+          <textarea id="details" rows={3} value={details} onChange={(e) => setDetails(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="preferredDate">{t('Data preferată (opțional)')}</label>
@@ -81,7 +78,7 @@ export default function NewMobilityPage() {
         </div>
         <div className="field">
           <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
-          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
+          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
