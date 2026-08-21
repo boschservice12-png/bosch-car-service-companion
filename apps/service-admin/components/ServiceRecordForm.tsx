@@ -4,15 +4,6 @@ import { useState } from 'react';
 import type { ServiceRecord, ServiceRecordInput } from '@/lib/types';
 import { useT } from '@/lib/i18n';
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  fontSize: '1rem',
-  background: '#fff',
-};
-
 /** Formular ciornă de service — folosit atât la creare, cât și la editare/corecție. */
 export function ServiceRecordForm({
   initial,
@@ -68,11 +59,11 @@ export function ServiceRecordForm({
       </div>
       <div className="field">
         <label htmlFor="workDescription">{t('Lucrări efectuate')}</label>
-        <textarea id="workDescription" rows={3} value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} style={inputStyle} />
+        <textarea id="workDescription" rows={3} value={workDescription} onChange={(e) => setWorkDescription(e.target.value)} />
       </div>
       <div className="field">
         <label htmlFor="partsSummary">{t('Piese (rezumat)')}</label>
-        <textarea id="partsSummary" rows={2} value={partsSummary} onChange={(e) => setPartsSummary(e.target.value)} style={inputStyle} />
+        <textarea id="partsSummary" rows={2} value={partsSummary} onChange={(e) => setPartsSummary(e.target.value)} />
       </div>
       <div className="field">
         <label htmlFor="laborCost">{t('Manoperă (RON)')}</label>

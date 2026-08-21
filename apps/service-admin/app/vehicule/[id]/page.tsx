@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -73,15 +74,19 @@ export default function AdminVehicleDeadlinesPage() {
 
   return (
     <>
-      <Link href="/" className="muted">
-        {t('← Vehicule')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Scadențe')}</h1>
-        <Link href={`/vehicule/${params.id}/istoric`} className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-          {t('🧾 Istoric service')}
-        </Link>
-      </div>
+      <Link href="/" className="back-link">
+        <Icon name="arrow-left" size={14} />
+        {t('Vehicule')} </Link>
+      <header className="page-head">
+        <div>
+          <h1>{t('Scadențe')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link href={`/vehicule/${params.id}/istoric`} className="btn btn-ghost btn-sm">
+            <Icon name="history" size={16} /> {t('Istoric service')}
+          </Link>
+        </div>
+      </header>
 
       <div className="card">
         {deadlines.length === 0 ? <p className="muted">{t('Nicio scadență introdusă.')}</p> : null}
@@ -90,7 +95,7 @@ export default function AdminVehicleDeadlinesPage() {
             <div className="list-row">
               <div>
                 <strong>{t(d.typeLabel)}</strong>
-                <div className="muted" style={{ fontSize: '0.82rem' }}>
+                <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                   {d.expiresAt ?? '—'} · {daysLeftText(t, d.daysLeft)} · {d.verified ? t('validat') : t('nevalidat')}
                 </div>
                 {d.type === 'ITP' ? (
@@ -98,9 +103,9 @@ export default function AdminVehicleDeadlinesPage() {
                     href="https://prog.rarom.ro/rarpol/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: '0.82rem' }}
+                    style={{ fontSize: 'var(--text-sm)' }}
                   >
-                    {t('Verificare ITP (RAR) ↗')}
+                    <Icon name="external" size={16} /> {t('Verificare ITP (RAR)')}
                   </a>
                 ) : null}
                 {d.type === 'RCA' ? (
@@ -108,9 +113,9 @@ export default function AdminVehicleDeadlinesPage() {
                     href="https://www.aida.info.ro/polite-rca"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: '0.82rem' }}
+                    style={{ fontSize: 'var(--text-sm)' }}
                   >
-                    {t('Verificare RCA (AIDA) ↗')}
+                    <Icon name="external" size={16} /> {t('Verificare RCA (AIDA)')}
                   </a>
                 ) : null}
                 {d.type === 'ROAD_TAX' ? (
@@ -118,9 +123,9 @@ export default function AdminVehicleDeadlinesPage() {
                     href="https://www.erovinieta.ro"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ fontSize: '0.82rem' }}
+                    style={{ fontSize: 'var(--text-sm)' }}
                   >
-                    {t('Verificare taxă de drum (eRovinieta) ↗')}
+                    <Icon name="external" size={16} /> {t('Verificare taxă de drum (eRovinieta)')}
                   </a>
                 ) : null}
               </div>
@@ -151,7 +156,7 @@ export default function AdminVehicleDeadlinesPage() {
             id="type"
             value={form.type}
             onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-            style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: '1rem', background: '#fff' }}
+            style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: 'var(--text-md)', background: '#fff' }}
           >
             {TYPES.map((ty) => (
               <option key={ty.type} value={ty.type}>

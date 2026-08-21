@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -57,29 +58,57 @@ export default function VehicleDetailPage() {
 
   return (
     <>
-      <h1>{vehicle.plateNumber}</h1>
-      <div className="card stack">
+      <header className="page-head">
         <div>
-          <span className="muted">{t('VIN:')}</span> {vehicle.vin}
+          <Link href="/vehicule" className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Vehiculele mele')}
+          </Link>
+          <h1 className="plate">{vehicle.plateNumber}</h1>
+          <p className="muted">
+            {[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(' ') || vehicle.vin}
+          </p>
         </div>
-        {vehicle.make ? (
-          <div>
-            <span className="muted">{t('Vehicul:')}</span>{' '}
-            {[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(' ')}
-          </div>
-        ) : null}
-      </div>
+        <div className="page-head-actions">
+          <Link className="btn btn-ghost btn-sm" href={`/vehicule/${vehicle.id}/istoric`}>
+            <Icon name="history" size={16} /> {t('Istoric service')}
+          </Link>
+          <Link className="btn btn-sm" href={`/vehicule/${vehicle.id}/scadente/nou`}>
+            <Icon name="plus" size={16} /> {t('Adaugă / actualizează scadență')}
+          </Link>
+        </div>
+      </header>
 
-      <h2>{t('Scadențe')}</h2>
-      <div className="card">
+      <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+        <div className="panel-head">
+          <span className="panel-title">{t('Identificare')}</span>
+        </div>
+        <div className="panel-body stack">
+          <div>
+            <span className="muted">{t('VIN:')}</span> {vehicle.vin}
+          </div>
+          {vehicle.make ? (
+            <div>
+              <span className="muted">{t('Vehicul:')}</span>{' '}
+              {[vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(' ')}
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-head">
+          <span className="panel-title">{t('Scadențe')}</span>
+        </div>
+        <div className="panel-body-flush">
         {TYPES.map(({ type, label }) => {
           const d = byType.get(type);
           return (
-            <div key={type} className="stack" style={{ gap: 8 }}>
+            <div key={type} className="deadline-row">
               <div className="list-row">
                 <div>
                   <strong>{t(label)}</strong>
-                  <div className="muted" style={{ fontSize: '0.82rem' }}>
+                  <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                     {d
                       ? `${d.expiresAt ?? '—'} · ${daysLeftText(t, d.daysLeft)}${d.verified ? t(' · validat') : ''}`
                       : t('neintrodus')}
@@ -89,9 +118,8 @@ export default function VehicleDetailPage() {
                       href="https://prog.rarom.ro/rarpol/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: '0.82rem' }}
                     >
-                      {t('Verificare ITP (RAR) ↗')}
+                      <Icon name="external" size={16} /> {t('Verificare ITP (RAR)')}
                     </a>
                   ) : null}
                   {type === 'RCA' ? (
@@ -99,9 +127,8 @@ export default function VehicleDetailPage() {
                       href="https://www.aida.info.ro/polite-rca"
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: '0.82rem' }}
                     >
-                      {t('Verificare RCA (AIDA) ↗')}
+                      <Icon name="external" size={16} /> {t('Verificare RCA (AIDA)')}
                     </a>
                   ) : null}
                   {type === 'ROAD_TAX' ? (
@@ -109,9 +136,8 @@ export default function VehicleDetailPage() {
                       href="https://www.erovinieta.ro"
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ fontSize: '0.82rem' }}
                     >
-                      {t('Verificare taxă de drum (eRovinieta) ↗')}
+                      <Icon name="external" size={16} /> {t('Verificare taxă de drum (eRovinieta)')}
                     </a>
                   ) : null}
                 </div>
@@ -121,14 +147,9 @@ export default function VehicleDetailPage() {
             </div>
           );
         })}
-      </div>
-      <Link className="btn" href={`/vehicule/${vehicle.id}/scadente/nou`}>
-        {t('➕ Adaugă / actualizează scadență')}
-      </Link>
-      <Link className="btn btn-ghost" href={`/vehicule/${vehicle.id}/istoric`}>
-        {t('🧾 Istoric service')}
-      </Link>
-      <p className="muted" style={{ fontSize: '0.82rem' }}>
+        </div>
+      </section>
+      <p className="muted" style={{ fontSize: 'var(--text-sm)', marginTop: 'var(--s4)' }}>
         {t('Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.')}
       </p>
 

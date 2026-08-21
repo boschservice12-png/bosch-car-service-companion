@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -62,18 +63,27 @@ export default function AdminTaxDetailPage() {
 
   return (
     <>
-      <Link href="/taxe" className="muted">
-        {t('← Taxe și impozite')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ marginBottom: 0 }}>{t(tax.typeLabel)} · {tax.year}</h1>
-        <span className={`badge ${STATUS_CLASS[tax.status]}`}>{t(tax.statusLabel)}</span>
-      </div>
-      <div className="muted" style={{ fontSize: '0.85rem', marginBottom: 12 }}>{tax.customerName ?? t('Client')}</div>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href="/taxe" className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Taxe și impozite')}
+          </Link>
+          <h1>{t(tax.typeLabel)} · {tax.year}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          <span className={`badge ${STATUS_CLASS[tax.status]}`}>{t(tax.statusLabel)}</span>
+        </div>
+      </header>
+      <div className="muted" style={{ fontSize: 'var(--text-sm)', marginBottom: 12 }}>{tax.customerName ?? t('Client')}</div>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
-      <div className="card stack" style={{ gap: 8 }}>
+      <div className="panel panel-body panel-form stack">
         <div><strong>{money(tax.amount)}</strong></div>
         {tax.dueDate ? <div><span className="muted">{t('Scadență:')}</span> {tax.dueDate}</div> : null}
         {tax.vehiclePlate ? <div><span className="muted">{t('Vehicul:')}</span> {tax.vehiclePlate}</div> : null}
@@ -81,19 +91,19 @@ export default function AdminTaxDetailPage() {
       </div>
 
       <h2>{t('Stare de plată')}</h2>
-      <div className="card stack" style={{ gap: 10 }}>
+      <div className="panel panel-body panel-form stack">
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           rows={2}
           placeholder={t('Notă internă (opțional)…')}
-          style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: '1rem', background: '#fff' }}
+          style={{ width: '100%', padding: 12, border: '1px solid var(--border)', borderRadius: 8, fontSize: 'var(--text-md)', background: '#fff' }}
         />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} disabled={busy} onClick={() => setStatus('PAID')}>
+          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setStatus('PAID')}>
             {t('Marchează plătită')}
           </button>
-          <button className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} disabled={busy} onClick={() => setStatus('UNPAID')}>
+          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setStatus('UNPAID')}>
             {t('Marchează neplătită')}
           </button>
         </div>

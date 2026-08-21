@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -43,33 +44,38 @@ export default function AdminTaxListPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Taxe și impozite')}</h1>
-        <Link href="/" className="muted">
-          {t('Vehicule →')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Taxe și impozite')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link href="/" className="back-link">
+            <Icon name="arrow-left" size={14} />
+          {t('Vehicule')}
+          </Link>
+        </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={2} /> : null}
       {!error && items?.length === 0 ? <EmptyState title={t('Nicio taxă înregistrată')} /> : null}
 
       {items && items.length > 0 ? (
-        <div className="stack" style={{ gap: 10 }}>
-          {items.map((item) => (
-            <Link key={item.id} href={`/taxe/${item.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="list-row">
-                <div>
-                  <strong>{t(item.typeLabel)} · {item.year}</strong>
-                  <div className="muted" style={{ fontSize: '0.82rem' }}>
+        <section className="panel">
+          <div className="panel-body-flush">
+            {items.map((item) => (
+              <Link key={item.id} href={`/taxe/${item.id}`} className="row-link">
+                <span className="row-main">
+                  <span className="row-title">{t(item.typeLabel)} · {item.year}</span>
+                  <span className="row-sub">
                     {item.customerName ?? '—'} · {money(item.amount)}
-                  </div>
-                </div>
+                  </span>
+                </span>
                 <span className={`badge ${STATUS_CLASS[item.status]}`}>{t(item.statusLabel)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
     </>
   );

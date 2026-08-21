@@ -1,5 +1,6 @@
 # Next.js
 /.next/
+/.next-*/          # BUILD_DIST_DIR verification builds
 /out/
 /node_modules/
 *.tsbuildinfo

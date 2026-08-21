@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/types';
 import { useT } from '@/lib/i18n';
+import { AuthShell } from '@/components/AuthShell';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -82,9 +83,10 @@ export default function AdminLoginPage() {
 
   if (otpStep) {
     return (
-      <>
+      <AuthShell t={t} lede={t('Fiecare vehicul din service, la zi.')}>
+        <p className="eyebrow">{t('Pasul 2 din 2')}</p>
         <h1>{t('Verificare în doi pași')}</h1>
-        <p className="muted">
+        <p className="auth-intro">
           {useRecovery
             ? t('Introduceți unul dintre codurile de rezervă primite la activarea 2FA.')
             : t('Introduceți codul din aplicația de autentificare (Google/Microsoft Authenticator).')}
@@ -112,11 +114,10 @@ export default function AdminLoginPage() {
             {busy ? t('Se verifică…') : t('Verifică')}
           </button>
         </form>
-        <p style={{ marginTop: 12 }}>
+        <p className="auth-alt">
           <button
             type="button"
-            className="btn btn-ghost"
-            style={{ width: 'auto', padding: '6px 10px' }}
+            className="btn btn-quiet btn-sm"
             onClick={() => {
               setUseRecovery((v) => !v);
               setOtp('');
@@ -126,14 +127,15 @@ export default function AdminLoginPage() {
             {useRecovery ? t('Folosesc codul din aplicație') : t('Nu am telefonul — folosesc un cod de rezervă')}
           </button>
         </p>
-      </>
+      </AuthShell>
     );
   }
 
   return (
-    <>
-      <h1>{t('Portal Service')}</h1>
-      <p className="muted">{t('Autentificare administrator.')}</p>
+    <AuthShell t={t} lede={t('Fiecare vehicul din service, la zi.')}>
+      <p className="eyebrow">{t('Cont service')}</p>
+      <h1>{t('Autentificare')}</h1>
+      <p className="auth-intro">{t('Autentificare administrator.')}</p>
       {error ? (
         <div className="alert alert-err" role="alert">
           {t(error)}
@@ -159,6 +161,6 @@ export default function AdminLoginPage() {
           {busy ? t('Se conectează…') : t('Intră în portal')}
         </button>
       </form>
-    </>
+    </AuthShell>
   );
 }

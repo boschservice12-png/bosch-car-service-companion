@@ -5,7 +5,7 @@ name: Customer Web CI
 # builds this app's image regardless, which catches a broken build.
 on:
   push:
-    branches: [ "claude/**", "main" ]
+    branches: [ "claude/**", "develop/**", "main" ]
     paths: [ "apps/customer-web/**", ".github/workflows/customer-web-ci.yml" ]
   pull_request:
     paths: [ "apps/customer-web/**", ".github/workflows/customer-web-ci.yml" ]

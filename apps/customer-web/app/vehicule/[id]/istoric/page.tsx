@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -42,17 +43,26 @@ export default function VehicleServiceHistoryPage() {
 
   return (
     <>
-      <Link href={`/vehicule/${params.id}`} className="muted">
-        {t('← Vehicul')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <h1>{t('Istoric service')}</h1>
-        {records.length > 0 ? (
-          <a className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }} href={`/api/vehicles/${params.id}/service-records/pdf`} target="_blank" rel="noopener">
-            ⬇ PDF
-          </a>
-        ) : null}
-      </div>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href={`/vehicule/${params.id}`} className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Vehicul')}
+          </Link>
+          <h1>{t('Istoric service')}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          {records.length > 0 ? (
+            <a className="btn btn-ghost btn-sm" href={`/api/vehicles/${params.id}/service-records/pdf`} target="_blank" rel="noopener">
+              <Icon name="download" size={16} /> PDF
+            </a>
+          ) : null}
+        </div>
+      </header>
 
       {records.length === 0 ? (
         <EmptyState title={t('Nicio intrare în istoric')} hint={t('Service-ul va publica aici lucrările efectuate.')} />
@@ -64,7 +74,7 @@ export default function VehicleServiceHistoryPage() {
         </div>
       )}
 
-      <p className="muted" style={{ fontSize: '0.82rem' }}>
+      <p className="muted" style={{ fontSize: 'var(--text-sm)' }}>
         {t('Istoricul este publicat de service. Corecțiile apar ca intrări separate, păstrând înregistrarea originală.')}
       </p>
 

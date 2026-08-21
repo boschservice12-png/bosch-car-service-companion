@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { api, serviceRecordDocumentHref } from '@/lib/api';
 import { ApiError, type ServiceRecord, type ServiceRecordInput } from '@/lib/types';
 import { useT } from '@/lib/i18n';
@@ -52,13 +53,13 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
       <div className="list-row">
         <div>
           <strong>{record.serviceDate ?? '—'}</strong>
-          <div className="muted" style={{ fontSize: '0.82rem' }}>
+          <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
             {record.workType ?? t('Lucrare')} · {record.odometerKm != null ? `${record.odometerKm} km` : '—'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <span className={`badge ${isDraft ? 'badge-warn' : record.status === 'CORRECTED' ? 'badge-unknown' : 'badge-ok'}`}>
-            <span aria-hidden>{isDraft ? '✎' : '✓'}</span> {t(record.statusLabel)}
+            <Icon name={isDraft ? 'edit' : 'check'} size={13} /> {t(record.statusLabel)}
           </span>
           {record.correctionOfId ? <span className="badge badge-unknown">{t('corecție')}</span> : null}
           {record.corrected ? <span className="badge badge-unknown">{t('corectat')}</span> : null}
@@ -67,11 +68,11 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
 
       {record.workDescription ? <p style={{ margin: 0 }}>{record.workDescription}</p> : null}
       {record.partsSummary ? (
-        <div style={{ fontSize: '0.9rem' }}>
+        <div style={{ fontSize: 'var(--text-sm)' }}>
           <span className="muted">{t('Piese:')}</span> {record.partsSummary}
         </div>
       ) : null}
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.9rem' }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 'var(--text-sm)' }}>
         <span>
           <span className="muted">{t('Manoperă:')}</span> {formatMoney(record.laborCost)}
         </span>
@@ -87,17 +88,17 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
 
       {record.documents.length > 0 ? (
         <div className="stack" style={{ gap: 4 }}>
-          <span className="muted" style={{ fontSize: '0.82rem' }}>{t('Documente:')}</span>
+          <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('Documente:')}</span>
           {record.documents.map((d) => (
             <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span aria-hidden>📎</span>
-              <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
+              <Icon name="paperclip" size={14} />
+              <span style={{ fontSize: 'var(--text-sm)', wordBreak: 'break-all' }}>{d.originalName ?? t('document')}</span>
               {d.servable ? (
                 <a className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px' }} href={serviceRecordDocumentHref(record.id, d.id)} target="_blank" rel="noopener">
                   {t('Descarcă')}
                 </a>
               ) : (
-                <span className="muted" style={{ fontSize: '0.8rem' }}>{t('în curs de scanare')}</span>
+                <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>{t('în curs de scanare')}</span>
               )}
             </div>
           ))}
@@ -126,7 +127,7 @@ export function ServiceRecordAdminCard({ record, onChanged }: { record: ServiceR
         )}
       </div>
 
-      {error ? <div className="alert alert-err" role="alert" style={{ fontSize: '0.85rem' }}>{error}</div> : null}
+      {error ? <div className="alert alert-err" role="alert" style={{ fontSize: 'var(--text-sm)' }}>{error}</div> : null}
     </div>
   );
 }

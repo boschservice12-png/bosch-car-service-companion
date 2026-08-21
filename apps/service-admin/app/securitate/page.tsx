@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -98,23 +99,30 @@ export default function SecurityPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Securitatea contului')}</h1>
-        <Link href="/" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-          {t('← Înapoi')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Securitatea contului')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link href="/" className="btn btn-ghost btn-sm">
+            {t('Înapoi')}
+          </Link>
+        </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && me === null ? <Loading /> : null}
 
       {me !== null && step === 'status' ? (
-        <section className="card" style={{ marginTop: 16 }}>
-          <h2>{t('Autentificare în doi pași (2FA)')}</h2>
+        <section className="panel panel-form" style={{ marginTop: 'var(--s4)' }}>
+          <div className="panel-head">
+            <span className="panel-title">{t('Autentificare în doi pași (2FA)')}</span>
+          </div>
+          <div className="panel-body stack">
           {me.totpEnabled ? (
             <>
               <p>
-                ✅ {t('2FA este ACTIV pe acest cont — la fiecare login se cere codul din aplicația de autentificare.')}
+                <Icon name="shield" size={16} /> {t('2FA este ACTIV pe acest cont — la fiecare login se cere codul din aplicația de autentificare.')}
               </p>
               {formError ? (
                 <div className="alert alert-err" role="alert">
@@ -167,12 +175,16 @@ export default function SecurityPage() {
               </form>
             </>
           )}
+          </div>
         </section>
       ) : null}
 
       {step === 'confirm' ? (
-        <section className="card" style={{ marginTop: 16 }}>
-          <h2>{t('Pasul 2: adăugați contul în aplicația de autentificare')}</h2>
+        <section className="panel panel-form" style={{ marginTop: 'var(--s4)' }}>
+          <div className="panel-head">
+            <span className="panel-title">{t('Pasul 2: adăugați contul în aplicația de autentificare')}</span>
+          </div>
+          <div className="panel-body stack">
           <p className="muted">
             {t('Scanați codul QR din aplicație folosind linkul de mai jos sau introduceți secretul manual, apoi confirmați cu primul cod generat.')}
           </p>
@@ -207,12 +219,16 @@ export default function SecurityPage() {
               {busy ? t('Se confirmă…') : t('Confirmă și activează')}
             </button>
           </form>
+          </div>
         </section>
       ) : null}
 
       {step === 'recovery' ? (
-        <section className="card" style={{ marginTop: 16 }}>
-          <h2>✅ {t('2FA activat')}</h2>
+        <section className="panel panel-form" style={{ marginTop: 'var(--s4)' }}>
+          <div className="panel-head">
+            <span className="panel-title">{t('2FA activat')}</span>
+          </div>
+          <div className="panel-body stack">
           <div className="alert alert-warn" role="alert">
             {t('Salvați codurile de rezervă de mai jos într-un loc sigur — se afișează O SINGURĂ DATĂ. Fiecare cod funcționează o singură dată, dacă pierdeți accesul la aplicația de autentificare.')}
           </div>
@@ -234,6 +250,7 @@ export default function SecurityPage() {
           >
             {t('Am salvat codurile de rezervă')}
           </button>
+          </div>
         </section>
       ) : null}
     </>

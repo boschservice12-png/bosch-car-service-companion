@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -58,7 +59,11 @@ export default function VehiclesPage() {
 
   return (
     <>
-      <h1>{t('Vehiculele mele')}</h1>
+      <header className="page-head">
+        <div>
+          <h1>{t('Vehiculele mele')}</h1>
+        </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
 
@@ -70,7 +75,7 @@ export default function VehiclesPage() {
           hint={t('Adăugați primul vehicul pentru a urmări scadențele și istoricul.')}
           action={
             <Link className="btn" href="/vehicule/nou">
-              {t('➕ Adaugă vehicul')}
+              <Icon name="plus" size={16} /> {t('Adaugă vehicul')}
             </Link>
           }
         />
@@ -83,25 +88,25 @@ export default function VehiclesPage() {
               <div key={v.id} className="list-row">
                 <div>
                   <strong>{v.plateNumber}</strong>
-                  <div className="muted" style={{ fontSize: '0.85rem' }}>
+                  <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                     {[v.make, v.model, v.year].filter(Boolean).join(' · ') || v.vin}
                   </div>
                 </div>
                 <Link href={`/vehicule/${v.id}`} aria-label={t('Detalii {plate}', { plate: v.plateNumber })}>
-                  {t('Detalii →')}
+                  {t('Detalii')}<Icon name="chevron" size={14} />
                 </Link>
               </div>
             ))}
           </div>
           <Link className="btn btn-ghost" href="/vehicule/nou">
-            {t('➕ Adaugă alt vehicul')}
+            <Icon name="plus" size={16} /> {t('Adaugă alt vehicul')}
           </Link>
         </>
       ) : null}
 
       <section className="card stack" style={{ marginTop: 16 }}>
-        <h2 style={{ margin: 0, fontSize: '1rem' }}>{t('Ai un cod de la service?')}</h2>
-        <p className="muted" style={{ fontSize: '0.85rem', margin: 0 }}>
+        <h2 style={{ margin: 0, fontSize: 'var(--text-md)' }}>{t('Ai un cod de la service?')}</h2>
+        <p className="muted" style={{ fontSize: 'var(--text-sm)', margin: 0 }}>
           {t('Introduceți codul de activare primit de la service pentru a adăuga vehiculul în contul dumneavoastră.')}
         </p>
         {actMsg ? (

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, type UpcomingDeadline } from '@/lib/api';
@@ -90,18 +91,22 @@ export default function NotificationsPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Notificări de scadență')}</h1>
-        <Link href="/" className="btn btn-ghost" style={{ width: 'auto', padding: '8px 12px' }}>
-          {t('← Înapoi')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Notificări de scadență')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link href="/" className="btn btn-ghost btn-sm">
+            {t('Înapoi')}
+          </Link>
+        </div>
+      </header>
       <p className="muted">
         {t('Mesajul se deschide gata scris în WhatsApp-ul service-ului sau în email — îl trimiteți cu un click, iar trimiterea se consemnează.')}
       </p>
-      <div className="card" style={{ borderLeft: '4px solid #25D366', marginBottom: 12 }}>
-        <b>📲 {t('Expeditor: WhatsApp-ul service-ului')} — <span className="tabnum">{SERVICE_PHONE}</span></b>
-        <div className="muted" style={{ fontSize: '0.85rem' }}>
+      <div className="card callout callout-whatsapp" style={{ marginBottom: 'var(--s3)' }}>
+        <b><Icon name="phone" size={15} /> {t('Expeditor: WhatsApp-ul service-ului')} — <span className="tabnum">{SERVICE_PHONE}</span></b>
+        <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
           {t('Folosiți acest calculator cu WhatsApp Web conectat la numărul de mai sus — mesajele pleacă de pe numărul cu care sunteți autentificați.')}
         </div>
       </div>
@@ -139,22 +144,21 @@ export default function NotificationsPage() {
                       : t('în {n} zile', { n: item.daysLeft ?? 0 })}{' '}
                     · {item.expiresAt}
                   </span>
-                  <div className="muted" style={{ fontSize: '0.85rem' }}>
+                  <div className="muted" style={{ fontSize: 'var(--text-sm)' }}>
                     {[item.vehicle.make, item.vehicle.model].filter(Boolean).join(' ')}
                     {item.owner?.name ? ` · ${item.owner.name}` : ''}
                     {item.owner?.phone ? ` · ${item.owner.phone}` : ` · ${t('fără telefon')}`}
                   </div>
                   {item.lastNotifiedAt ? (
-                    <div className="muted" style={{ fontSize: '0.78rem' }}>
-                      ✓ {t('Notificat ultima dată: {date}', { date: new Date(item.lastNotifiedAt).toLocaleString('ro-RO') })}
+                    <div className="muted" style={{ fontSize: 'var(--text-xs)' }}>
+                      <Icon name="check" size={12} /> {t('Notificat ultima dată: {date}', { date: new Date(item.lastNotifiedAt).toLocaleString('ro-RO') })}
                     </div>
                   ) : null}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     type="button"
-                    className="btn"
-                    style={{ width: 'auto', padding: '8px 12px' }}
+                    className="btn btn-sm"
                     disabled={!hasUsablePhone(item.owner?.phone)}
                     onClick={() =>
                       hasUsablePhone(item.owner?.phone) &&
@@ -165,12 +169,11 @@ export default function NotificationsPage() {
                       )
                     }
                   >
-                    {t('📲 WhatsApp')}
+                    <Icon name="message" size={16} /> {t('WhatsApp')}
                   </button>
                   <button
                     type="button"
-                    className="btn btn-ghost"
-                    style={{ width: 'auto', padding: '8px 12px' }}
+                    className="btn btn-ghost btn-sm"
                     disabled={!item.owner?.email}
                     onClick={() =>
                       item.owner?.email &&
@@ -183,7 +186,7 @@ export default function NotificationsPage() {
                       )
                     }
                   >
-                    {t('✉️ Email')}
+                    <Icon name="mail" size={16} /> {t('Email')}
                   </button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -63,17 +64,26 @@ export default function MobilityDetailPage() {
 
   return (
     <>
-      <Link href="/mobilitate" className="muted">
-        {t('← Mobilitate')}
-      </Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ marginBottom: 0 }}>{t(req.typeLabel)}</h1>
-        <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
-      </div>
+      <header className="page-head">
+        <div>
+      <header className="page-head">
+        <div>
+  <Link href="/mobilitate" className="back-link">
+            <Icon name="arrow-left" size={14} />
+            {t('Mobilitate')}
+          </Link>
+          <h1>{t(req.typeLabel)}</h1>
+        </div>
+      </header>
+        </div>
+        <div className="page-head-actions">
+          <span className={`badge ${STATUS_CLASS[req.status]}`}>{t(req.statusLabel)}</span>
+        </div>
+      </header>
 
       {error ? <div className="alert alert-err" role="alert">{t(error)}</div> : null}
 
-      <div className="card stack" style={{ gap: 8 }}>
+      <div className="panel panel-body panel-form stack">
         <div><span className="muted">{t('Detalii:')}</span> {req.details}</div>
         {req.preferredDate ? <div><span className="muted">{t('Data preferată:')}</span> {req.preferredDate}</div> : null}
         {req.vehiclePlate ? <div><span className="muted">{t('Vehicul:')}</span> {req.vehiclePlate}</div> : null}

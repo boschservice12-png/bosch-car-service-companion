@@ -1,20 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError, type Vehicle } from '@/lib/types';
 import { useT } from '@/lib/i18n';
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: 12,
-  border: '1px solid var(--border)',
-  borderRadius: 8,
-  fontSize: '1rem',
-  background: '#fff',
-};
 
 export default function NewConversationPage() {
   const router = useRouter();
@@ -49,23 +41,28 @@ export default function NewConversationPage() {
 
   return (
     <>
-      <Link href="/mesaje" className="muted">
-        {t('← Mesaje')}
-      </Link>
-      <h1>{t('Mesaj nou')}</h1>
+      <header className="page-head">
+        <div>
+  <Link href="/mesaje" className="back-link">
+          <Icon name="arrow-left" size={14} />
+          {t('Mesaje')}
+        </Link>
+          <h1>{t('Mesaj nou')}</h1>
+        </div>
+      </header>
       {error ? (
         <div className="alert alert-err" role="alert">
           {t(error)}
         </div>
       ) : null}
-      <form onSubmit={submit} className="card stack" style={{ gap: 10 }}>
+      <form onSubmit={submit} className="panel panel-body panel-form stack">
         <div className="field">
           <label htmlFor="subject">{t('Subiect')}</label>
           <input id="subject" type="text" maxLength={200} value={subject} onChange={(e) => setSubject(e.target.value)} required />
         </div>
         <div className="field">
           <label htmlFor="vehicle">{t('Vehicul (opțional)')}</label>
-          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
+          <select id="vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">{t('— fără vehicul —')}</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
@@ -76,7 +73,7 @@ export default function NewConversationPage() {
         </div>
         <div className="field">
           <label htmlFor="body">{t('Mesaj')}</label>
-          <textarea id="body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} required style={inputStyle} />
+          <textarea id="body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} required />
         </div>
         <button className="btn" type="submit" disabled={busy}>
           {busy ? t('Se trimite…') : t('Trimite')}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/types';
@@ -47,7 +48,11 @@ export default function NewVehiclePage() {
 
   return (
     <>
-      <h1>{t('Adaugă vehicul')}</h1>
+      <header className="page-head">
+        <div>
+          <h1>{t('Adaugă vehicul')}</h1>
+        </div>
+      </header>
       {general ? (
         <div className="alert alert-err" role="alert">
           {general}

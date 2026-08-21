@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -43,20 +44,24 @@ export default function MobilityListPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Mobilitate')}</h1>
-        <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/mobilitate/nou">
-          {t('+ Cerere')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Mobilitate')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link className="btn btn-sm" href="/mobilitate/nou">
+            {t('+ Cerere')}
+          </Link>
+        </div>
+      </header>
 
-      <div className="card stack" style={{ gap: 8 }}>
+      <div className="panel panel-body panel-form stack">
         <strong>{t('Aveți nevoie de mobilitate acum?')}</strong>
-        <span className="muted" style={{ fontSize: '0.85rem' }}>
+        <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
           {t('Trimiteți o cerere, sau sunați direct dispeceratul.')}
         </span>
         <a className="btn" href="tel:0730508343" style={{ textAlign: 'center', textDecoration: 'none' }}>
-          {t('📞 Sună {phone}', { phone: '0730 508 343' })}
+          <Icon name="phone" size={16} /> {t('Sună {phone}', { phone: '0730 508 343' })}
         </a>
       </div>
 
@@ -67,21 +72,21 @@ export default function MobilityListPage() {
       ) : null}
 
       {items && items.length > 0 ? (
-        <div className="stack" style={{ gap: 10 }}>
-          {items.map((m) => (
-            <Link key={m.id} href={`/mobilitate/${m.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="list-row">
-                <div>
-                  <strong>{t(m.typeLabel)}</strong>
-                  <div className="muted" style={{ fontSize: '0.82rem' }}>
+        <section className="panel">
+          <div className="panel-body-flush">
+            {items.map((m) => (
+              <Link key={m.id} href={`/mobilitate/${m.id}`} className="row-link">
+                <span className="row-main">
+                  <span className="row-title">{t(m.typeLabel)}</span>
+                  <span className="row-sub">
                     {m.preferredDate ? t('Pentru {date}', { date: m.preferredDate }) : new Date(m.createdAt).toLocaleDateString('ro-RO')}
-                  </div>
-                </div>
+                  </span>
+                </span>
                 <span className={`badge ${STATUS_CLASS[m.status]}`}>{t(m.statusLabel)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <BottomNav />

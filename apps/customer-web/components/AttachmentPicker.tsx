@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { api } from '@/lib/api';
 import { ApiError, UPLOAD_ACCEPT, UPLOAD_MAX_BYTES } from '@/lib/types';
 import { useT } from '@/lib/i18n';
@@ -61,12 +62,12 @@ export function AttachmentPicker({ files, onChange }: { files: PickedFile[]; onC
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {files.map((f) => (
             <span key={f.id} className="badge badge-unknown" style={{ gap: 6 }}>
-              📎 {f.name}
+              <Icon name="paperclip" size={13} /> {f.name}
               <button
                 type="button"
                 aria-label={t('Elimină {name}', { name: f.name })}
                 onClick={() => onChange(files.filter((x) => x.id !== f.id))}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 'var(--text-md)', lineHeight: 1 }}
               >
                 ×
               </button>
@@ -83,11 +84,11 @@ export function AttachmentPicker({ files, onChange }: { files: PickedFile[]; onC
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          {busy ? t('Se încarcă…') : t('📎 Adaugă atașament')}
+          {busy ? t('Se încarcă…') : t('Adaugă atașament')}
         </button>
       </div>
       {error ? (
-        <div className="alert alert-err" role="alert" style={{ fontSize: '0.85rem' }}>
+        <div className="alert alert-err" role="alert" style={{ fontSize: 'var(--text-sm)' }}>
           {error}
         </div>
       ) : null}

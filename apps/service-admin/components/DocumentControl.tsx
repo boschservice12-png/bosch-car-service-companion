@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { api } from '@/lib/api';
 import { ApiError, UPLOAD_ACCEPT, UPLOAD_MAX_BYTES, type Deadline } from '@/lib/types';
 import { useT } from '@/lib/i18n';
@@ -75,9 +76,9 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
     <div className="stack" style={{ gap: 6 }}>
       {doc ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span aria-hidden>📎</span>
-          <span style={{ fontSize: '0.9rem', wordBreak: 'break-all' }}>{doc.originalName ?? t('document')}</span>
-          <span className="muted" style={{ fontSize: '0.78rem' }}>
+          <Icon name="paperclip" size={14} />
+          <span style={{ fontSize: 'var(--text-sm)', wordBreak: 'break-all' }}>{doc.originalName ?? t('document')}</span>
+          <span className="muted" style={{ fontSize: 'var(--text-xs)' }}>
             {formatSize(doc.sizeBytes)}
           </span>
           {doc.scanStatus === 'PENDING' ? (
@@ -102,7 +103,7 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
           ) : null}
         </div>
       ) : (
-        <span className="muted" style={{ fontSize: '0.85rem' }}>
+        <span className="muted" style={{ fontSize: 'var(--text-sm)' }}>
           {t('Niciun document ataşat.')}
         </span>
       )}
@@ -122,15 +123,15 @@ export function DocumentControl({ deadline, onChange }: { deadline: Deadline; on
           disabled={busy}
           onClick={() => inputRef.current?.click()}
         >
-          {busy ? t('Se încarcă…') : doc ? t('Înlocuieşte documentul') : t('📎 Ataşează document')}
+          {busy ? t('Se încarcă…') : doc ? t('Înlocuieşte documentul') : t('Ataşează document')}
         </button>
-        <span className="muted" style={{ fontSize: '0.75rem', marginLeft: 8 }}>
+        <span className="muted" style={{ fontSize: 'var(--text-xs)', marginLeft: 8 }}>
           {t('JPG, PNG, WEBP sau PDF · max {n} MB', { n: Math.round(UPLOAD_MAX_BYTES / (1024 * 1024)) })}
         </span>
       </div>
 
       {error ? (
-        <div className="alert alert-err" role="alert" style={{ fontSize: '0.85rem' }}>
+        <div className="alert alert-err" role="alert" style={{ fontSize: 'var(--text-sm)' }}>
           {error}
         </div>
       ) : null}

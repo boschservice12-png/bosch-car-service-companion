@@ -20,6 +20,17 @@ export const LOCALE_NAMES: Record<Locale, string> = { ro: 'RO', hu: 'HU', en: 'E
 type Dict = Record<string, string>;
 
 const HU: Dict = {
+  'Cont': 'Fiók',
+  'VIN:': 'VIN:',
+  'Identificare': 'Azonosítás',
+  'Istoric service și documente': 'Szervizelőzmények és dokumentumok',
+  'Rovinietă și taxe': 'Útdíj és illetékek',
+  'Asigurare (RCA)': 'Kötelező biztosítás (RCA)',
+  'Inspecție tehnică (ITP)': 'Műszaki vizsga (ITP)',
+  'Vă luați câteva minute o dată; după aceea scadențele vin la dumneavoastră.': 'Egyszer szán rá néhány percet; utána a lejáratok maguktól érkeznek.',
+  'Introduceți datele contului pentru a continua.': 'Adja meg fiókja adatait a folytatáshoz.',
+  'Cont client': 'Ügyfélfiók',
+  'Scadențele mașinii, într-un singur loc.': 'Az autó lejáratai egy helyen.',
   // Navigație / comune
   'Acasă': 'Kezdőlap',
   'Vehicule': 'Járművek',
@@ -65,23 +76,20 @@ const HU: Dict = {
   'Parolă': 'Jelszó',
   '+ Cerere': '+ Kérelem',
   'Cererea nu este disponibilă.': 'A kérelem nem érhető el.',
-
   // Acasă
   'Bună,': 'Üdv,',
   'client': 'ügyfél',
   'Bine ați venit la Bosch Car Service Companion.': 'Üdvözöljük a Bosch Car Service Companion alkalmazásban.',
   'Scurtături': 'Gyorsgombok',
   'Servicii': 'Szolgáltatások',
-  '🚗 Vehiculele mele': '🚗 Járműveim',
-  '➕ Adaugă un vehicul': '➕ Jármű hozzáadása',
-  '🔔 Alerte (ITP · RCA · taxă de drum · asistență)': '🔔 Riasztások (műszaki · RCA · útdíj · assistance)',
-  '🧰 Cere ofertă': '🧰 Ajánlatkérés',
-  '💬 Mesaje': '💬 Üzenetek',
-  '🆘 Asistență rutieră': '🆘 Autómentés',
-  '🚕 Mobilitate': '🚕 Mobilitás',
-  '📋 În caz de accident ↗': '📋 Baleset esetén ↗',
-  '🧾 Taxe și impozite': '🧾 Adók és illetékek',
-
+  'Vehiculele mele': 'Járműveim',
+  'Adaugă un vehicul': 'Jármű hozzáadása',
+  'Alerte (ITP · RCA · taxă de drum · asistență)': 'Riasztások (műszaki · RCA · útdíj · assistance)',
+  'Cere ofertă': 'Ajánlatkérés',
+  'Asistență rutieră': 'Autómentés',
+  'Mobilitate': 'Mobilitás',
+  'În caz de accident': 'Baleset esetén',
+  'Taxe și impozite': 'Adók és illetékek',
   // Etichete backend (statusuri și tipuri)
   'Neplătită': 'Nincs befizetve',
   'Parțial plătită': 'Részben befizetve',
@@ -120,7 +128,6 @@ const HU: Dict = {
   'Expirat': 'Lejárt',
   'ITP': 'Műszaki vizsga (ITP)',
   'Taxă de drum': 'Útdíj',
-  'Asistență rutieră': 'Autómentés',
   'Mașină de înlocuire': 'Cserejármű',
   'Taxi': 'Taxi',
   'Transport persoane': 'Személyszállítás',
@@ -129,13 +136,16 @@ const HU: Dict = {
   'Contactat': 'Felvettük a kapcsolatot',
   'Confirmată': 'Megerősítve',
   'Indisponibilă': 'Nem elérhető',
-
   // Scadențe (DeadlineBadge)
   'fără dată': 'nincs dátum',
+  'zile': 'nap',
+  'Vezi toate': 'Összes megtekintése',
+  'Vehicul': 'Jármű',
+  'Stare': 'Állapot',
+  'Niciun vehicul încă.': 'Még nincs jármű.',
   'expiră azi': 'ma jár le',
   'expirat de {n} zile': '{n} napja lejárt',
   '{n} zile rămase': '{n} nap van hátra',
-
   // Atașamente și documente
   'Fișier gol.': 'Üres fájl.',
   'Fișierul depășește {n} MB.': 'A fájl meghaladja a {n} MB-ot.',
@@ -143,30 +153,27 @@ const HU: Dict = {
   'Tip de fișier nepermis (JPG, PNG, WEBP, PDF).': 'Nem engedélyezett fájltípus (JPG, PNG, WEBP, PDF).',
   'Tip de fișier nepermis. Acceptăm imagini (JPG, PNG, WEBP) și PDF.': 'Nem engedélyezett fájltípus. Képeket (JPG, PNG, WEBP) és PDF-et fogadunk el.',
   'Elimină {name}': '{name} eltávolítása',
-  '📎 Adaugă atașament': '📎 Melléklet hozzáadása',
+  'Adaugă atașament': 'Melléklet hozzáadása',
   'respins (malware)': 'elutasítva (kártevő)',
   'Niciun document ataşat.': 'Nincs csatolt dokumentum.',
   'Înlocuieşte documentul': 'Dokumentum cseréje',
-  '📎 Ataşează document': '📎 Dokumentum csatolása',
+  'Ataşează document': 'Dokumentum csatolása',
   'JPG, PNG, WEBP sau PDF · max {n} MB': 'JPG, PNG, WEBP vagy PDF · max. {n} MB',
-
   // Istoric service (ServiceRecordView)
   'Lucrare': 'Munkálat',
-  '✎ Corecție': '✎ Javítás',
+  'Corecție': 'Javítás',
   'Motiv:': 'Ok:',
   '• Corectat ulterior': '• Utólag javítva',
   'Piese:': 'Alkatrészek:',
   'Manoperă:': 'Munkadíj:',
   'Total:': 'Összesen:',
   'Garanție:': 'Garancia:',
-
   // Autentificare
   'Autentificare': 'Bejelentkezés',
   'Se conectează…': 'Bejelentkezés…',
   'Intră în cont': 'Belépés',
   'Nu aveți cont?': 'Nincs még fiókja?',
   'Creați unul': 'Hozzon létre egyet',
-
   // Creare cont
   'Creare cont': 'Fiók létrehozása',
   'Dacă sunteți deja client al service-ului, cereți service-ului un cod de activare pentru vehicul și introduceți-l după autentificare (pagina Vehicule).':
@@ -188,41 +195,36 @@ const HU: Dict = {
   'Creează cont': 'Fiók létrehozása',
   'Aveți deja cont?': 'Már van fiókja?',
   'Autentificați-vă': 'Jelentkezzen be',
-
   // Profil
   'Nume:': 'Név:',
   'Email:': 'E-mail:',
   'Rol:': 'Szerep:',
   'Administrator service': 'Szerviz-adminisztrátor',
   'Deconectare': 'Kijelentkezés',
-
   // Alerte
-  '← Acasă': '← Kezdőlap',
   'Alerte': 'Riasztások',
   'ITP · RCA · Taxă de drum · Asistență rutieră — pentru toate vehiculele dumneavoastră.':
     'Műszaki vizsga · RCA · Útdíj · Autómentés — az összes járművéhez.',
   'Nicio alertă': 'Nincs riasztás',
   'Adăugați scadențele (ITP, RCA, taxă de drum) pe pagina fiecărui vehicul.':
     'Adja meg a lejáratokat (műszaki, RCA, útdíj) az egyes járművek oldalán.',
-  ' · verificare ITP (RAR) ↗': ' · műszaki vizsga ellenőrzése (RAR) ↗',
-  ' · verificare RCA (AIDA) ↗': ' · RCA ellenőrzése (AIDA) ↗',
-  ' · verificare taxă de drum (eRovinieta) ↗': ' · útdíj ellenőrzése (eRovinieta) ↗',
+  ' · verificare ITP (RAR)': ' · műszaki vizsga ellenőrzése (RAR)',
+  ' · verificare RCA (AIDA)': ' · RCA ellenőrzése (AIDA)',
+  ' · verificare taxă de drum (eRovinieta)': ' · útdíj ellenőrzése (eRovinieta)',
   ' · validat de service': ' · szerviz által jóváhagyva',
-  '🚗 Gestionează scadențele pe vehicul': '🚗 Lejáratok kezelése járművenként',
+  'Gestionează scadențele pe vehicul': 'Lejáratok kezelése járművenként',
   'Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.':
     'Az állapotokat a megadott és jóváhagyott adatok alapján számítjuk; az alkalmazás nem kérdez le hivatalos adatbázisokat.',
 
   // Vehicule
-  'Vehiculele mele': 'Járműveim',
   'Nu am putut încărca vehiculele.': 'Nem sikerült betölteni a járműveket.',
   'Niciun vehicul încă': 'Még nincs jármű',
   'Adăugați primul vehicul pentru a urmări scadențele și istoricul.':
     'Adja hozzá első járművét a lejáratok és az előzmények követéséhez.',
-  '➕ Adaugă vehicul': '➕ Jármű hozzáadása',
-  'Detalii {plate}': '{plate} részletei',
-  'Detalii →': 'Részletek →',
-  '➕ Adaugă alt vehicul': '➕ Másik jármű hozzáadása',
   'Adaugă vehicul': 'Jármű hozzáadása',
+  'Detalii {plate}': '{plate} részletei',
+  'Detalii': 'Részletek',
+  'Adaugă alt vehicul': 'Másik jármű hozzáadása',
   'Serie de șasiu (VIN)': 'Alvázszám (VIN)',
   '17 caractere, fără literele I, O, Q.': '17 karakter, az I, O, Q betűk nélkül.',
   'Număr de înmatriculare': 'Rendszám',
@@ -234,12 +236,10 @@ const HU: Dict = {
   'Scadențe': 'Lejáratok',
   'neintrodus': 'nincs megadva',
   ' · validat': ' · jóváhagyva',
-  'Verificare ITP (RAR) ↗': 'Műszaki vizsga ellenőrzése (RAR) ↗',
-  'Verificare RCA (AIDA) ↗': 'RCA ellenőrzése (AIDA) ↗',
-  'Verificare taxă de drum (eRovinieta) ↗': 'Útdíj ellenőrzése (eRovinieta) ↗',
-  '➕ Adaugă / actualizează scadență': '➕ Lejárat hozzáadása / frissítése',
-  '🧾 Istoric service': '🧾 Szervizelőzmények',
-  '← Vehicul': '← Jármű',
+  'Verificare ITP (RAR)': 'Műszaki vizsga ellenőrzése (RAR)',
+  'Verificare RCA (AIDA)': 'RCA ellenőrzése (AIDA)',
+  'Verificare taxă de drum (eRovinieta)': 'Útdíj ellenőrzése (eRovinieta)',
+  'Adaugă / actualizează scadență': 'Lejárat hozzáadása / frissítése',
   'Istoric service': 'Szervizelőzmények',
   'Istoricul nu este disponibil sau vehiculul nu vă aparține.':
     'Az előzmények nem érhetők el, vagy a jármű nem Önhöz tartozik.',
@@ -252,15 +252,12 @@ const HU: Dict = {
   'Valabil de la (opțional)': 'Érvényes ettől (opcionális)',
   'Notă (opțional)': 'Megjegyzés (opcionális)',
   'Salvează scadența': 'Lejárat mentése',
-
   // Taxe și impozite
-  'Taxe și impozite': 'Adók és illetékek',
   '+ Taxă': '+ Adó',
   'Nicio taxă': 'Nincs adó',
   'Adăugați taxele și impozitele anuale pentru a le urmări plata.':
     'Adja hozzá az éves adókat és illetékeket a befizetések követéséhez.',
   ' · scadent {date}': ' · esedékes: {date}',
-  '← Taxe și impozite': '← Adók és illetékek',
   'Taxa nu este disponibilă.': 'Az adó nem érhető el.',
   'Plătit până acum:': 'Eddig befizetve:',
   'Scadență:': 'Esedékesség:',
@@ -277,15 +274,14 @@ const HU: Dict = {
     'Befizetett összeg (RON, opcionális — részleges befizetéshez)',
   'Înregistrează plata parțială': 'Részleges befizetés rögzítése',
   'Marchează plătită integral': 'Megjelölés teljesen befizetettként',
-  '✏️ Editează': '✏️ Szerkesztés',
-  '🗑 Șterge': '🗑 Törlés',
+  'Editează': 'Szerkesztés',
+  'Șterge': 'Törlés',
   'Ștergeți această taxă din evidență?': 'Törli ezt az adót a nyilvántartásból?',
   'Taxă nouă': 'Új adó',
   'Adaugă taxa': 'Adó hozzáadása',
-
   // Asistență rutieră
   'Solicită asistență — alege situația ta': 'Kérjen segítséget — válassza ki a helyzetét',
-  '🚨 Am asistență rutieră activă': '🚨 Van aktív autómentés-szolgáltatásom',
+  'Am asistență rutieră activă': 'Van aktív autómentés-szolgáltatásom',
   'Fără asistență rutieră': 'Nincs autómentés-szolgáltatásom',
   'Linia de asistență NON-STOP': 'NON-STOP segélyvonal',
   'Dispeceratul service-ului': 'A szerviz diszpécserszolgálata',
@@ -295,7 +291,6 @@ const HU: Dict = {
   'Nicio cerere': 'Nincs kérelem',
   'Deschideți o cerere de asistență dacă aveți nevoie de ajutor pe drum.':
     'Nyisson segítségkérelmet, ha útközben segítségre van szüksége.',
-  '← Asistență rutieră': '← Autómentés',
   'Cerere de asistență': 'Segítségkérelem',
   'Locație:': 'Helyszín:',
   'Problemă:': 'Probléma:',
@@ -314,30 +309,24 @@ const HU: Dict = {
   'Nu, situație periculoasă': 'Nem, veszélyes a helyzet',
   'Telefon de contact': 'Kapcsolattartási telefonszám',
   'Trimite cererea': 'Kérelem elküldése',
-
   // Mobilitate
-  'Mobilitate': 'Mobilitás',
   'Aveți nevoie de mobilitate acum?': 'Mobilitásra van szüksége most?',
   'Trimiteți o cerere, sau sunați direct dispeceratul.': 'Küldjön kérelmet, vagy hívja közvetlenül a diszpécserszolgálatot.',
-  '📞 Sună {phone}': '📞 Hívás: {phone}',
+  'Sună {phone}': 'Hívás: {phone}',
   'Nicio solicitare': 'Nincs igénylés',
   'Cereți o mașină de înlocuire, un taxi sau transport acasă.': 'Kérjen cserejárművet, taxit vagy hazaszállítást.',
   'Pentru {date}': '{date} napra',
-  '← Mobilitate': '← Mobilitás',
   'Solicitarea nu este disponibilă.': 'Az igénylés nem érhető el.',
   'Detalii:': 'Részletek:',
   'Data preferată:': 'Kívánt dátum:',
   'Anulează solicitarea': 'Igénylés visszavonása',
   'Solicitare de mobilitate': 'Mobilitási igénylés',
-  'Detalii': 'Részletek',
   'Data preferată (opțional)': 'Kívánt dátum (opcionális)',
   'Trimite solicitarea': 'Igénylés elküldése',
-
   // Mesaje
   '+ Nou': '+ Új',
   'Nicio conversație': 'Nincs beszélgetés',
   'Trimiteți un mesaj sau o cerere de ofertă service-ului.': 'Küldjön üzenetet vagy ajánlatkérést a szerviznek.',
-  '← Mesaje': '← Üzenetek',
   'Conversația nu este disponibilă.': 'A beszélgetés nem érhető el.',
   'Conversație închisă de service. Nu se mai pot trimite mesaje.':
     'A beszélgetést a szerviz lezárta. Több üzenet nem küldhető.',
@@ -346,13 +335,11 @@ const HU: Dict = {
   'Mesaj nou': 'Új üzenet',
   'Subiect': 'Tárgy',
   'Mesaj': 'Üzenet',
-
   // Oferte
-  'Cere ofertă': 'Ajánlatkérés',
   'Nicio cerere de ofertă': 'Nincs ajánlatkérés',
   'Descrieți problema și primiți o estimare de preț de la service.':
     'Írja le a problémát, és kapjon árbecslést a szerviztől.',
-  '← Cereri de ofertă': '← Ajánlatkérések',
+  'Cereri de ofertă': 'Ajánlatkérések',
   'Cerere de ofertă': 'Ajánlatkérés',
   'Kilometraj:': 'Kilométeróra-állás:',
   'Când apare:': 'Mikor jelentkezik:',
@@ -383,7 +370,6 @@ const HU: Dict = {
   'Interval preferat (opțional)': 'Kívánt időszak (opcionális)',
   'Ex.: luni–vineri după 16:00': 'Pl.: hétfő–péntek 16:00 után',
   'Salvează ca ciornă': 'Mentés piszkozatként',
-
   // Înregistrare — revendicarea contului importat (P1-02)
   'Număr de înmatriculare (opțional)': 'Rendszám (nem kötelező)',
   'Dacă sunteți deja client al service-ului, confirmați numărul de înmatriculare al mașinii — contul se leagă automat de vehiculele și istoricul dumneavoastră.':
@@ -413,7 +399,7 @@ const HU: Dict = {
   'Confirmă apăsând „Adăugați”.': 'Erősítse meg a „Hozzáadás” gombbal.',
   // GDPR (P1-06)
   'Datele mele (GDPR)': 'Az adataim (GDPR)',
-  '⬇️ Descarcă datele mele (JSON)': '⬇️ Adataim letöltése (JSON)',
+  'Descarcă datele mele (JSON)': 'Adataim letöltése (JSON)',
   'Șterge contul…': 'Fiók törlése…',
   'Contul se blochează imediat, iar după 30 de zile datele personale se șterg definitiv. În acest interval vă puteți răzgândi contactând service-ul.':
     'A fiók azonnal zárolódik, 30 nap után pedig a személyes adatok véglegesen törlődnek. Ez idő alatt meggondolhatja magát — vegye fel a kapcsolatot a szervizzel.',
@@ -422,6 +408,17 @@ const HU: Dict = {
 };
 
 const EN: Dict = {
+  'Cont': 'Account',
+  'VIN:': 'VIN:',
+  'Identificare': 'Identification',
+  'Istoric service și documente': 'Service history and documents',
+  'Rovinietă și taxe': 'Road tax and duties',
+  'Asigurare (RCA)': 'Insurance (RCA)',
+  'Inspecție tehnică (ITP)': 'Technical inspection (ITP)',
+  'Vă luați câteva minute o dată; după aceea scadențele vin la dumneavoastră.': 'It takes a few minutes once; after that the deadlines come to you.',
+  'Introduceți datele contului pentru a continua.': 'Enter your account details to continue.',
+  'Cont client': 'Customer account',
+  'Scadențele mașinii, într-un singur loc.': 'Your car\'s deadlines, in one place.',
   // Navigație / comune
   'Acasă': 'Home',
   'Vehicule': 'Vehicles',
@@ -467,23 +464,20 @@ const EN: Dict = {
   'Parolă': 'Password',
   '+ Cerere': '+ Request',
   'Cererea nu este disponibilă.': 'This request is not available.',
-
   // Acasă
   'Bună,': 'Hello,',
   'client': 'customer',
   'Bine ați venit la Bosch Car Service Companion.': 'Welcome to Bosch Car Service Companion.',
   'Scurtături': 'Shortcuts',
   'Servicii': 'Services',
-  '🚗 Vehiculele mele': '🚗 My vehicles',
-  '➕ Adaugă un vehicul': '➕ Add a vehicle',
-  '🔔 Alerte (ITP · RCA · taxă de drum · asistență)': '🔔 Alerts (inspection · RCA · road tax · assistance)',
-  '🧰 Cere ofertă': '🧰 Request a quote',
-  '💬 Mesaje': '💬 Messages',
-  '🆘 Asistență rutieră': '🆘 Roadside assistance',
-  '🚕 Mobilitate': '🚕 Mobility',
-  '📋 În caz de accident ↗': '📋 In case of accident ↗',
-  '🧾 Taxe și impozite': '🧾 Taxes & duties',
-
+  'Vehiculele mele': 'My vehicles',
+  'Adaugă un vehicul': 'Add a vehicle',
+  'Alerte (ITP · RCA · taxă de drum · asistență)': 'Alerts (inspection · RCA · road tax · assistance)',
+  'Cere ofertă': 'Request a quote',
+  'Asistență rutieră': 'Roadside assistance',
+  'Mobilitate': 'Mobility',
+  'În caz de accident': 'In case of accident',
+  'Taxe și impozite': 'Taxes & duties',
   // Etichete backend (statusuri și tipuri)
   'Neplătită': 'Unpaid',
   'Parțial plătită': 'Partially paid',
@@ -522,7 +516,6 @@ const EN: Dict = {
   'Expirat': 'Expired',
   'ITP': 'Inspection (ITP)',
   'Taxă de drum': 'Road tax',
-  'Asistență rutieră': 'Roadside assistance',
   'Mașină de înlocuire': 'Replacement car',
   'Taxi': 'Taxi',
   'Transport persoane': 'Passenger transport',
@@ -531,13 +524,16 @@ const EN: Dict = {
   'Contactat': 'Contacted',
   'Confirmată': 'Confirmed',
   'Indisponibilă': 'Unavailable',
-
   // Scadențe (DeadlineBadge)
   'fără dată': 'no date',
+  'zile': 'days',
+  'Vezi toate': 'View all',
+  'Vehicul': 'Vehicle',
+  'Stare': 'Status',
+  'Niciun vehicul încă.': 'No vehicles yet.',
   'expiră azi': 'expires today',
   'expirat de {n} zile': 'expired {n} days ago',
   '{n} zile rămase': '{n} days left',
-
   // Atașamente și documente
   'Fișier gol.': 'Empty file.',
   'Fișierul depășește {n} MB.': 'File exceeds {n} MB.',
@@ -546,30 +542,27 @@ const EN: Dict = {
   'Tip de fișier nepermis. Acceptăm imagini (JPG, PNG, WEBP) și PDF.':
     'File type not allowed. We accept images (JPG, PNG, WEBP) and PDF.',
   'Elimină {name}': 'Remove {name}',
-  '📎 Adaugă atașament': '📎 Add attachment',
+  'Adaugă atașament': 'Add attachment',
   'respins (malware)': 'rejected (malware)',
   'Niciun document ataşat.': 'No document attached.',
   'Înlocuieşte documentul': 'Replace document',
-  '📎 Ataşează document': '📎 Attach document',
+  'Ataşează document': 'Attach document',
   'JPG, PNG, WEBP sau PDF · max {n} MB': 'JPG, PNG, WEBP or PDF · max {n} MB',
-
   // Istoric service (ServiceRecordView)
   'Lucrare': 'Work',
-  '✎ Corecție': '✎ Correction',
+  'Corecție': 'Correction',
   'Motiv:': 'Reason:',
   '• Corectat ulterior': '• Corrected later',
   'Piese:': 'Parts:',
   'Manoperă:': 'Labor:',
   'Total:': 'Total:',
   'Garanție:': 'Warranty:',
-
   // Autentificare
   'Autentificare': 'Sign in',
   'Se conectează…': 'Signing in…',
   'Intră în cont': 'Sign in',
   'Nu aveți cont?': "Don't have an account?",
   'Creați unul': 'Create one',
-
   // Creare cont
   'Creare cont': 'Create account',
   'Dacă sunteți deja client al service-ului, cereți service-ului un cod de activare pentru vehicul și introduceți-l după autentificare (pagina Vehicule).':
@@ -591,41 +584,36 @@ const EN: Dict = {
   'Creează cont': 'Create account',
   'Aveți deja cont?': 'Already have an account?',
   'Autentificați-vă': 'Sign in',
-
   // Profil
   'Nume:': 'Name:',
   'Email:': 'Email:',
   'Rol:': 'Role:',
   'Administrator service': 'Service administrator',
   'Deconectare': 'Sign out',
-
   // Alerte
-  '← Acasă': '← Home',
   'Alerte': 'Alerts',
   'ITP · RCA · Taxă de drum · Asistență rutieră — pentru toate vehiculele dumneavoastră.':
     'Inspection · RCA · Road tax · Roadside assistance — for all your vehicles.',
   'Nicio alertă': 'No alerts',
   'Adăugați scadențele (ITP, RCA, taxă de drum) pe pagina fiecărui vehicul.':
     'Add deadlines (inspection, RCA, road tax) on each vehicle page.',
-  ' · verificare ITP (RAR) ↗': ' · check inspection (RAR) ↗',
-  ' · verificare RCA (AIDA) ↗': ' · check RCA (AIDA) ↗',
-  ' · verificare taxă de drum (eRovinieta) ↗': ' · check road tax (eRovinieta) ↗',
+  ' · verificare ITP (RAR)': ' · check inspection (RAR)',
+  ' · verificare RCA (AIDA)': ' · check RCA (AIDA)',
+  ' · verificare taxă de drum (eRovinieta)': ' · check road tax (eRovinieta)',
   ' · validat de service': ' · verified by the service',
-  '🚗 Gestionează scadențele pe vehicul': '🚗 Manage deadlines per vehicle',
+  'Gestionează scadențele pe vehicul': 'Manage deadlines per vehicle',
   'Stările se calculează pe baza datelor introduse și validate; aplicația nu interoghează baze oficiale.':
     'Statuses are calculated from entered and verified data; the app does not query official databases.',
 
   // Vehicule
-  'Vehiculele mele': 'My vehicles',
   'Nu am putut încărca vehiculele.': 'Could not load vehicles.',
   'Niciun vehicul încă': 'No vehicles yet',
   'Adăugați primul vehicul pentru a urmări scadențele și istoricul.':
     'Add your first vehicle to track deadlines and history.',
-  '➕ Adaugă vehicul': '➕ Add vehicle',
-  'Detalii {plate}': 'Details for {plate}',
-  'Detalii →': 'Details →',
-  '➕ Adaugă alt vehicul': '➕ Add another vehicle',
   'Adaugă vehicul': 'Add vehicle',
+  'Detalii {plate}': 'Details for {plate}',
+  'Detalii': 'Details',
+  'Adaugă alt vehicul': 'Add another vehicle',
   'Serie de șasiu (VIN)': 'Chassis number (VIN)',
   '17 caractere, fără literele I, O, Q.': '17 characters, without the letters I, O, Q.',
   'Număr de înmatriculare': 'License plate',
@@ -637,12 +625,10 @@ const EN: Dict = {
   'Scadențe': 'Deadlines',
   'neintrodus': 'not set',
   ' · validat': ' · verified',
-  'Verificare ITP (RAR) ↗': 'Check inspection (RAR) ↗',
-  'Verificare RCA (AIDA) ↗': 'Check RCA (AIDA) ↗',
-  'Verificare taxă de drum (eRovinieta) ↗': 'Check road tax (eRovinieta) ↗',
-  '➕ Adaugă / actualizează scadență': '➕ Add / update deadline',
-  '🧾 Istoric service': '🧾 Service history',
-  '← Vehicul': '← Vehicle',
+  'Verificare ITP (RAR)': 'Check inspection (RAR)',
+  'Verificare RCA (AIDA)': 'Check RCA (AIDA)',
+  'Verificare taxă de drum (eRovinieta)': 'Check road tax (eRovinieta)',
+  'Adaugă / actualizează scadență': 'Add / update deadline',
   'Istoric service': 'Service history',
   'Istoricul nu este disponibil sau vehiculul nu vă aparține.':
     'History is not available or the vehicle does not belong to you.',
@@ -655,15 +641,12 @@ const EN: Dict = {
   'Valabil de la (opțional)': 'Valid from (optional)',
   'Notă (opțional)': 'Note (optional)',
   'Salvează scadența': 'Save deadline',
-
   // Taxe și impozite
-  'Taxe și impozite': 'Taxes & duties',
   '+ Taxă': '+ Tax',
   'Nicio taxă': 'No taxes',
   'Adăugați taxele și impozitele anuale pentru a le urmări plata.':
     'Add your annual taxes and duties to track their payment.',
   ' · scadent {date}': ' · due {date}',
-  '← Taxe și impozite': '← Taxes & duties',
   'Taxa nu este disponibilă.': 'This tax is not available.',
   'Plătit până acum:': 'Paid so far:',
   'Scadență:': 'Due date:',
@@ -679,15 +662,14 @@ const EN: Dict = {
   'Sumă plătită (RON, opțional — pentru plată parțială)': 'Amount paid (RON, optional — for partial payment)',
   'Înregistrează plata parțială': 'Record partial payment',
   'Marchează plătită integral': 'Mark as fully paid',
-  '✏️ Editează': '✏️ Edit',
-  '🗑 Șterge': '🗑 Delete',
+  'Editează': 'Edit',
+  'Șterge': 'Delete',
   'Ștergeți această taxă din evidență?': 'Delete this tax from your records?',
   'Taxă nouă': 'New tax',
   'Adaugă taxa': 'Add tax',
-
   // Asistență rutieră
   'Solicită asistență — alege situația ta': 'Request assistance — choose your situation',
-  '🚨 Am asistență rutieră activă': '🚨 I have active roadside assistance',
+  'Am asistență rutieră activă': 'I have active roadside assistance',
   'Fără asistență rutieră': 'No roadside assistance',
   'Linia de asistență NON-STOP': 'NON-STOP assistance line',
   'Dispeceratul service-ului': 'Service dispatch line',
@@ -697,7 +679,6 @@ const EN: Dict = {
   'Nicio cerere': 'No requests',
   'Deschideți o cerere de asistență dacă aveți nevoie de ajutor pe drum.':
     'Open an assistance request if you need help on the road.',
-  '← Asistență rutieră': '← Roadside assistance',
   'Cerere de asistență': 'Assistance request',
   'Locație:': 'Location:',
   'Problemă:': 'Problem:',
@@ -716,31 +697,25 @@ const EN: Dict = {
   'Nu, situație periculoasă': 'No, dangerous situation',
   'Telefon de contact': 'Contact phone',
   'Trimite cererea': 'Send request',
-
   // Mobilitate
-  'Mobilitate': 'Mobility',
   'Aveți nevoie de mobilitate acum?': 'Need mobility right now?',
   'Trimiteți o cerere, sau sunați direct dispeceratul.': 'Send a request, or call the dispatch line directly.',
-  '📞 Sună {phone}': '📞 Call {phone}',
+  'Sună {phone}': 'Call {phone}',
   'Nicio solicitare': 'No requests yet',
   'Cereți o mașină de înlocuire, un taxi sau transport acasă.':
     'Request a replacement car, a taxi, or a ride home.',
   'Pentru {date}': 'For {date}',
-  '← Mobilitate': '← Mobility',
   'Solicitarea nu este disponibilă.': 'This request is not available.',
   'Detalii:': 'Details:',
   'Data preferată:': 'Preferred date:',
   'Anulează solicitarea': 'Cancel request',
   'Solicitare de mobilitate': 'Mobility request',
-  'Detalii': 'Details',
   'Data preferată (opțional)': 'Preferred date (optional)',
   'Trimite solicitarea': 'Send request',
-
   // Mesaje
   '+ Nou': '+ New',
   'Nicio conversație': 'No conversations',
   'Trimiteți un mesaj sau o cerere de ofertă service-ului.': 'Send the service a message or a quote request.',
-  '← Mesaje': '← Messages',
   'Conversația nu este disponibilă.': 'This conversation is not available.',
   'Conversație închisă de service. Nu se mai pot trimite mesaje.':
     'Conversation closed by the service. No more messages can be sent.',
@@ -749,13 +724,11 @@ const EN: Dict = {
   'Mesaj nou': 'New message',
   'Subiect': 'Subject',
   'Mesaj': 'Message',
-
   // Oferte
-  'Cere ofertă': 'Request a quote',
   'Nicio cerere de ofertă': 'No quote requests',
   'Descrieți problema și primiți o estimare de preț de la service.':
     'Describe the problem and get a price estimate from the service.',
-  '← Cereri de ofertă': '← Quote requests',
+  'Cereri de ofertă': 'Quote requests',
   'Cerere de ofertă': 'Quote request',
   'Kilometraj:': 'Mileage:',
   'Când apare:': 'When it occurs:',
@@ -786,7 +759,6 @@ const EN: Dict = {
   'Interval preferat (opțional)': 'Preferred time slot (optional)',
   'Ex.: luni–vineri după 16:00': 'E.g. Mon–Fri after 4 p.m.',
   'Salvează ca ciornă': 'Save as draft',
-
   // Înregistrare — revendicarea contului importat (P1-02)
   'Număr de înmatriculare (opțional)': 'Licence plate number (optional)',
   'Dacă sunteți deja client al service-ului, confirmați numărul de înmatriculare al mașinii — contul se leagă automat de vehiculele și istoricul dumneavoastră.':
@@ -816,7 +788,7 @@ const EN: Dict = {
   'Confirmă apăsând „Adăugați”.': 'Confirm by tapping “Add”.',
   // GDPR (P1-06)
   'Datele mele (GDPR)': 'My data (GDPR)',
-  '⬇️ Descarcă datele mele (JSON)': '⬇️ Download my data (JSON)',
+  'Descarcă datele mele (JSON)': 'Download my data (JSON)',
   'Șterge contul…': 'Delete account…',
   'Contul se blochează imediat, iar după 30 de zile datele personale se șterg definitiv. În acest interval vă puteți răzgândi contactând service-ul.':
     'The account is locked immediately, and after 30 days the personal data is permanently deleted. You can change your mind during this period by contacting the workshop.',

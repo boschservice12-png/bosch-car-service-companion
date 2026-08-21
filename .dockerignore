@@ -1,4 +1,4 @@
-# Context de build minimal pentru compose.demo.yaml (imaginea backend).
+# Minimal build context for compose.demo.yaml (the backend image).
 .git
 **/node_modules
 **/.next
@@ -6,7 +6,8 @@ backend/vendor
 backend/var
 **/.env.local
 apps/*/.next
-# P0-01: demo-ul vechi (Vite/localStorage) NU face parte din niciun produs și
-# nu trebuie să intre în contextul de build al vreunei imagini.
+# P0-01: the old demo (Vite/localStorage) is not part of any product and must
+# not enter the build context of any image.
 archive
 e2e
+apps/*/.next-*

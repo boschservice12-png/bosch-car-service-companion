@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Icon } from '@/components/Icon';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
@@ -40,12 +41,17 @@ export default function MessagesPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>{t('Mesaje')}</h1>
-        <Link className="btn" style={{ width: 'auto', padding: '8px 12px' }} href="/mesaje/nou">
-          {t('+ Nou')}
-        </Link>
-      </div>
+      <header className="page-head">
+        <div>
+          <h1>{t('Mesaje')}</h1>
+        </div>
+        <div className="page-head-actions">
+          <Link className="btn btn-sm" href="/mesaje/nou">
+            <Icon name="plus" size={16} />
+            {t('Mesaj nou')}
+          </Link>
+        </div>
+      </header>
 
       {error ? <ErrorState message={t(error)} onRetry={load} /> : null}
       {!error && items === null ? <Loading rows={3} /> : null}
@@ -54,21 +60,19 @@ export default function MessagesPage() {
       ) : null}
 
       {items && items.length > 0 ? (
-        <div className="stack" style={{ gap: 10 }}>
-          {items.map((c) => (
-            <Link key={c.id} href={`/mesaje/${c.id}`} className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <div className="list-row">
-                <div>
-                  <strong>💬 {c.subject}</strong>
-                  <div className="muted" style={{ fontSize: '0.82rem' }}>
-                    {c.lastMessagePreview ?? ''}
-                  </div>
-                </div>
+        <section className="panel">
+          <div className="panel-body-flush">
+            {items.map((c) => (
+              <Link key={c.id} href={`/mesaje/${c.id}`} className="row-link">
+                <span className="row-main">
+                  <span className="row-title">{c.subject}</span>
+                  <span className="row-sub">{c.lastMessagePreview ?? ''}</span>
+                </span>
                 <span className={`badge ${STATUS_CLASS[c.status]}`}>{t(c.statusLabel)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <BottomNav />

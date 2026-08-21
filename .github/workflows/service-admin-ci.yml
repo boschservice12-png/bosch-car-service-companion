@@ -2,7 +2,7 @@ name: Service Admin CI
 
 on:
   push:
-    branches: [ "claude/**", "main" ]
+    branches: [ "claude/**", "develop/**", "main" ]
     paths: [ "apps/service-admin/**", ".github/workflows/service-admin-ci.yml" ]
   pull_request:
     paths: [ "apps/service-admin/**", ".github/workflows/service-admin-ci.yml" ]
